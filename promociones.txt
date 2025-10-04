@@ -1,0 +1,4 @@
+CUPON10;cupon;10
+CUPON20;cupon;20
+Arroz;producto;5;3
+Leche;producto;15;2

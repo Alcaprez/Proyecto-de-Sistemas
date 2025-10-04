@@ -1,0 +1,51 @@
+﻿id;codigo;nombre;categoria;precio;stock;stockMinimo;vendidos;fechaIngreso;fechaVencimiento
+1;B001;Gaseosa Inca Kola 500ml;Bebidas;3.5;20;5;10;2025-01-01;2026-01-01
+2;B002;Coca Cola 500ml;Bebidas;3.5;25;5;15;2025-01-01;2026-01-01
+3;B003;Agua San Luis 600ml;Bebidas;2.0;30;5;12;2025-01-01;2025-12-01
+4;S001;Galletas Oreo;Snacks;2.0;50;10;20;2025-01-01;2025-06-01
+5;S002;Papitas Lay's Clásicas 140g;Snacks;4.5;40;8;25;2025-01-01;2025-08-01
+6;S003;Chizitos 100g;Snacks;3.0;35;8;18;2025-01-05;2025-09-01
+7;H001;Shampoo Sedal 200ml;Higiene;7.5;15;3;8;2025-02-15;2026-02-15
+8;H002;Jabón Dove 90g;Higiene;2.5;40;5;22;2025-02-01;2026-01-01
+9;H003;Pasta Dental Colgate 75ml;Higiene;3.2;35;5;19;2025-02-10;2027-01-01
+10;A001;Arroz Costeño 1kg;Granos;4.2;100;10;50;2025-01-10;2026-01-10
+11;P011;Producto de prueba 11;General;2.0;31;5;11;2025-01-01;2026-01-01
+12;P012;Producto de prueba 12;General;2.5;32;5;12;2025-01-01;2026-01-01
+13;P013;Producto de prueba 13;General;3.0;33;5;13;2025-01-01;2026-01-01
+14;P014;Producto de prueba 14;General;3.5;34;5;14;2025-01-01;2026-01-01
+15;P015;Producto de prueba 15;General;4.0;20;5;15;2025-01-01;2026-01-01
+16;P016;Producto de prueba 16;General;4.5;21;5;16;2025-01-01;2026-01-01
+17;P017;Producto de prueba 17;General;5.0;22;5;17;2025-01-01;2026-01-01
+18;P018;Producto de prueba 18;General;5.5;23;5;18;2025-01-01;2026-01-01
+19;P019;Producto de prueba 19;General;6.0;24;5;19;2025-01-01;2026-01-01
+20;P020;Producto de prueba 20;General;1.5;25;5;20;2025-01-01;2026-01-01
+21;P021;Producto de prueba 21;General;2.0;26;5;21;2025-01-01;2026-01-01
+22;P022;Producto de prueba 22;General;2.5;27;5;22;2025-01-01;2026-01-01
+23;P023;Producto de prueba 23;General;3.0;28;5;23;2025-01-01;2026-01-01
+24;P024;Producto de prueba 24;General;3.5;29;5;24;2025-01-01;2026-01-01
+25;P025;Producto de prueba 25;General;4.0;30;5;25;2025-01-01;2026-01-01
+26;P026;Producto de prueba 26;General;4.5;31;5;26;2025-01-01;2026-01-01
+27;P027;Producto de prueba 27;General;5.0;32;5;27;2025-01-01;2026-01-01
+28;P028;Producto de prueba 28;General;5.5;33;5;28;2025-01-01;2026-01-01
+29;P029;Producto de prueba 29;General;6.0;34;5;29;2025-01-01;2026-01-01
+30;P030;Producto de prueba 30;General;1.5;20;5;0;2025-01-01;2026-01-01
+31;P031;Producto de prueba 31;General;2.0;21;5;1;2025-01-01;2026-01-01
+32;P032;Producto de prueba 32;General;2.5;22;5;2;2025-01-01;2026-01-01
+33;P033;Producto de prueba 33;General;3.0;23;5;3;2025-01-01;2026-01-01
+34;P034;Producto de prueba 34;General;3.5;24;5;4;2025-01-01;2026-01-01
+35;P035;Producto de prueba 35;General;4.0;25;5;5;2025-01-01;2026-01-01
+36;P036;Producto de prueba 36;General;4.5;26;5;6;2025-01-01;2026-01-01
+37;P037;Producto de prueba 37;General;5.0;27;5;7;2025-01-01;2026-01-01
+38;P038;Producto de prueba 38;General;5.5;28;5;8;2025-01-01;2026-01-01
+39;P039;Producto de prueba 39;General;6.0;29;5;9;2025-01-01;2026-01-01
+40;P040;Producto de prueba 40;General;1.5;30;5;10;2025-01-01;2026-01-01
+41;P041;Producto de prueba 41;General;2.0;31;5;11;2025-01-01;2026-01-01
+42;P042;Producto de prueba 42;General;2.5;32;5;12;2025-01-01;2026-01-01
+43;P043;Producto de prueba 43;General;3.0;33;5;13;2025-01-01;2026-01-01
+44;P044;Producto de prueba 44;General;3.5;34;5;14;2025-01-01;2026-01-01
+45;P045;Producto de prueba 45;General;4.0;20;5;15;2025-01-01;2026-01-01
+46;P046;Producto de prueba 46;General;4.5;21;5;16;2025-01-01;2026-01-01
+47;P047;Producto de prueba 47;General;5.0;22;5;17;2025-01-01;2026-01-01
+48;P048;Producto de prueba 48;General;5.5;23;5;18;2025-01-01;2026-01-01
+49;P049;Producto de prueba 49;General;6.0;24;5;19;2025-01-01;2026-01-01
+50;P050;Producto de prueba 50;General;1.5;25;5;20;2025-01-01;2026-01-01
