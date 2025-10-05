@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoDAO {
+
     private static List<Producto> productos = new ArrayList<>();
     private static final String FILE_NAME = "productos.csv";
 
@@ -64,16 +65,16 @@ public class ProductoDAO {
 
                 try {
                     Producto p = new Producto(
-                            Integer.parseInt(partes[0]),   // idProducto
-                            partes[1],                     // codigo
-                            partes[2],                     // nombre
-                            partes[3],                     // categoria
+                            Integer.parseInt(partes[0]), // idProducto
+                            partes[1], // codigo
+                            partes[2], // nombre
+                            partes[3], // categoria
                             Double.parseDouble(partes[4]), // precioVenta
-                            Integer.parseInt(partes[5]),   // stock
-                            Integer.parseInt(partes[6]),   // stockMinimo
-                            Integer.parseInt(partes[7]),   // vendidos
-                            partes[8],                     // fechaIngreso
-                            partes[9]                      // fechaVencimiento
+                            Integer.parseInt(partes[5]), // stock
+                            Integer.parseInt(partes[6]), // stockMinimo
+                            Integer.parseInt(partes[7]), // vendidos
+                            partes[8], // fechaIngreso
+                            partes[9] // fechaVencimiento
                     );
                     lista.add(p);
                 } catch (NumberFormatException e) {
@@ -93,10 +94,10 @@ public class ProductoDAO {
             pw.println("id;codigo;nombre;categoria;precio;stock;stockMinimo;vendidos;fechaIngreso;fechaVencimiento");
 
             for (Producto p : productos) {
-                pw.println(p.getIdProducto() + ";" + p.getCodigo() + ";" + p.getNombre() + ";" +
-                        p.getCategoria() + ";" + p.getPrecioVenta() + ";" + p.getStock() + ";" +
-                        p.getStockMinimo() + ";" + p.getVendidos() + ";" +
-                        p.getFechaIngreso() + ";" + p.getFechaVencimiento());
+                pw.println(p.getIdProducto() + ";" + p.getCodigo() + ";" + p.getNombre() + ";"
+                        + p.getCategoria() + ";" + p.getPrecioVenta() + ";" + p.getStock() + ";"
+                        + p.getStockMinimo() + ";" + p.getVendidos() + ";"
+                        + p.getFechaIngreso() + ";" + p.getFechaVencimiento());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -152,4 +153,17 @@ public class ProductoDAO {
         productos.sort((a, b) -> Integer.compare(b.getVendidos(), a.getVendidos()));
         return productos;
     }
+
+    public Producto buscarPorNombre(String nombre) {
+        if (nombre == null) {
+            return null;
+        }
+        for (Producto p : productos) {
+            if (nombre.equalsIgnoreCase(p.getNombre())) {
+                return p;
+            }
+        }
+        return null;
+    }
+
 }
