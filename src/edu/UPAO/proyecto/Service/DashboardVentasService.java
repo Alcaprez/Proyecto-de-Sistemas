@@ -1,10 +1,13 @@
 package edu.UPAO.proyecto.Service;
 
-import edu.UPAO.proyecto.DAO.*;
+import edu.UPAO.proyecto.DAO.Barra;
+import edu.UPAO.proyecto.DAO.KPI;
+import edu.UPAO.proyecto.DAO.Slice;
 import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.PuntoDiario;
 import edu.UPAO.proyecto.Modelo.PuntoMensual;
 import edu.UPAO.proyecto.Modelo.Venta;
+import edu.UPAO.proyecto.VentasController;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -14,29 +17,24 @@ import java.util.stream.Stream;
 
 public class DashboardVentasService {
 
-    private final VentaDAO ventaDAO = new VentaDAO();
-
-    /** 
-     * Punto único: devuelve todo lo que la UI necesita según filtros 
-     */
     public Map<String, Object> consultar(LocalDate desde, LocalDate hasta, Integer productoIdFiltro) {
-        List<Venta> ventas = ventaDAO.listar(); // trae todas las ventas
+        
+        List<Venta> ventas = new ArrayList<>(VentasController.getVentas());
 
-        // --- Filtro por fecha ---
         if (desde != null) {
             ventas = ventas.stream()
-                    .filter(v -> v.getFecha().toLocalDate().compareTo(desde) >= 0)
+                    .filter(v -> !v.getFecha().toLocalDate().isBefore(desde))
                     .toList();
         }
         if (hasta != null) {
             ventas = ventas.stream()
-                    .filter(v -> v.getFecha().toLocalDate().compareTo(hasta) <= 0)
+                    .filter(v -> !v.getFecha().toLocalDate().isAfter(hasta))
                     .toList();
         }
 
-        // --- Filtro por producto ---
+       
         if (productoIdFiltro != null) {
-            int pid = productoIdFiltro;
+            final int pid = productoIdFiltro;
             ventas = ventas.stream().filter(v ->
                     v.getDetalleVenta() != null &&
                     v.getDetalleVenta().stream().anyMatch(d ->
@@ -53,7 +51,7 @@ public class DashboardVentasService {
         return out;
     }
 
-    // ---------- agregaciones ----------
+  
     private KPI kpis(List<Venta> ventas) {
         int totalVentas = ventas.size();
 
@@ -62,7 +60,7 @@ public class DashboardVentasService {
                 .mapToInt(DetalleVenta::getCantidad).sum();
 
         double gananciaTotal = ventas.stream().mapToDouble(Venta::calcularTotal).sum();
-        // Si luego agregas costo real, reemplaza este margen fijo
+       
         double gananciaBruta = gananciaTotal * 0.38;
 
         return new KPI(totalVentas, productosVendidos, r2(gananciaTotal), r2(gananciaBruta));
@@ -111,8 +109,8 @@ public class DashboardVentasService {
                 .toList();
     }
 
-    // ---------- util ----------
-    private double r2(double v) { 
-        return Math.round(v * 100.0) / 100.0; 
+  
+    private double r2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 }
