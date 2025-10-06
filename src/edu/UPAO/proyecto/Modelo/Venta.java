@@ -129,4 +129,62 @@ public class Venta {
 
         return sb.toString();
     }
+
+    // ✅ Calcular el subtotal (sin IGV)
+    public double getSubtotal() {
+        return detalleVenta.stream()
+                .mapToDouble(DetalleVenta::getSubtotal)
+                .sum();
+    }
+
+    // ✅ Calcular IGV (18%)
+    public double getIGV() {
+        return getSubtotal() * 0.18;
+    }
+
+    // ✅ Calcular total (subtotal + IGV)
+    public double getTotal() {
+        return getSubtotal() + getIGV();
+    }
+    
+    public String generarComprobante() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=========================================\n");
+        sb.append("         COMPROBANTE DE PAGO\n");
+        sb.append("=========================================\n");
+        sb.append("N° Venta: ").append(idVenta).append("\n");
+        sb.append("Cajero ID: ").append(cajeroId).append("\n");
+        sb.append("Fecha: ").append(getFechaFormateada()).append("\n");
+        sb.append("Método Pago: ").append(metodoPago).append("\n");
+        sb.append("-----------------------------------------\n");
+
+        // Detalles de productos
+        for (DetalleVenta detalle : detalleVenta) {
+            String nombreProducto = (detalle.getProducto() != null) ? 
+                detalle.getProducto().getNombre() : "Producto no disponible";
+                
+            // Truncar nombres muy largos
+            if (nombreProducto.length() > 20) {
+                nombreProducto = nombreProducto.substring(0, 17) + "...";
+            }
+            
+            sb.append(String.format("%-20s %2d x S/%-6.2f S/%-7.2f\n",
+                    nombreProducto,
+                    detalle.getCantidad(),
+                    detalle.getPrecioUnitario(),
+                    detalle.getSubtotal()));
+        }
+
+        sb.append("-----------------------------------------\n");
+        sb.append(String.format("SUBTOTAL: S/%-25.2f\n", getSubtotal()));
+        sb.append(String.format("IGV (18%%): S/%-24.2f\n", getIGV()));
+        sb.append(String.format("TOTAL: S/%-27.2f\n", getTotal()));
+        sb.append("=========================================\n");
+        sb.append("         ¡GRACIAS POR SU COMPRA!\n");
+        sb.append("=========================================\n");
+
+        return sb.toString();
+    }
+
+
 }

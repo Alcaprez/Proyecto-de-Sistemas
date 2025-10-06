@@ -33,6 +33,9 @@ public class Menu2 extends javax.swing.JFrame {
      */
     public Menu2() {
         initComponents();
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setTitle("Sistema Kuyay - Menú Principal");
         this.setExtendedState(this.MAXIMIZED_BOTH);
         inicializarTablaProductos(); // ✅ Esto asegura el orden correcto
         cargarProductosEnTabla();
@@ -186,6 +189,7 @@ public class Menu2 extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
+        btn_salir = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
         tb_reportes = new javax.swing.JToggleButton();
         tb_entrada = new javax.swing.JToggleButton();
@@ -231,6 +235,13 @@ public class Menu2 extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(255, 153, 0));
 
+        btn_salir.setText("SALIR");
+        btn_salir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_salirActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -238,13 +249,19 @@ public class Menu2 extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(14, 14, 14)
                 .addComponent(jLabel2)
-                .addContainerGap(1366, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 1274, Short.MAX_VALUE)
+                .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(btn_salir, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, 92, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
@@ -1096,6 +1113,25 @@ public class Menu2 extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_btn_buscarActionPerformed
 
+    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
+        int confirmacion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro que desea cerrar sesión?",
+                "Cerrar Sesión",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // ✅ Volver al login
+            LoginjFrame login = new LoginjFrame();
+            login.setVisible(true);
+
+            // ✅ Cerrar el panel de gerente
+            this.dispose();
+        }
+    }//GEN-LAST:event_btn_salirActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1103,7 +1139,7 @@ public class Menu2 extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+     * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -1113,14 +1149,16 @@ public class Menu2 extends javax.swing.JFrame {
                 }
             }
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(Menu2.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new Menu2().setVisible(true));
+        /* ✅ CAMBIO: Abrir LoginjFrame en lugar de Menu2 directamente */
+        java.awt.EventQueue.invokeLater(() -> {
+            LoginjFrame login = new LoginjFrame();
+            login.setVisible(true);
+        });
     }
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btn_SKU;
     private javax.swing.JButton btn_actualizarItem;
@@ -1128,6 +1166,7 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JButton btn_buscar;
     private javax.swing.JButton btn_cancelar;
     private javax.swing.JButton btn_eliminarItem;
+    private javax.swing.JButton btn_salir;
     private javax.swing.JButton btn_validar;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton11;

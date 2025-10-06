@@ -365,6 +365,10 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     }//GEN-LAST:event_tf_idActionPerformed
 
     private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
+        if (!validarCampos()) {
+            return; // Detener si hay errores
+        }
+
         ProductoController pc = new ProductoController();
         List<Producto> productos = pc.cargarProductos();
         List<DetalleVenta> detalles = new ArrayList<>();
@@ -480,6 +484,44 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     private void rb_efectivoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_efectivoActionPerformed
         btn_mostrarMaquina.setEnabled(false);
     }//GEN-LAST:event_rb_efectivoActionPerformed
+
+    private boolean validarCampos() {
+        // Validar que hay productos en la boleta
+        if (modeloBoleta.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
+            return false;
+        }
+
+        // Validar ID del cajero
+        if (tf_id.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "❌ Ingrese ID del cajero");
+            tf_id.requestFocus();
+            return false;
+        }
+
+        // Validar método de pago seleccionado
+        if (!rb_efectivo.isSelected() && !rb_digital.isSelected() && !rb_mixto.isSelected()) {
+            JOptionPane.showMessageDialog(this, "❌ Seleccione método de pago");
+            return false;
+        }
+
+        // Validar que las cantidades sean positivas
+        for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
+            Object cantidadObj = modeloBoleta.getValueAt(i, 1);
+            try {
+                int cantidad = Integer.parseInt(String.valueOf(cantidadObj));
+                if (cantidad <= 0) {
+                    JOptionPane.showMessageDialog(this, "❌ La cantidad debe ser mayor a 0");
+                    return false;
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "❌ Cantidad inválida en fila " + (i + 1));
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */

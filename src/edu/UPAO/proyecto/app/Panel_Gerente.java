@@ -1,4 +1,3 @@
-
 package edu.UPAO.proyecto.app;
 
 import java.awt.*;
@@ -13,107 +12,112 @@ import javax.swing.border.Border;
 public class Panel_Gerente extends javax.swing.JFrame {
 
     public Panel_Gerente() {
-        initComponents();  
-      
-getContentPane().setLayout(null);
+        initComponents();
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        getContentPane().setLayout(null);
 
 // jPanel1 debe crecer siempre con la ventana
-getContentPane().addComponentListener(new java.awt.event.ComponentAdapter() {
-    @Override public void componentResized(java.awt.event.ComponentEvent e) {
-        layoutRootAndChildren();
-    }
-});
+        getContentPane().addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                layoutRootAndChildren();
+            }
+        });
         setExtendedState(getExtendedState() | javax.swing.JFrame.MAXIMIZED_BOTH);
 
-    // aseguramos AbsoluteLayout en los paneles que vamos a posicionar
-    panelTitle.setLayout(null);
-    panelHeader.setLayout(null);
-    panelTitle.setLayout(null);
+        // aseguramos AbsoluteLayout en los paneles que vamos a posicionar
+        panelTitle.setLayout(null);
+        panelHeader.setLayout(null);
+        panelTitle.setLayout(null);
 
-    // recalcular cuando cambie el tamaño
-    panelCenter.addComponentListener(new java.awt.event.ComponentAdapter() {
-        @Override public void componentResized(java.awt.event.ComponentEvent e) {
-            layoutFullScreen();
-        }
-    });
+        // recalcular cuando cambie el tamaño
+        panelCenter.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                layoutFullScreen();
+            }
+        });
 
-    // primera vez
-    layoutFullScreen();
-   
-}
-private void layoutFullScreen() {
-    int W = panelTitle.getWidth();
-    int H = panelTitle.getHeight();
-    if (W <= 0 || H <= 0) return;
+        // primera vez
+        layoutFullScreen();
 
-    int gap = 16;     // margen general
-    int hNaranja = 72; // alto barra naranja
-    int hRojo    = 44; // alto franja roja
-
-    // --- Barras superiores ---
-    panelHeader.setBounds(gap, gap, W - 2*gap, hNaranja);                 // barra naranja
-    panelTitle.setBounds(gap, gap + hNaranja, W - 2*gap, hRojo);         // franja roja
-
-    // --- Zona de contenido (donde van las 6 tarjetas) ---
-    int top = gap + hNaranja + hRojo + gap;
-    int contentW = W - 2*gap;
-    int contentH = H - top - gap;
-
-    // Para que el fondo gris se vea como en tu mockup, si tienes un panel de fondo
-    // reusamos jPanel1 mismo; si tienes otro panel para fondo, dale bounds aquí:
-    // jPanelContenido.setBounds(gap, top, contentW, contentH);
-
-    // ---- GRID de tarjetas 3×2 (se adapta a ancho) ----
-    // cambia columnas según ancho
-    int cols = contentW >= 1100 ? 3 : (contentW >= 760 ? 2 : 1);
-    int cardW = (contentW - (cols + 1) * gap) / cols;
-    int cardH = Math.min(220, (int)(cardW * 0.75)); // relación ~4:3
-
-    javax.swing.JButton[] cards = new javax.swing.JButton[]{
-        jButton3,       // R. VENTAS
-        jButton5,  // EMPLEADOS
-        jButton2,       // PROMOCIONES
-        jButton4,       // LOCALES
-        jButton6        // CUENTA
-    };
-
-    for (int i = 0; i < cards.length; i++) {
-        int col = i % cols;
-        int row = i / cols;
-
-        int x = gap + col * (cardW + gap);
-        int y = top + gap + row * (cardH + gap);
-
-        cards[i].setBounds(x, y, cardW, cardH);
     }
 
-   if (btnSalir != null) {
-    int bw = 140;  // ancho del botón
-    int bh = 40;   // alto del botón
-    int margen = 20; // margen derecho
+    private void layoutFullScreen() {
+        int W = panelTitle.getWidth();
+        int H = panelTitle.getHeight();
+        if (W <= 0 || H <= 0) {
+            return;
+        }
 
-    // Lo colocamos pegado al lado derecho de la barra naranja
-    btnSalir.setBounds(
-        panelHeader.getWidth() - bw - margen, // X (derecha)
-        (panelHeader.getHeight() - bh) / 2,   // Y (centrado vertical)
-        bw, bh
-    );
-}
-}
+        int gap = 16;     // margen general
+        int hNaranja = 72; // alto barra naranja
+        int hRojo = 44; // alto franja roja
 
-private void layoutRootAndChildren() {
-    // 1) Estirar jPanel1 al tamaño del contentPane
-    int W = getContentPane().getWidth();
-    int H = getContentPane().getHeight();
-    if (W <= 0 || H <= 0) return;
+        // --- Barras superiores ---
+        panelHeader.setBounds(gap, gap, W - 2 * gap, hNaranja);                 // barra naranja
+        panelTitle.setBounds(gap, gap + hNaranja, W - 2 * gap, hRojo);         // franja roja
 
-    panelTitle.setBounds(0, 0, W, H);
+        // --- Zona de contenido (donde van las 6 tarjetas) ---
+        int top = gap + hNaranja + hRojo + gap;
+        int contentW = W - 2 * gap;
+        int contentH = H - top - gap;
 
-    // 2) Ahora sí, reposiciona barras y tarjetas según jPanel1
-    layoutFullScreen();   // este es el método que ya te pasé antes
-}
+        // Para que el fondo gris se vea como en tu mockup, si tienes un panel de fondo
+        // reusamos jPanel1 mismo; si tienes otro panel para fondo, dale bounds aquí:
+        // jPanelContenido.setBounds(gap, top, contentW, contentH);
+        // ---- GRID de tarjetas 3×2 (se adapta a ancho) ----
+        // cambia columnas según ancho
+        int cols = contentW >= 1100 ? 3 : (contentW >= 760 ? 2 : 1);
+        int cardW = (contentW - (cols + 1) * gap) / cols;
+        int cardH = Math.min(220, (int) (cardW * 0.75)); // relación ~4:3
 
-  
+        javax.swing.JButton[] cards = new javax.swing.JButton[]{
+            jButton3, // R. VENTAS
+            jButton5, // EMPLEADOS
+            jButton2, // PROMOCIONES
+            jButton4, // LOCALES
+            jButton6 // CUENTA
+        };
+
+        for (int i = 0; i < cards.length; i++) {
+            int col = i % cols;
+            int row = i / cols;
+
+            int x = gap + col * (cardW + gap);
+            int y = top + gap + row * (cardH + gap);
+
+            cards[i].setBounds(x, y, cardW, cardH);
+        }
+
+        if (btnSalir != null) {
+            int bw = 140;  // ancho del botón
+            int bh = 40;   // alto del botón
+            int margen = 20; // margen derecho
+
+            // Lo colocamos pegado al lado derecho de la barra naranja
+            btnSalir.setBounds(
+                    panelHeader.getWidth() - bw - margen, // X (derecha)
+                    (panelHeader.getHeight() - bh) / 2, // Y (centrado vertical)
+                    bw, bh
+            );
+        }
+    }
+
+    private void layoutRootAndChildren() {
+        // 1) Estirar jPanel1 al tamaño del contentPane
+        int W = getContentPane().getWidth();
+        int H = getContentPane().getHeight();
+        if (W <= 0 || H <= 0) {
+            return;
+        }
+
+        panelTitle.setBounds(0, 0, W, H);
+
+        // 2) Ahora sí, reposiciona barras y tarjetas según jPanel1
+        layoutFullScreen();   // este es el método que ya te pasé antes
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {

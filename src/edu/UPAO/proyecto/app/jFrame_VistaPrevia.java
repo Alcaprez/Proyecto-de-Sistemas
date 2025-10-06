@@ -4,7 +4,9 @@
  */
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.Venta;
+import java.awt.Font;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -30,22 +32,22 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
     public jFrame_VistaPrevia(Venta venta) {
         initComponents();
 
-        // ✅ CONFIGURAR DESPUÉS de initComponents()
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setTitle("Vista Previa - Comprobante de Pago");
+        setTitle("Comprobante de Pago - Vista Previa");
         setLocationRelativeTo(null);
 
-        // mostrar venta en el área
         area.setEditable(false);
-        area.setText(venta.toString() + "\n\n>>> Presione 'Imprimir' para finalizar <<<");
+        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12)); // Fuente monoespaciada para alineación
 
-        // ✅ evento imprimir - SIN DUPLICADOS
+        // ✅ USAR EL NUEVO MÉTODO DE COMPROBANTE
+        area.setText(venta.generarComprobante());
+
         btn_imprimir.addActionListener(e -> {
             try {
                 area.print();
-                JOptionPane.showMessageDialog(this, "Boleta enviada a impresión (simulada)");
+                JOptionPane.showMessageDialog(this, "✅ Comprobante enviado a impresión");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error al imprimir: " + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "❌ Error al imprimir: " + ex.getMessage());
             }
         });
     }
@@ -124,8 +126,6 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_imprimirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_imprimirActionPerformed
-
-
     }//GEN-LAST:event_btn_imprimirActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -166,6 +166,7 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
             }
         });
     }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextArea area;
