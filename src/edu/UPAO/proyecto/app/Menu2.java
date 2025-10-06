@@ -32,7 +32,6 @@ public class Menu2 extends javax.swing.JFrame {
      * Creates new form Menu2
      */
     public Menu2() {
-
         initComponents();
         this.setExtendedState(this.MAXIMIZED_BOTH);
         inicializarTablaProductos(); // ✅ Esto asegura el orden correcto
@@ -917,36 +916,28 @@ public class Menu2 extends javax.swing.JFrame {
 
     private void jButtonSiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSiguienteActionPerformed
         DefaultTableModel carrito = (DefaultTableModel) miniTabla.getModel();
-        DefaultTableModel carritoClonado = new DefaultTableModel(new Object[]{"Producto", "Cantidad", "Subtotal"}, 0);
+
+        // Crear un clon del carrito
+        DefaultTableModel carritoClonado = new DefaultTableModel(
+                new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
 
         for (int i = 0; i < carrito.getRowCount(); i++) {
-            Object[] fila = {
-                carrito.getValueAt(i, 0),
-                carrito.getValueAt(i, 1),
-                carrito.getValueAt(i, 2)
-            };
+            Object[] fila = new Object[carrito.getColumnCount()];
+            for (int j = 0; j < carrito.getColumnCount(); j++) {
+                fila[j] = carrito.getValueAt(i, j);
+            }
             carritoClonado.addRow(fila);
         }
 
-        // 👇 Aquí recogemos lo que ya tienes en tus labels del MenuPrincipal
-        String subtotal = lbl_subtotal.getText().replace("Subtotal: ", "");
-        String descuento = lbl_descuento.getText().replace("Descuento: ", "");
-        String total = lbl_total.getText().replace("Total: ", "");
+        // Obtener los valores actuales de los labels
+        String subtotal = lbl_subtotal.getText().replace("Subtotal:", "").trim();
+        String descuento = lbl_descuento.getText().replace("Descuento:", "").trim();
+        String total = resultadoTotal.getText().trim();
 
-        // 👇 Usamos el nuevo constructor de la boleta
-        jFrame_GenerarBoleta ventanaBoleta;
-        ventanaBoleta = new jFrame_GenerarBoleta(
-                this,
-                carritoClonado,
-                subtotal,
-                descuento,
-                total
-        );
-
-        ventanaBoleta.setLocationRelativeTo(this);
-        ventanaBoleta.setAlwaysOnTop(true);
-        ventanaBoleta.setVisible(true);
-        ventanaBoleta.toFront();
+        // Abrir la ventana de boleta/factura
+        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total);
+        boletaFrame.setLocationRelativeTo(this);
+        boletaFrame.setVisible(true);
     }//GEN-LAST:event_jButtonSiguienteActionPerformed
 
     private void rb_observacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_observacionActionPerformed

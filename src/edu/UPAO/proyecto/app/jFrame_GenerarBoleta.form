@@ -88,7 +88,7 @@
                                   <Component id="lbl_subtotal" min="-2" pref="148" max="-2" attributes="0"/>
                                   <Group type="103" groupAlignment="1" max="-2" attributes="0">
                                       <Group type="102" attributes="0">
-                                          <Component id="btn_imprimir" min="-2" pref="138" max="-2" attributes="0"/>
+                                          <Component id="btn_pagado" min="-2" pref="138" max="-2" attributes="0"/>
                                           <EmptySpace max="32767" attributes="0"/>
                                           <Group type="103" groupAlignment="0" attributes="0">
                                               <Component id="lbl_total" alignment="1" min="-2" pref="134" max="-2" attributes="0"/>
@@ -145,7 +145,7 @@
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Group type="102" alignment="1" attributes="0">
                           <EmptySpace min="-2" pref="29" max="-2" attributes="0"/>
-                          <Component id="btn_imprimir" min="-2" pref="35" max="-2" attributes="0"/>
+                          <Component id="btn_pagado" min="-2" pref="35" max="-2" attributes="0"/>
                       </Group>
                       <Group type="102" attributes="0">
                           <Component id="lbl_descueto" min="-2" max="-2" attributes="0"/>
@@ -267,12 +267,12 @@
             </Component>
           </SubComponents>
         </Container>
-        <Component class="javax.swing.JButton" name="btn_imprimir">
+        <Component class="javax.swing.JButton" name="btn_pagado">
           <Properties>
-            <Property name="text" type="java.lang.String" value="IMPRIMIR"/>
+            <Property name="text" type="java.lang.String" value="PAGADO"/>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_imprimirActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_pagadoActionPerformed"/>
           </Events>
         </Component>
         <Component class="javax.swing.JLabel" name="lbl_subtotal">

@@ -12,14 +12,16 @@ import edu.UPAO.proyecto.VentasController;
 import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.Venta;
 import edu.UPAO.proyecto.Modelo.VentaItem;
+import javax.swing.JFrame;
 
 public class jFrame_GenerarBoleta extends javax.swing.JFrame {
+
     private Menu2 owner;                // referencia a la ventana principal
     private DefaultTableModel modeloBoleta;     // modelo que mostrará la boleta (copia del carrito)
     private jFram_MaquinaDePAgo maquina;
+
     // Constructor que recibe carrito + totales listos
-    public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado,
-            String subtotal, String descuento, String total) {
+    public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado, String subtotal, String descuento, String total) {
 
         initComponents();
         bg_boletaOfactura = new ButtonGroup();
@@ -55,7 +57,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             lbl_igv.setText("IGV: -");
         }
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
 
     // Constructor vacío (para pruebas desde NetBeans). No inicializa owner ni modeloBoleta.
@@ -145,7 +147,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         btn_mostrarMaquina = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
-        btn_imprimir = new javax.swing.JButton();
+        btn_pagado = new javax.swing.JButton();
         lbl_subtotal = new javax.swing.JLabel();
         lbl_igv = new javax.swing.JLabel();
         lbl_total = new javax.swing.JLabel();
@@ -227,10 +229,10 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(jTable1);
 
-        btn_imprimir.setText("IMPRIMIR");
-        btn_imprimir.addActionListener(new java.awt.event.ActionListener() {
+        btn_pagado.setText("PAGADO");
+        btn_pagado.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_imprimirActionPerformed(evt);
+                btn_pagadoActionPerformed(evt);
             }
         });
 
@@ -279,7 +281,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                                 .addComponent(lbl_subtotal, javax.swing.GroupLayout.PREFERRED_SIZE, 148, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                                     .addGroup(jPanel1Layout.createSequentialGroup()
-                                        .addComponent(btn_imprimir, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(btn_pagado, javax.swing.GroupLayout.PREFERRED_SIZE, 138, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                             .addComponent(lbl_total, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 134, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -322,7 +324,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                         .addGap(29, 29, 29)
-                        .addComponent(btn_imprimir, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(btn_pagado, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(lbl_descueto)
                         .addGap(4, 4, 4)
@@ -362,91 +364,95 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_tf_idActionPerformed
 
-    private void btn_imprimirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_imprimirActionPerformed
-      // Construir lista de DetalleVenta y calcular total
-    ProductoController pc = new ProductoController();
-    List<Producto> productos = pc.cargarProductos();
+    private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
+        ProductoController pc = new ProductoController();
+        List<Producto> productos = pc.cargarProductos();
+        List<DetalleVenta> detalles = new ArrayList<>();
 
-    List<DetalleVenta> detalles = new ArrayList<>();
+        // DEBUG: Verificar carga inicial
+        System.out.println("=== PRODUCTOS CARGADOS INICIALMENTE ===");
+        for (Producto p : productos) {
+            System.out.println(p.getNombre() + " - Stock: " + p.getStock());
+        }
 
-    for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
-        String nombreFila = String.valueOf(modeloBoleta.getValueAt(i, 0));
-        int cantidadVendida = 0;
-        double subtotal = 0.0;
-        try {
-            Object valCant = modeloBoleta.getValueAt(i, 1); // columna cantidad
-            if (valCant instanceof Number number) {
-                cantidadVendida = number.intValue();
+        for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
+            String nombreFila = String.valueOf(modeloBoleta.getValueAt(i, 0));
+            int cantidadVendida = 0;
+            double subtotal = 0.0;
+
+            try {
+                Object valCant = modeloBoleta.getValueAt(i, 1);
+                cantidadVendida = (valCant instanceof Number) ? ((Number) valCant).intValue()
+                        : Integer.parseInt(String.valueOf(valCant));
+            } catch (Exception ex) {
+                cantidadVendida = 0;
+            }
+
+            try {
+                Object valSub = modeloBoleta.getValueAt(i, 2);
+                subtotal = Double.parseDouble(String.valueOf(valSub));
+            } catch (Exception ex) {
+                subtotal = 0.0;
+            }
+
+            double precioUnitario = (cantidadVendida > 0) ? (subtotal / cantidadVendida) : 0.0;
+
+            // Buscar producto existente
+            Producto productoExistente = null;
+            for (Producto p : productos) {
+                if (p.getNombre() != null && p.getNombre().equalsIgnoreCase(nombreFila)) {
+                    productoExistente = p;
+                    break;
+                }
+            }
+
+            if (productoExistente != null) {
+                detalles.add(new DetalleVenta(productoExistente, cantidadVendida, precioUnitario));
+
+                // ✅ Actualizar stock y vendidos EN LA LISTA ORIGINAL
+                productoExistente.setStock(Math.max(0, productoExistente.getStock() - cantidadVendida));
+                productoExistente.setVendidos(productoExistente.getVendidos() + cantidadVendida);
+
+                System.out.println("Actualizado: " + productoExistente.getNombre()
+                        + " - Nuevo stock: " + productoExistente.getStock());
             } else {
-                cantidadVendida = Integer.parseInt(String.valueOf(valCant));
+                System.err.println("⚠ Producto no encontrado: " + nombreFila);
             }
-        } catch (Exception ex) {
-            cantidadVendida = 0;
         }
+
+        // ✅ Guardar la lista COMPLETA de productos (ya actualizada)
+        pc.guardarProductos(productos);
+
+        // DEBUG: Verificar después de guardar
+        System.out.println("=== DESPUÉS DE GUARDAR ===");
+        List<Producto> productosVerificacion = pc.cargarProductos();
+        for (Producto p : productosVerificacion) {
+            System.out.println(p.getNombre() + " - Stock: " + p.getStock());
+        }
+
+        // Resto del código para crear la venta...
+        int idVenta = VentasController.getVentas().size() + 1;
+        int cajeroId = 0;
         try {
-            Object valSub = modeloBoleta.getValueAt(i, 2); // columna subtotal
-            subtotal = Double.parseDouble(String.valueOf(valSub));
-        } catch (Exception ex) {
-            subtotal = 0.0;
+            cajeroId = Integer.parseInt(tf_id.getText().trim());
+        } catch (Exception e) {
+            // manejar error
         }
 
-        double precioUnitario = (cantidadVendida > 0) ? (subtotal / cantidadVendida) : 0.0;
+        String metodoPago = rb_efectivo.isSelected() ? "Efectivo"
+                : rb_digital.isSelected() ? "Digital" : "Mixto";
 
-        // Buscar producto existente por nombre en la lista de productos cargada
-        Producto productoExistente = null;
-        for (Producto p : productos) {
-            if (p.getNombre() != null && p.getNombre().equalsIgnoreCase(nombreFila)) {
-                productoExistente = p;
-                break;
-            }
-        }
+        Venta venta = new Venta(idVenta, cajeroId, metodoPago, detalles);
+        VentasController.registrarVenta(venta);
 
-        Producto productoParaDetalle;
-        if (productoExistente != null) {
-            productoParaDetalle = productoExistente;
-        } else {
-            // Producto temporal (si no se encuentra en productos.txt)
-            productoParaDetalle = new Producto(); // usa constructor vacío y setters
-            productoParaDetalle.setNombre(nombreFila);
-            productoParaDetalle.setPrecioVenta(precioUnitario);
-            productoParaDetalle.setCodigo(""); // o algún valor por defecto
-            productoParaDetalle.setStock(0);
-        }
+        JOptionPane.showMessageDialog(this, "Venta registrada correctamente.");
 
-        DetalleVenta detalle = new DetalleVenta(productoParaDetalle, cantidadVendida, precioUnitario);
-        detalles.add(detalle);
-    }
+        jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta);
+        vista.setLocationRelativeTo(this);
+        vista.setVisible(true);
 
-    // Actualizar inventario (se actualiza sobre la lista 'productos' cargada)
-    for (DetalleVenta d : detalles) {
-        for (Producto p : productos) {
-            if (p.getNombre() != null && p.getNombre().equalsIgnoreCase(d.getProducto().getNombre())) {
-                p.setStock(Math.max(0, p.getStock() - d.getCantidad()));
-                p.setVendidos(p.getVendidos() + d.getCantidad());
-                break;
-            }
-        }
-    }
-
-    // Guardar cambios en productos.txt
-    pc.guardarProductos(productos);
-
-    // Crear objeto Venta con id (simple autogeneración por tamaño actual)
-    int idVenta = VentasController.getVentas().size() + 1; // si prefieres, implementa generarIdVenta() en VentasController
-    int cajeroId = 0;
-    try {
-        cajeroId = Integer.parseInt(tf_id.getText().trim());
-    } catch (Exception e) {
-        // si tf_id no es numérico, dejamos 0 (o ajusta según tu lógica)
-    }
-
-    String metodoPago = rb_efectivo.isSelected() ? "Efectivo"
-                      : rb_digital.isSelected() ? "Digital"
-                      : "Mixto";
-
-    Venta venta = new Venta(idVenta, cajeroId, metodoPago, detalles);
-    VentasController.registrarVenta(venta);
-    }//GEN-LAST:event_btn_imprimirActionPerformed
+        this.dispose();
+    }//GEN-LAST:event_btn_pagadoActionPerformed
 
     private void rb_mixtoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_mixtoActionPerformed
         btn_mostrarMaquina.setEnabled(true);
@@ -459,16 +465,16 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     }//GEN-LAST:event_rb_digitalActionPerformed
 
     private void btn_mostrarMaquinaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_mostrarMaquinaActionPerformed
-       if (maquina == null || !maquina.isDisplayable()) {
-        // Si no existe o ya fue cerrada, la creas
-        maquina = new jFram_MaquinaDePAgo();
-        maquina.setLocationRelativeTo(this); // la centras respecto al JFrame actual
-        maquina.setVisible(true);
-    } else {
-        // Si ya existe, solo la traes al frente
-        maquina.toFront();
-        maquina.requestFocus();
-    }
+        if (maquina == null || !maquina.isDisplayable()) {
+            // Si no existe o ya fue cerrada, la creas
+            maquina = new jFram_MaquinaDePAgo();
+            maquina.setLocationRelativeTo(this); // la centras respecto al JFrame actual
+            maquina.setVisible(true);
+        } else {
+            // Si ya existe, solo la traes al frente
+            maquina.toFront();
+            maquina.requestFocus();
+        }
     }//GEN-LAST:event_btn_mostrarMaquinaActionPerformed
 
     private void rb_efectivoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_efectivoActionPerformed
@@ -510,8 +516,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup bg_TipoPago;
     private javax.swing.ButtonGroup bg_boletaOfactura;
-    private javax.swing.JButton btn_imprimir;
     private javax.swing.JButton btn_mostrarMaquina;
+    private javax.swing.JButton btn_pagado;
     private javax.swing.JComboBox<String> cb_id;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

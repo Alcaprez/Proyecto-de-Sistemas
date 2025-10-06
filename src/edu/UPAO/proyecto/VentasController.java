@@ -9,7 +9,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class VentasController {
-    private static final String FILE_NAME = "ventas.txt";
+
+    private static final String FILE_NAME = "ventas.csv";
+
     private static final List<Venta> VENTAS = new ArrayList<>();
 
     // Registrar una venta completa
@@ -26,7 +28,7 @@ public class VentasController {
         }
     }
 
-   // Obtener todas las ventas registradas
+    // Obtener todas las ventas registradas
     public static List<Venta> getVentas() {
         synchronized (VENTAS) {
             return Collections.unmodifiableList(new ArrayList<>(VENTAS));

@@ -2,6 +2,7 @@ package edu.UPAO.proyecto.DAO;
 
 import edu.UPAO.proyecto.Modelo.Producto;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,10 +12,10 @@ public class ProductoDAO {
     private static final String FILE_NAME = "productos.csv";
 
     static {
-        // Intentar cargar desde CSV
-        List<Producto> cargados = leerDesdeCSV();
-        if (cargados.isEmpty()) {
-            // Si no hay CSV, usamos datos simulados
+        productos = leerDesdeCSV();
+
+        // Si el CSV no existe o está vacío, inicializamos con los 3 productos
+        if (productos.isEmpty()) {
             productos.add(new Producto(
                     1, "B001", "Gaseosa Inca Kola 500ml", "Bebidas",
                     3.50, 20, 5, 0, "2025-01-01", "2026-01-01"
@@ -27,16 +28,21 @@ public class ProductoDAO {
                     3, "H001", "Shampoo Sedal 200ml", "Higiene",
                     7.50, 15, 3, 0, "2025-02-15", "2026-02-15"
             ));
-            // Guardar iniciales en CSV
+
             guardarEnCSV();
-        } else {
-            productos = cargados;
         }
+    }
+
+    // ✅ AGREGAR ESTE MÉTODO NUEVO en ProductoDAO
+    public static void guardarListaProductos(List<Producto> nuevaLista) {
+        productos = new ArrayList<>(nuevaLista); // Reemplazar la lista completa
+        guardarEnCSV(); // Guardar en archivo
     }
 
     // =======================
     // Métodos CSV
     // =======================
+    // MÉTODO leerDesdeCSV - CORREGIR:
     public static List<Producto> leerDesdeCSV() {
         List<Producto> lista = new ArrayList<>();
         File file = new File(FILE_NAME);
@@ -45,7 +51,8 @@ public class ProductoDAO {
             return lista; // vacío si no existe
         }
 
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        // ✅ CAMBIAR FileReader por InputStreamReader con UTF-8
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String linea;
             boolean primeraLinea = true;
 
@@ -88,8 +95,10 @@ public class ProductoDAO {
         return lista;
     }
 
+// MÉTODO guardarEnCSV - CORREGIR:
     public static void guardarEnCSV() {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+        // ✅ CAMBIAR FileWriter por OutputStreamWriter con UTF-8
+        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(FILE_NAME), StandardCharsets.UTF_8))) {
             // Encabezado
             pw.println("id;codigo;nombre;categoria;precio;stock;stockMinimo;vendidos;fechaIngreso;fechaVencimiento");
 
@@ -165,5 +174,4 @@ public class ProductoDAO {
         }
         return null;
     }
-
 }

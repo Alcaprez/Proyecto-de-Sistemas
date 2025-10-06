@@ -144,6 +144,8 @@ public class Producto {
     // Para mostrar en pantalla
     @Override
     public String toString() {
-        return idProducto + " - " + nombre + " | Precio: S/ " + precioVenta + " | Stock: " + stock;
+            return idProducto + ";" + codigo + ";" + nombre + ";" + categoria + ";" + 
+           precioVenta + ";" + stock + ";" + stockMinimo + ";" + vendidos + ";" +
+           fechaIngreso + ";" + fechaVencimiento;
     }
 }

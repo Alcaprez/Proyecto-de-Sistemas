@@ -3,23 +3,19 @@ package edu.UPAO.proyecto;
 import edu.UPAO.proyecto.DAO.ProductoDAO;
 import edu.UPAO.proyecto.Modelo.Producto;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ProductoController {
 
     private static final String FILE_NAME = "productos.csv";
 
-
     // Guardar todos los productos
+// MÉTODO CORREGIDO - usar el DAO existente
     public void guardarProductos(List<Producto> productos) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            for (Producto p : productos) {
-                bw.write(p.toCSV());  // ✅ Guardamos en formato CSV
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            System.out.println("⚠ Error guardando productos: " + e.getMessage());
-        }
+        // ✅ Usar el método existente del DAO que ya funciona correctamente
+        // Esto actualizará la lista estática del DAO y guardará en CSV
+        ProductoDAO.guardarListaProductos(productos);
     }
 
     // Actualizar stock y vendidos tras una compra
@@ -46,7 +42,6 @@ public class ProductoController {
         return null;
     }
 
-    
     private ProductoDAO productoDAO = new ProductoDAO();
 
     public List<Producto> cargarProductos() {
