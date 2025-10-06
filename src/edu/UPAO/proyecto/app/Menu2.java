@@ -239,7 +239,7 @@ public class Menu2 extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(14, 14, 14)
                 .addComponent(jLabel2)
-                .addContainerGap(1396, Short.MAX_VALUE))
+                .addContainerGap(1366, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -249,7 +249,7 @@ public class Menu2 extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        getContentPane().add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1410, -1));
+        getContentPane().add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 1380, -1));
 
         jPanel2.setBackground(new java.awt.Color(255, 51, 0));
 
@@ -311,7 +311,7 @@ public class Menu2 extends javax.swing.JFrame {
                 .addComponent(tb_ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(tb_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(695, Short.MAX_VALUE))
+                .addContainerGap(665, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -327,7 +327,7 @@ public class Menu2 extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
-        getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 104, 1410, -1));
+        getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 104, 1380, -1));
 
         jPanel8.setBackground(new java.awt.Color(255, 255, 255));
         jPanel8.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -341,8 +341,8 @@ public class Menu2 extends javax.swing.JFrame {
                 btn_agregarActionPerformed(evt);
             }
         });
-        jPanel8.add(btn_agregar, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 520, 132, 48));
-        jPanel8.add(spCantidad, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 520, 120, 48));
+        jPanel8.add(btn_agregar, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 530, 132, 48));
+        jPanel8.add(spCantidad, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 530, 120, 48));
 
         jButton11.setBackground(new java.awt.Color(110, 149, 106));
         jButton11.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
@@ -371,7 +371,7 @@ public class Menu2 extends javax.swing.JFrame {
             tablaProductos.getColumnModel().getColumn(1).setPreferredWidth(500);
         }
 
-        jPanel8.add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 10, 980, 500));
+        jPanel8.add(jScrollPane3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 20, 980, 490));
 
         panel.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -527,7 +527,8 @@ public class Menu2 extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(txtCupon, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btn_validar, javax.swing.GroupLayout.DEFAULT_SIZE, 157, Short.MAX_VALUE))
+                        .addComponent(btn_validar, javax.swing.GroupLayout.DEFAULT_SIZE, 102, Short.MAX_VALUE)
+                        .addContainerGap())
                     .addGroup(panelLayout.createSequentialGroup()
                         .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jScrollPane1)
@@ -572,20 +573,20 @@ public class Menu2 extends javax.swing.JFrame {
                         .addComponent(lbl_descuento, javax.swing.GroupLayout.PREFERRED_SIZE, 16, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 68, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(9, 9, 9)
+                .addGap(14, 14, 14)
                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(rb_cupon)
                     .addComponent(txtCupon, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_validar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(18, 18, 18)
+                    .addComponent(btn_validar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(10, 10, 10)
                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(lbl_total, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(resultadoTotal, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(12, 12, 12)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButtonSiguiente, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+                .addGap(12, 12, 12))
         );
 
         jPanel7.setBackground(new java.awt.Color(255, 255, 255));
@@ -610,7 +611,7 @@ public class Menu2 extends javax.swing.JFrame {
         });
 
         btn_buscar.setBackground(new java.awt.Color(110, 149, 106));
-        btn_buscar.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_buscar.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
         btn_buscar.setForeground(new java.awt.Color(255, 255, 255));
         btn_buscar.setText("BUSCAR");
         btn_buscar.addActionListener(new java.awt.event.ActionListener() {
@@ -628,11 +629,11 @@ public class Menu2 extends javax.swing.JFrame {
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(txtBuscarCodigo, javax.swing.GroupLayout.PREFERRED_SIZE, 472, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton12, javax.swing.GroupLayout.PREFERRED_SIZE, 182, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jButton12, javax.swing.GroupLayout.PREFERRED_SIZE, 147, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26))
         );
         jPanel7Layout.setVerticalGroup(
             jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -642,8 +643,8 @@ public class Menu2 extends javax.swing.JFrame {
                     .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(txtBuscarCodigo)
-                        .addComponent(btn_buscar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addComponent(jButton12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(btn_buscar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addContainerGap())
         );
 
@@ -654,7 +655,7 @@ public class Menu2 extends javax.swing.JFrame {
             .addGroup(panelFormularioLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(panelFormularioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, 1021, Short.MAX_VALUE)
                     .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -723,7 +724,10 @@ public class Menu2 extends javax.swing.JFrame {
             }
         }
 
-        double descuento = 0.0; // de momento fijo
+        // 🔥 Aplicar reglas de negocio
+        PromocionController promoCtrl = new PromocionController();
+        double descuento = promoCtrl.calcularDescuentoReglas(modeloCarrito);
+
         double total = subtotal - descuento;
 
         // Actualiza los labels
@@ -837,11 +841,11 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton11ActionPerformed
 
     private void btn_SKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SKUActionPerformed
-        // Cambiar texto y bloquear botón mientras simula escaneo
+// Cambiar texto y bloquear botón mientras simula escaneo
         btn_SKU.setText("Escaneando...");
         btn_SKU.setEnabled(false);
 
-        // Crear Timer (ejecuta la acción tras 2000 ms)
+// Crear Timer (ejecuta la acción tras 2000 ms)
         Timer t = new Timer(2000, e -> {
             ProductoController pc = new ProductoController();
             List<Producto> productos = pc.cargarProductos();
@@ -850,26 +854,40 @@ public class Menu2 extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "No hay productos cargados.");
             } else {
                 Random rand = new Random();
-                Producto p = productos.get(rand.nextInt(productos.size()));
+                Producto producto = productos.get(rand.nextInt(productos.size()));
 
-                int cantidad = 1; // cantidad por defecto al escanear
-                if (p.getStock() > 0) {
+                // 🔹 Cantidad fija = 1 (como un escaneo real)
+                int cantidad = 1;
+
+                if (producto.getStock() <= 0) {
+                    JOptionPane.showMessageDialog(this, "❌ El producto " + producto.getNombre() + " no tiene stock.");
+                } else {
                     DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
 
-                    // Agregar en formato correcto: Código, Nombre, Precio, Cantidad
+                    // 🔹 Validar stock
+                    if (cantidad > producto.getStock()) {
+                        JOptionPane.showMessageDialog(this,
+                                "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+                        return;
+                    }
+
+                    // 🔹 Calcular subtotal
+                    double precioUnitario = producto.getPrecioVenta();
+                    double subtotal = precioUnitario * cantidad;
+
+                    // 🚀 Agregar al carrito en el mismo orden que btn_agregar
                     modeloCarrito.addRow(new Object[]{
-                        p.getCodigo(),
-                        p.getNombre(),
-                        p.getPrecioVenta(),
-                        cantidad
+                        producto.getNombre(), // Columna 0: Nombre
+                        cantidad, // Columna 1: Cantidad
+                        precioUnitario, // Columna 2: P/U
+                        subtotal, // Columna 3: Subtotal
+                        producto.getCodigo() // Columna 4: Código (oculto)
                     });
 
-                    // recalcular total
+                    // 🔹 Recalcular total
                     actualizarTotal();
 
-                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + p.getNombre());
-                } else {
-                    JOptionPane.showMessageDialog(this, "❌ El producto " + p.getNombre() + " no tiene stock.");
+                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
                 }
             }
 
@@ -880,6 +898,7 @@ public class Menu2 extends javax.swing.JFrame {
 
         t.setRepeats(false);
         t.start();
+
     }//GEN-LAST:event_btn_SKUActionPerformed
 
     private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
@@ -1008,18 +1027,19 @@ public class Menu2 extends javax.swing.JFrame {
 
         PromocionController promoCtrl = new PromocionController();
         double subtotal = calcularSubtotalCarrito();
-
         double totalConCupon = promoCtrl.aplicarCupon(cupon, subtotal);
 
         if (totalConCupon < subtotal) {
-            JOptionPane.showMessageDialog(this, "Cupón válido: 10% de descuento aplicado.");
-            lbl_descuento.setText("Cupón aplicado: 10%");
-            lbl_total.setText(String.format("S/ %.2f", totalConCupon));
+            double descuentoAplicado = (subtotal - totalConCupon) / subtotal * 100;
+            JOptionPane.showMessageDialog(this, "✅ Cupón válido: " + (int) descuentoAplicado + "% de descuento aplicado.");
+            lbl_descuento.setText("Descuento: " + (int) descuentoAplicado + "%");
+            resultadoTotal.setText(String.format("S/ %.2f", totalConCupon));
         } else {
-            JOptionPane.showMessageDialog(this, "Cupón inválido o caducado.");
-            lbl_descuento.setText("Sin descuento");
-            lbl_total.setText(String.format("S/ %.2f", subtotal));
+            JOptionPane.showMessageDialog(this, "❌ Cupón inválido, caducado o inactivo.");
+            lbl_descuento.setText("Descuento: S/. 0.00");
+            resultadoTotal.setText(String.format("S/ %.2f", subtotal));
         }
+
     }//GEN-LAST:event_btn_validarActionPerformed
 
     private void txtBuscarCodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarCodigoActionPerformed
@@ -1041,6 +1061,21 @@ public class Menu2 extends javax.swing.JFrame {
             modelo.addRow(new Object[]{p.getNombre(), p.getPrecioVenta(), p.getStock(), p.getVendidos()});
         }
     }//GEN-LAST:event_jButton12ActionPerformed
+
+    private boolean contieneSalteado(String texto, String patron) {
+        int j = 0;
+        for (int i = 0; i < texto.length() && j < patron.length(); i++) {
+            if (texto.charAt(i) == patron.charAt(j)) {
+                j++;
+            }
+        }
+        return j == patron.length();
+    }
+
+
+    private void txtCuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCuponActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtCuponActionPerformed
 
     private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
         String texto = txtBuscarCodigo.getText().trim().toLowerCase();
@@ -1069,21 +1104,6 @@ public class Menu2 extends javax.swing.JFrame {
             modelo.addRow(new Object[]{p.getCodigo(), p.getNombre(), p.getPrecioVenta(), p.getStock()});
         }
     }//GEN-LAST:event_btn_buscarActionPerformed
-
-    private boolean contieneSalteado(String texto, String patron) {
-        int j = 0;
-        for (int i = 0; i < texto.length() && j < patron.length(); i++) {
-            if (texto.charAt(i) == patron.charAt(j)) {
-                j++;
-            }
-        }
-        return j == patron.length();
-    }
-
-
-    private void txtCuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCuponActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtCuponActionPerformed
 
     /**
      * @param args the command line arguments
