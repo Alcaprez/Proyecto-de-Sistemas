@@ -1,0 +1,51 @@
+id;codigo;nombre;categoria;precio;stock;stockMinimo;vendidos;fechaIngreso;fechaVencimiento
+1;B001;Gaseosa Inca Kola 500ml;Bebidas;3.5;19;5;16;2025-01-01;2026-01-01
+2;S001;Galletas Oreo;Snacks;2.0;48;10;42;2025-01-01;2025-06-01
+3;H001;Shampoo Sedal 200ml;Higiene;7.5;15;3;10;2025-02-15;2026-02-15
+4;A001;Arroz Costeño 1kg;Abarrotes;4.8;29;8;26;2025-03-01;2026-03-01
+5;L001;Leche Gloria Evaporada;Lácteos;3.0;35;12;45;2025-01-20;2025-10-20
+6;P001;Pan de Molde Bimbo;Panadería;6.5;25;5;20;2025-04-05;2025-04-12
+7;F001;Detergente Ace 1kg;Limpieza;12.0;17;4;11;2025-02-01;2026-02-01
+8;C001;Café Altomayo Soluble 100gr;Abarrotes;15.0;22;6;18;2025-01-05;2026-05-05
+9;B002;Agua San Luis 1L;Bebidas;2.5;60;15;55;2025-03-10;2026-03-10
+10;S002;Chifles Salados;Snacks;1.5;29;7;36;2025-04-01;2025-09-01
+11;H002;Jabón de Tocador Nivea;Higiene;3.8;40;10;30;2025-01-15;2026-01-15
+12;A002;Azúcar Rubia Cartavio 1kg;Abarrotes;3.2;27;5;21;2025-02-20;2026-02-20
+13;L002;Yogurt Gloria Fresa 1L;Lácteos;5.5;33;8;25;2025-04-10;2025-05-10
+14;P002;Galleta de Soda Field;Snacks;1.8;55;10;50;2025-03-25;2025-07-25
+15;F002;Lejía Clorox 1L;Limpieza;4.5;20;5;15;2025-01-01;2026-01-01
+16;C002;Atún Florida en Aceite;Abarrotes;4.0;25;6;20;2025-03-15;2027-03-15
+17;B003;Cerveza Cristal Lata;Bebidas;5.0;40;10;30;2025-02-05;2025-12-05
+18;S003;Papas Lays Clásicas;Snacks;3.0;48;12;40;2025-01-28;2025-08-28
+19;H003;Crema Dental Colgate 75ml;Higiene;6.0;35;7;30;2025-03-05;2026-03-05
+20;A003;Fideos Don Vittorio Spaguetti 500g;Abarrotes;3.8;30;6;25;2025-04-15;2026-04-15
+21;L003;Mantequilla Laive 200gr;Lácteos;8.5;15;3;10;2025-01-10;2025-07-10
+22;P003;Tortillas de Harina Tía Rosa;Panadería;5.5;20;4;15;2025-03-01;2025-05-01
+23;F003;Ambientador Glade Automático;Limpieza;25.0;10;2;5;2025-02-25;2026-02-25
+24;C003;Aceite Primor Vegetal 1L;Abarrotes;9.0;22;5;18;2025-01-01;2026-01-01
+25;B004;Jugo Frugos Durazno 1L;Bebidas;4.2;38;9;30;2025-04-08;2025-11-08
+26;S004;Maní Salado Nacional;Snacks;2.2;42;8;35;2025-02-10;2025-09-10
+27;H004;Acondicionador Head & Shoulders;Higiene;8.0;12;3;8;2025-03-20;2026-03-20
+28;A004;Sal Marina de Mesa;Abarrotes;1.5;50;10;45;2025-01-01;2027-01-01
+29;L004;Queso Fresco Light;Lácteos;18.0;8;2;5;2025-04-01;2025-04-30
+30;P004;Tostadas Integrales;Panadería;4.5;25;5;20;2025-03-10;2025-06-10
+31;F004;Papel Higiénico Suave 4 Rollos;Limpieza;8.0;30;6;25;2025-01-25;2026-01-25
+32;C004;Mayonesa Alacena 500gr;Abarrotes;7.0;18;4;15;2025-02-05;2025-12-05
+33;B005;Gaseosa Coca Cola 2L;Bebidas;7.5;25;5;20;2025-04-18;2026-04-18
+34;S005;Cereal Ángel Choco Aros;Snacks;6.0;20;5;15;2025-03-03;2025-10-03
+35;H005;Enjuague Bucal Listerine;Higiene;10.0;15;3;10;2025-01-05;2026-01-05
+36;A005;Lentejas 500gr;Abarrotes;2.5;40;8;35;2025-02-15;2026-02-15
+37;L005;Crema de Leche Nestlé;Lácteos;4.0;28;6;22;2025-03-28;2025-09-28
+38;P005;Muffins de Chocolate Pack;Panadería;9.0;12;3;7;2025-04-05;2025-04-20
+39;F005;Lavavajillas Sapolio Líquido;Limpieza;3.5;35;7;30;2025-01-01;2026-01-01
+40;C005;Ketchup Heinz;Abarrotes;11.0;14;3;10;2025-03-10;2025-11-10
+41;B006;Refresco de Naranja en Polvo;Bebidas;1.0;70;15;60;2025-02-20;2026-02-20
+42;S006;Gomitas Ambrosoli;Snacks;1.2;60;10;55;2025-01-10;2025-10-10
+43;H006;Desodorante Nivea Roll-on;Higiene;5.5;30;6;25;2025-04-01;2026-04-01
+44;A006;Quinua 500gr;Abarrotes;5.0;20;4;15;2025-03-05;2026-03-05
+45;L006;Leche Condensada Nestlé;Lácteos;4.5;30;6;25;2025-01-15;2025-12-15
+46;P006;Budín de Vainilla;Panadería;7.0;15;3;10;2025-02-01;2025-05-01
+47;F006;Bolsas de Basura Grandes;Limpieza;6.5;22;5;18;2025-03-15;2027-03-15
+48;C006;Vinagre Blanco 500ml;Abarrotes;2.0;35;7;30;2025-01-01;2026-01-01
+49;B007;Agua Tónica Evervess;Bebidas;3.0;28;5;22;2025-04-10;2025-10-10
+50;S007;Barra de Cereal Integral;Snacks;2.5;40;8;35;2025-02-25;2025-08-25
