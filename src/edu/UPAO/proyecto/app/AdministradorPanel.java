@@ -1,6 +1,8 @@
 
 package edu.UPAO.proyecto.app;
 
+import javax.swing.JOptionPane;
+
 /**
  *
  * @author Fabri
@@ -206,7 +208,24 @@ public class AdministradorPanel extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-    dispose();        // TODO add your handling code here:
+                                      
+    int respuesta = JOptionPane.showConfirmDialog(
+            this,
+            "¿Seguro que deseas cerrar la sesión?",
+            "Confirmar salida",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+    );
+
+    if (respuesta == JOptionPane.YES_OPTION) {
+        // Cierra el panel actual
+        dispose();
+
+        // Abre el LoginjFrame
+        LoginjFrame login = new LoginjFrame();
+        login.setLocationRelativeTo(null); // Centrar en pantalla
+        login.setVisible(true);
+    }        // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ActionPerformed
 
     /**
