@@ -242,9 +242,10 @@ public class LoginjFrame extends javax.swing.JFrame {
                         "Login Exitoso",
                         JOptionPane.INFORMATION_MESSAGE);
 
-                // Abrir Menu2 (o un futuro Panel_Admin)
-                Menu2 menuPrincipal = new Menu2();
-                menuPrincipal.setVisible(true);
+                // ✅ Abrir el AdministradorPanel
+                AdministradorPanel adminPanel = new AdministradorPanel();
+                adminPanel.setLocationRelativeTo(null); // Centrar en pantalla
+                adminPanel.setVisible(true);
 
             } else {
                 // Cajeros y otros usuarios van al Menu2 normal
