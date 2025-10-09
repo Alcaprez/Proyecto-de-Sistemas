@@ -32,7 +32,7 @@ public class LoginjFrame extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         Right = new javax.swing.JPanel();
-        jLabel5 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
         Left = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
@@ -52,29 +52,27 @@ public class LoginjFrame extends javax.swing.JFrame {
         Right.setBackground(new java.awt.Color(255, 255, 255));
         Right.setPreferredSize(new java.awt.Dimension(400, 500));
 
-        jLabel5.setFont(new java.awt.Font("Rockwell", 3, 14)); // NOI18N
-        jLabel5.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel5.setText("SISTEMA DE VENTAS KUYAY");
+        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/INICIO DE SESION-1.png"))); // NOI18N
 
         javax.swing.GroupLayout RightLayout = new javax.swing.GroupLayout(Right);
         Right.setLayout(RightLayout);
         RightLayout.setHorizontalGroup(
             RightLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(RightLayout.createSequentialGroup()
-                .addGap(101, 101, 101)
-                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 206, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(93, Short.MAX_VALUE))
+                .addGap(63, 63, 63)
+                .addComponent(jLabel4)
+                .addContainerGap(66, Short.MAX_VALUE))
         );
         RightLayout.setVerticalGroup(
             RightLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(RightLayout.createSequentialGroup()
-                .addGap(305, 305, 305)
-                .addComponent(jLabel5)
-                .addContainerGap(177, Short.MAX_VALUE))
+                .addGap(107, 107, 107)
+                .addComponent(jLabel4)
+                .addContainerGap(133, Short.MAX_VALUE))
         );
 
         jPanel1.add(Right);
-        Right.setBounds(0, 0, 400, 500);
+        Right.setBounds(0, 0, 400, 440);
 
         Left.setBackground(new java.awt.Color(255, 153, 0));
         Left.setMinimumSize(new java.awt.Dimension(400, 500));
@@ -83,20 +81,16 @@ public class LoginjFrame extends javax.swing.JFrame {
         jLabel1.setForeground(new java.awt.Color(204, 0, 51));
         jLabel1.setText("INICIO DE SESION");
 
-        jLabel2.setForeground(new java.awt.Color(0, 0, 0));
         jLabel2.setText("IDENTIFICACION");
 
-        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("CONTRASEÑA:");
 
-        tf_identificacion.setBackground(new java.awt.Color(255, 255, 255));
         tf_identificacion.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 tf_identificacionActionPerformed(evt);
             }
         });
 
-        tf_contraseña.setBackground(new java.awt.Color(255, 255, 255));
         tf_contraseña.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 tf_contraseñaActionPerformed(evt);
@@ -219,8 +213,10 @@ public class LoginjFrame extends javax.swing.JFrame {
         }
 
         if (LoginController.validarCredenciales(identificacion, password)) {
-            // ✅ OBTENER TIPO DE USUARIO
+            // ✅ OBTENER TIPO DE USUARIO (asumiendo que LoginController tiene este método)
             String tipoUsuario = LoginController.getTipoUsuario(identificacion);
+            String nombreUsuario = LoginController.getNombreUsuario(identificacion);
+
             String mensajeBienvenida = "";
 
             // ✅ REDIRIGIR SEGÚN EL TIPO DE USUARIO
@@ -231,7 +227,6 @@ public class LoginjFrame extends javax.swing.JFrame {
                         "Login Exitoso",
                         JOptionPane.INFORMATION_MESSAGE);
 
-                // Abrir Panel_Gerente
                 Panel_Gerente panelGerente = new Panel_Gerente();
                 panelGerente.setVisible(true);
 
@@ -242,13 +237,16 @@ public class LoginjFrame extends javax.swing.JFrame {
                         "Login Exitoso",
                         JOptionPane.INFORMATION_MESSAGE);
 
-                // ✅ Abrir el AdministradorPanel
                 AdministradorPanel adminPanel = new AdministradorPanel();
-                adminPanel.setLocationRelativeTo(null); // Centrar en pantalla
+                adminPanel.setLocationRelativeTo(null);
                 adminPanel.setVisible(true);
 
+                // Admin puede definir horarios - USANDO CONSTRUCTOR SIN PARÁMETROS
+                RegistroEntrada registroEntrada = new RegistroEntrada();
+                registroEntrada.setVisible(true);
+
             } else {
-                // Cajeros y otros usuarios van al Menu2 normal
+                // Cajeros y otros usuarios
                 mensajeBienvenida = "¡Bienvenido al Sistema Kuyay!";
                 JOptionPane.showMessageDialog(this,
                         mensajeBienvenida,
@@ -257,9 +255,12 @@ public class LoginjFrame extends javax.swing.JFrame {
 
                 Menu2 menuPrincipal = new Menu2();
                 menuPrincipal.setVisible(true);
+
+                // Cajeros marcan su asistencia - USANDO CONSTRUCTOR CON PARÁMETRO
+                jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                asistencia.setVisible(true);
             }
 
-            // Cerrar login
             this.dispose();
         } else {
             JOptionPane.showMessageDialog(this,
@@ -319,7 +320,7 @@ public class LoginjFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPasswordField tf_contraseña;
     private javax.swing.JTextField tf_identificacion;
