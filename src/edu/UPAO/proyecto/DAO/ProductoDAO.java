@@ -162,6 +162,57 @@ public class ProductoDAO {
         productos.sort((a, b) -> Integer.compare(b.getVendidos(), a.getVendidos()));
         return productos;
     }
+    
+    // En tu clase ProductoDAO, agrega este método:
+
+// Método para insertar nuevo producto
+public boolean insertar(Producto producto) {
+    try {
+        // Encontrar el próximo ID disponible
+        int maxId = productos.stream()
+                .mapToInt(Producto::getIdProducto)
+                .max()
+                .orElse(0);
+        producto.setIdProducto(maxId + 1);
+        
+        productos.add(producto);
+        guardarEnCSV();
+        return true;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+    }
+}
+// Método para actualizar producto existente
+public boolean actualizar(Producto producto) {
+    try {
+        for (int i = 0; i < productos.size(); i++) {
+            if (productos.get(i).getCodigo().equals(producto.getCodigo())) {
+                productos.set(i, producto);
+                guardarEnCSV();
+                return true;
+            }
+        }
+        return false;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+    }
+}
+
+// Método para eliminar por código (String)
+public boolean eliminar(String codigo) {
+    try {
+        boolean eliminado = productos.removeIf(p -> p.getCodigo().equals(codigo));
+        if (eliminado) {
+            guardarEnCSV();
+        }
+        return eliminado;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+    }
+}
 
     public Producto buscarPorNombre(String nombre) {
         if (nombre == null) {

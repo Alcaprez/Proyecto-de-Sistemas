@@ -1,16 +1,60 @@
 
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.ProductoDAO;
+import edu.UPAO.proyecto.Modelo.Producto;
+import javax.swing.table.DefaultTableModel;
+import java.util.List;
+
 public class ModuloInventario extends javax.swing.JPanel {
+    //inecesario solo era prueba del srcoll que no baja los 50 productos
+    private ProductoDAO productoDAO;
+    private void verificarVisualizacionTabla() {
+    System.out.println("=== VERIFICACIÓN VISUALIZACIÓN TABLA ===");
+    System.out.println("Filas en modelo: " + jTable2.getModel().getRowCount());
+    System.out.println("Filas visibles en tabla: " + jTable2.getRowCount());
+    System.out.println("Altura de la tabla: " + jTable2.getHeight());
+    System.out.println("Altura del viewport: " + jScrollPane1.getViewport().getHeight());
+    System.out.println("Barra vertical visible: " + jScrollPane1.getVerticalScrollBar().isVisible());
+    System.out.println("=== FIN VERIFICACIÓN ===");
+}
+    private void forzarResizeTabla() {
+    // Forzar resize completo del scrollpane
+    jScrollPane1.setPreferredSize(new java.awt.Dimension(650, 450));
+    jScrollPane1.setSize(new java.awt.Dimension(650, 450));
+    
+    // Forzar resize de la tabla
+    jTable2.setPreferredSize(new java.awt.Dimension(600, jTable2.getRowCount() * jTable2.getRowHeight()));
+    
+    // Actualizar todo
+    jScrollPane1.revalidate();
+    jScrollPane1.repaint();
+    jTable2.revalidate();
+    jTable2.repaint();
+    
+    javax.swing.JOptionPane.showMessageDialog(this, 
+        "Resize forzado. Ahora debería ver todos los productos.", 
+        "Resize", 
+        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+} //hasta aqui es la prueba csmr maldito scroll
     
     public ModuloInventario() {
         initComponents();
         
-        jScrollPane1.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        jScrollPane1.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        
-        jTable2.setFillsViewportHeight(true);
-        jTable2.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
+        productoDAO = new ProductoDAO();
+
+    // 🔥 CONFIGURACIÓN OPTIMIZADA DE LA TABLA
+    jScrollPane1.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_ALWAYS); // 🔥 Cambiado a ALWAYS
+    jScrollPane1.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    
+    jTable2.setFillsViewportHeight(true);
+    jTable2.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
+    
+    // 🔥 TAMAÑO MÁS GRANDE PARA MEJOR VISUALIZACIÓN
+    jTable2.setPreferredScrollableViewportSize(new java.awt.Dimension(600, 400));
+    
+    // Cargar productos al inicializar
+    cargarProductosEnTabla();
         
         // Hacer clickeable el panel de notificaciones
         jPanel5.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -21,10 +65,72 @@ public class ModuloInventario extends javax.swing.JPanel {
             }
         });
         
-        
         actualizarContadorStockCritico();
     }
     
+    // Método para cargar productos desde la base de datos
+    public void cargarProductosEnTabla() {
+    try {
+        List<Producto> productos = productoDAO.listar();
+        
+        // DEBUG
+        System.out.println("=== DEBUG cargarProductosEnTabla ===");
+        System.out.println("📊 Total de productos en DAO: " + productos.size());
+        
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
+        modelo.setRowCount(0); // Limpiar tabla
+        
+        int contador = 0;
+        for (Producto p : productos) {
+            String estado = determinarEstado(p.getStock());
+            modelo.addRow(new Object[]{
+                p.getCodigo(),
+                p.getNombre(),
+                p.getStock(),
+                p.getPrecioVenta(),
+                estado
+            });
+            contador++;
+        }
+        verificarVisualizacionTabla();
+        
+        System.out.println("📋 Filas agregadas a tabla: " + contador);
+        System.out.println("📋 Filas en tabla después: " + modelo.getRowCount());
+        System.out.println("=== FIN DEBUG ===");
+        
+        // 🔥🔥🔥 SOLUCIÓN COMPLETA PARA VISUALIZACIÓN
+        // 1. Forzar actualización del modelo de tabla
+        modelo.fireTableDataChanged();
+        
+        // 2. Configurar la tabla para mostrar todos los registros
+        jTable2.setPreferredScrollableViewportSize(jTable2.getPreferredSize());
+        
+        // 3. Actualizar la vista de la tabla
+        jTable2.revalidate();
+        jTable2.repaint();
+        
+        // 4. Actualizar el scrollpane para que se ajuste al contenido
+        jScrollPane1.getViewport().setView(jTable2);
+        jScrollPane1.setViewportView(jTable2);
+        jScrollPane1.revalidate();
+        jScrollPane1.repaint();
+        
+        // 5. Forzar scroll hasta el final para verificar que hay más registros
+        if (jTable2.getRowCount() > 0) {
+            jTable2.scrollRectToVisible(jTable2.getCellRect(jTable2.getRowCount() - 1, 0, true));
+        }
+        
+        // 🔥 ACTUALIZAR el contador de stock crítico
+        actualizarContadorStockCritico();
+        
+    } catch (Exception e) {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "Error al cargar productos: " + e.getMessage(), 
+            "Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
+    }
+}
     
     private boolean validarNombreProducto(String nombre) {
         if (nombre == null || nombre.trim().isEmpty()) {
@@ -32,7 +138,6 @@ public class ModuloInventario extends javax.swing.JPanel {
         }
         return nombre.matches("[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+");
     }
-    
     
     private String determinarEstado(int stock) {
         if (stock == 0) {
@@ -44,34 +149,56 @@ public class ModuloInventario extends javax.swing.JPanel {
         }
     }
     
-    
     private void actualizarContadorStockCritico() {
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
-        int contador = 0;
-        
-        for (int i = 0; i < modelo.getRowCount(); i++) {
-            int stock = Integer.parseInt(modelo.getValueAt(i, 2).toString());
-            if (stock < 50) {
-                contador++;
+    DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
+    int contador = 0;
+    
+    System.out.println("=== DEBUG actualizarContadorStockCritico ===");
+    System.out.println("Filas en tabla: " + modelo.getRowCount());
+    
+    for (int i = 0; i < modelo.getRowCount(); i++) {
+        try {
+            Object stockObj = modelo.getValueAt(i, 2); // Columna 2 = Stock
+            Object nombreObj = modelo.getValueAt(i, 1); // Columna 1 = Nombre
+            
+            if (stockObj != null) {
+                int stock = Integer.parseInt(stockObj.toString());
+                String nombre = nombreObj != null ? nombreObj.toString() : "Sin nombre";
+                
+                System.out.println("Fila " + i + ": " + nombre + " - Stock: " + stock);
+                
+                if (stock < 50) {
+                    contador++;
+                    System.out.println("⚠️ Stock crítico: " + nombre);
+                }
             }
-        }
-        
-        jLabel12.setText(String.valueOf(contador));
-        
-        
-        if (contador == 0) {
-            jLabel12.setForeground(new java.awt.Color(34, 139, 34)); 
-        } else if (contador < 3) {
-            jLabel12.setForeground(new java.awt.Color(255, 165, 0)); 
-        } else {
-            jLabel12.setForeground(new java.awt.Color(220, 20, 60)); 
+        } catch (NumberFormatException e) {
+            System.err.println("❌ Error parseando stock en fila " + i);
         }
     }
     
+    System.out.println("Total stock crítico: " + contador);
+    System.out.println("=== FIN DEBUG ===");
+    
+    // 🔥 Asegurar que el label se actualice correctamente
+    jLabel12.setText(String.valueOf(contador));
+    
+    // Actualizar colores según el contador
+    if (contador == 0) {
+        jLabel12.setForeground(new java.awt.Color(34, 139, 34)); // Verde
+    } else if (contador < 3) {
+        jLabel12.setForeground(new java.awt.Color(255, 165, 0)); // Naranja
+    } else {
+        jLabel12.setForeground(new java.awt.Color(220, 20, 60)); // Rojo
+    }
+    
+    // Forzar repintado
+    jLabel12.revalidate();
+    jLabel12.repaint();
+}
     
     private void mostrarNotificaciones() {
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
-        
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         
         java.util.List<String[]> productosConStockBajo = new java.util.ArrayList<>();
         
@@ -86,18 +213,15 @@ public class ModuloInventario extends javax.swing.JPanel {
             }
         }
         
-        
         javax.swing.JDialog dialogoNotificaciones = new javax.swing.JDialog();
         dialogoNotificaciones.setTitle("Notificaciones de Stock");
         dialogoNotificaciones.setSize(650, 450);
         dialogoNotificaciones.setLocationRelativeTo(this);
         dialogoNotificaciones.setModal(true);
         
-        
         javax.swing.JPanel panelPrincipal = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
         panelPrincipal.setBackground(java.awt.Color.WHITE);
         panelPrincipal.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
         
         javax.swing.JPanel panelHeader = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
         panelHeader.setBackground(java.awt.Color.WHITE);
@@ -106,7 +230,6 @@ public class ModuloInventario extends javax.swing.JPanel {
         lblTitulo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
         lblTitulo.setForeground(new java.awt.Color(220, 20, 60));
         panelHeader.add(lblTitulo);
-        
         
         if (productosConStockBajo.isEmpty()) {
             javax.swing.JPanel panelVacio = new javax.swing.JPanel();
@@ -131,9 +254,8 @@ public class ModuloInventario extends javax.swing.JPanel {
             panelPrincipal.add(panelHeader, java.awt.BorderLayout.NORTH);
             panelPrincipal.add(panelVacio, java.awt.BorderLayout.CENTER);
         } else {
-            
             String[] columnas = {"Código", "Producto", "Stock", "Estado"};
-            javax.swing.table.DefaultTableModel modeloNotif = new javax.swing.table.DefaultTableModel(columnas, 0) {
+            DefaultTableModel modeloNotif = new DefaultTableModel(columnas, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
@@ -150,7 +272,6 @@ public class ModuloInventario extends javax.swing.JPanel {
             tablaNotificaciones.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
             tablaNotificaciones.getTableHeader().setBackground(new java.awt.Color(220, 20, 60));
             tablaNotificaciones.getTableHeader().setForeground(java.awt.Color.WHITE);
-            
             
             tablaNotificaciones.getColumnModel().getColumn(3).setCellRenderer(
                 new javax.swing.table.DefaultTableCellRenderer() {
@@ -180,7 +301,6 @@ public class ModuloInventario extends javax.swing.JPanel {
             );
             
             javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(tablaNotificaciones);
-            
             
             javax.swing.JPanel panelResumen = new javax.swing.JPanel();
             panelResumen.setBackground(new java.awt.Color(255, 245, 230));
@@ -215,123 +335,200 @@ public class ModuloInventario extends javax.swing.JPanel {
         dialogoNotificaciones.setVisible(true);
     }
     
-    private void agregarProducto() {
-        String codigo = jTextField1.getText().trim();
+    private void buscarPorCodigo() {
+    String codigo = jTextField1.getText().trim();
+    
+    if (codigo.isEmpty() || codigo.equals("ID Producto")) {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "Ingrese un código para buscar", 
+            "Búsqueda", 
+            javax.swing.JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+    
+    Producto producto = productoDAO.buscarPorCodigo(codigo);
+    
+    if (producto != null) {
+        // Limpiar tabla y mostrar solo el producto encontrado
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
+        modelo.setRowCount(0);
         
-        if (codigo.isEmpty() || codigo.equals("ID Producto")) {
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Ingrese un código válido", 
-                "Error", 
-                javax.swing.JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        String nombre = null;
-        boolean nombreValido = false;
-        
-        while (!nombreValido) {
-            nombre = javax.swing.JOptionPane.showInputDialog(this, 
-                "Nombre del producto : ");
-            
-            if (nombre == null) return;
-            
-            if (validarNombreProducto(nombre)) {
-                nombreValido = true;
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "El nombre solo puede contener letras y espacios\n" +
-                    "No se permiten números ni caracteres especiales", 
-                    "Nombre Inválido", 
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        
-        String stockStr = null;
-        int stock = -1;
-        boolean stockValido = false;
-        
-        while (!stockValido) {
-            stockStr = javax.swing.JOptionPane.showInputDialog(this, 
-                "Stock inicial : ");
-            
-            if (stockStr == null) return;
-            
-            try {
-                stock = Integer.parseInt(stockStr.trim());
-                
-                if (stock < 0) {
-                    javax.swing.JOptionPane.showMessageDialog(this, 
-                        "El stock no puede ser negativo\n" +
-                        "Ingrese un valor de 0 o mayor", 
-                        "Stock Inválido", 
-                        javax.swing.JOptionPane.ERROR_MESSAGE);
-                } else {
-                    stockValido = true;
-                }
-            } catch (NumberFormatException e) {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Ingrese un número válido para el stock", 
-                    "Error de Formato", 
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        
-        String precioStr = null;
-        double precio = -1;
-        boolean precioValido = false;
-        
-        while (!precioValido) {
-            precioStr = javax.swing.JOptionPane.showInputDialog(this, 
-                "Precio unitario : ");
-            
-            if (precioStr == null) return;
-            
-            try {
-                precio = Double.parseDouble(precioStr.trim());
-                
-                if (precio < 0) {
-                    javax.swing.JOptionPane.showMessageDialog(this, 
-                        "El precio no puede ser negativo\n" +
-                        "Ingrese un valor de 0 o mayor", 
-                        "Precio Inválido", 
-                        javax.swing.JOptionPane.ERROR_MESSAGE);
-                } else {
-                    precioValido = true;
-                }
-            } catch (NumberFormatException e) {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "Ingrese un número válido para el precio", 
-                    "Error de Formato", 
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        
-        String estado = determinarEstado(stock);
-        
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
-        Object[] fila = {codigo, nombre, stock, precio, estado};
-        modelo.addRow(fila);
-        
-        jTextField1.setText("ID Producto");
-        
-        
-        actualizarContadorStockCritico();
-        
-        String mensajeEstado = "";
-        if (estado.equals("Casi Agotado")) {
-            mensajeEstado = "\n⚠️ ADVERTENCIA: Stock bajo (menos de 50 unidades ejemplo*)";
-        } else if (estado.equals("Agotado")) {
-            mensajeEstado = "\n❌ ADVERTENCIA: Producto sin stock";
-        }
+        String estado = determinarEstado(producto.getStock());
+        modelo.addRow(new Object[]{
+            producto.getCodigo(),
+            producto.getNombre(),
+            producto.getStock(),
+            producto.getPrecioVenta(),
+            estado
+        });
         
         javax.swing.JOptionPane.showMessageDialog(this, 
-            "Producto agregado: " + nombre + "\n" +
-            "Stock: " + stock + "\n" +
-            "Precio: $" + precio + "\n" +
-            "Estado: " + estado + mensajeEstado, 
-            "Producto Agregado", 
+            "Producto encontrado: " + producto.getNombre(), 
+            "Búsqueda Exitosa", 
             javax.swing.JOptionPane.INFORMATION_MESSAGE);
+    } else {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "No se encontró ningún producto con el código: " + codigo, 
+            "Producto No Encontrado", 
+            javax.swing.JOptionPane.WARNING_MESSAGE);
+        // Recargar todos los productos
+        cargarProductosEnTabla();
     }
+}
+    
+    private void agregarProducto() {
+    String codigo = jTextField1.getText().trim();
+    
+    if (codigo.isEmpty() || codigo.equals("ID Producto")) {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "Ingrese un código válido", 
+            "Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+    
+    // Verificar si el código ya existe
+    if (productoDAO.buscarPorCodigo(codigo) != null) {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "El código ya existe", 
+            "Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+    
+    String nombre = null;
+    boolean nombreValido = false;
+    
+    while (!nombreValido) {
+        nombre = javax.swing.JOptionPane.showInputDialog(this, 
+            "Nombre del producto:");
+        
+        if (nombre == null) return;
+        
+        if (validarNombreProducto(nombre)) {
+            nombreValido = true;
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "El nombre solo puede contener letras y espacios\n" +
+                "No se permiten números ni caracteres especiales", 
+                "Nombre Inválido", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    String stockStr = null;
+    int stock = -1;
+    boolean stockValido = false;
+    
+    while (!stockValido) {
+        stockStr = javax.swing.JOptionPane.showInputDialog(this, 
+            "Stock inicial:");
+        
+        if (stockStr == null) return;
+        
+        try {
+            stock = Integer.parseInt(stockStr.trim());
+            
+            if (stock < 0) {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "El stock no puede ser negativo\n" +
+                    "Ingrese un valor de 0 o mayor", 
+                    "Stock Inválido", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            } else {
+                stockValido = true;
+            }
+        } catch (NumberFormatException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Ingrese un número válido para el stock", 
+                "Error de Formato", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    String precioStr = null;
+    double precio = -1;
+    boolean precioValido = false;
+    
+    while (!precioValido) {
+        precioStr = javax.swing.JOptionPane.showInputDialog(this, 
+            "Precio unitario:");
+        
+        if (precioStr == null) return;
+        
+        try {
+            precio = Double.parseDouble(precioStr.trim());
+            
+            if (precio < 0) {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "El precio no puede ser negativo\n" +
+                    "Ingrese un valor de 0 o mayor", 
+                    "Precio Inválido", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            } else {
+                precioValido = true;
+            }
+        } catch (NumberFormatException e) {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Ingrese un número válido para el precio", 
+                "Error de Formato", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    // 🔥 CORREGIR: Solo una declaración de nuevoProducto
+    try {
+        // Crear el producto con el constructor correcto
+        Producto nuevoProducto = new Producto(
+            0, // idProducto (se asignará automáticamente en insertar)
+            codigo, // codigo
+            nombre, // nombre
+            "General", // categoria (por defecto)
+            precio, // precioVenta
+            stock, // stock
+            10, // stockMinimo (por defecto)
+            0, // vendidos
+            java.time.LocalDate.now().toString(), // fechaIngreso (hoy)
+            "2025-12-31" // fechaVencimiento (por defecto)
+        );
+        
+        if (productoDAO.insertar(nuevoProducto)) {
+            // Recargar la tabla
+            cargarProductosEnTabla();
+            actualizarContadorStockCritico();
+            
+            String estado = determinarEstado(stock);
+            String mensajeEstado = "";
+            if (estado.equals("Casi Agotado")) {
+                mensajeEstado = "\n⚠️ ADVERTENCIA: Stock bajo (menos de 50 unidades)";
+            } else if (estado.equals("Agotado")) {
+                mensajeEstado = "\n❌ ADVERTENCIA: Producto sin stock";
+            }
+            
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Producto agregado: " + nombre + "\n" +
+                "Stock: " + stock + "\n" +
+                "Precio: $" + precio + "\n" +
+                "Estado: " + estado + mensajeEstado, 
+                "Producto Agregado", 
+                javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Error al agregar el producto", 
+                "Error", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        
+    } catch (Exception e) {
+        javax.swing.JOptionPane.showMessageDialog(this, 
+            "Error al crear el producto: " + e.getMessage(), 
+            "Error", 
+            javax.swing.JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
+    }
+    
+    jTextField1.setText("ID Producto");
+}
     
     private void eliminarProducto() {
         int filaSeleccionada = jTable2.getSelectedRow();
@@ -344,7 +541,7 @@ public class ModuloInventario extends javax.swing.JPanel {
             return;
         }
         
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         String codigo = modelo.getValueAt(filaSeleccionada, 0).toString();
         String nombre = modelo.getValueAt(filaSeleccionada, 1).toString();
         
@@ -357,15 +554,20 @@ public class ModuloInventario extends javax.swing.JPanel {
             javax.swing.JOptionPane.QUESTION_MESSAGE);
         
         if (confirmacion == javax.swing.JOptionPane.YES_OPTION) {
-            modelo.removeRow(filaSeleccionada);
-            
-            
-            actualizarContadorStockCritico();
-            
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Producto eliminado: " + nombre, 
-                "Eliminación Exitosa", 
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            if (productoDAO.eliminar(codigo)) {
+                cargarProductosEnTabla(); // Recargar tabla completa
+                actualizarContadorStockCritico();
+                
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Producto eliminado: " + nombre, 
+                    "Eliminación Exitosa", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Error al eliminar el producto", 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -380,10 +582,21 @@ public class ModuloInventario extends javax.swing.JPanel {
             return;
         }
         
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         String codigo = modelo.getValueAt(filaSeleccionada, 0).toString();
-        String nombre = modelo.getValueAt(filaSeleccionada, 1).toString();
-        int stockActual = Integer.parseInt(modelo.getValueAt(filaSeleccionada, 2).toString());
+        
+        // Obtener producto actual desde DAO
+        Producto producto = productoDAO.buscarPorCodigo(codigo);
+        if (producto == null) {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Producto no encontrado en la base de datos", 
+                "Error", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        String nombre = producto.getNombre();
+        int stockActual = producto.getStock();
         
         String cantidadStr = javax.swing.JOptionPane.showInputDialog(this, 
             "REGISTRO DE ENTRADA DE MERCANCÍA\n\n" +
@@ -427,34 +640,39 @@ public class ModuloInventario extends javax.swing.JPanel {
             
             int nuevoStock = stockActual + cantidadRecibida;
             
-            modelo.setValueAt(nuevoStock, filaSeleccionada, 2);
-            String nuevoEstado = determinarEstado(nuevoStock);
-            modelo.setValueAt(nuevoEstado, filaSeleccionada, 4);
-            
-            
-            actualizarContadorStockCritico();
-            
-            String fechaHora = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-            
-            String logEntry = String.format(
-                "[%s] ENTRADA - Producto: %s | Cantidad: +%d | Stock: %d→%d | Proveedor: %s",
-                fechaHora, nombre, cantidadRecibida, stockActual, nuevoStock, proveedor
-            );
-            
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "ENTRADA REGISTRADA EXITOSAMENTE\n\n" +
-                "Producto: " + nombre + "\n" +
-                "Cantidad recibida: +" + cantidadRecibida + "\n" +
-                "Stock anterior: " + stockActual + "\n" +
-                "Stock nuevo: " + nuevoStock + "\n" +
-                "Estado: " + nuevoEstado + "\n" +
-                "Proveedor: " + proveedor + "\n" +
-                "Fecha: " + fechaHora, 
-                "Entrada Registrada", 
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
-            
-            System.out.println("LOG ENTRADA: " + logEntry);
+            // Actualizar en la base de datos
+            producto.setStock(nuevoStock);
+            if (productoDAO.actualizar(producto)) {
+                // Actualizar tabla
+                cargarProductosEnTabla();
+                actualizarContadorStockCritico();
+                
+                String fechaHora = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+                
+                String logEntry = String.format(
+                    "[%s] ENTRADA - Producto: %s | Cantidad: +%d | Stock: %d→%d | Proveedor: %s",
+                    fechaHora, nombre, cantidadRecibida, stockActual, nuevoStock, proveedor
+                );
+                
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "ENTRADA REGISTRADA EXITOSAMENTE\n\n" +
+                    "Producto: " + nombre + "\n" +
+                    "Cantidad recibida: +" + cantidadRecibida + "\n" +
+                    "Stock anterior: " + stockActual + "\n" +
+                    "Stock nuevo: " + nuevoStock + "\n" +
+                    "Proveedor: " + proveedor + "\n" +
+                    "Fecha: " + fechaHora, 
+                    "Entrada Registrada", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                
+                System.out.println("LOG ENTRADA: " + logEntry);
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Error al actualizar el stock en la base de datos", 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
             
         } catch (NumberFormatException e) {
             javax.swing.JOptionPane.showMessageDialog(this, 
@@ -475,16 +693,27 @@ public class ModuloInventario extends javax.swing.JPanel {
             return;
         }
         
-        javax.swing.table.DefaultTableModel modelo = (javax.swing.table.DefaultTableModel) jTable2.getModel();
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         String codigo = modelo.getValueAt(filaSeleccionada, 0).toString();
-        String nombre = modelo.getValueAt(filaSeleccionada, 1).toString();
-        String stockActual = modelo.getValueAt(filaSeleccionada, 2).toString();
+        
+        // Obtener producto actual desde DAO
+        Producto producto = productoDAO.buscarPorCodigo(codigo);
+        if (producto == null) {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Producto no encontrado en la base de datos", 
+                "Error", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        String nombre = producto.getNombre();
+        int stockActual = producto.getStock();
         
         String nuevoStockStr = javax.swing.JOptionPane.showInputDialog(this, 
             "Producto: " + nombre + "\n" +
             "Stock actual: " + stockActual + "\n\n" +
             "Ingrese el nuevo stock (0 o mayor):", 
-            stockActual);
+            String.valueOf(stockActual));
         
         if (nuevoStockStr == null) return;
         
@@ -500,28 +729,35 @@ public class ModuloInventario extends javax.swing.JPanel {
                 return;
             }
             
-            modelo.setValueAt(nuevoStock, filaSeleccionada, 2);
-            String nuevoEstado = determinarEstado(nuevoStock);
-            modelo.setValueAt(nuevoEstado, filaSeleccionada, 4);
-            
-           
-            actualizarContadorStockCritico();
-            
-            String mensajeAdicional = "";
-            if (nuevoEstado.equals("Casi Agotado")) {
-                mensajeAdicional = "\n\n⚠️ ADVERTENCIA: Stock bajo (menos de 50 unidades)";
-            } else if (nuevoEstado.equals("Agotado")) {
-                mensajeAdicional = "\n\n❌ ADVERTENCIA: Producto sin stock";
+            // Actualizar en la base de datos
+            producto.setStock(nuevoStock);
+            if (productoDAO.actualizar(producto)) {
+                // Recargar tabla
+                cargarProductosEnTabla();
+                actualizarContadorStockCritico();
+                
+                String mensajeAdicional = "";
+                String nuevoEstado = determinarEstado(nuevoStock);
+                if (nuevoEstado.equals("Casi Agotado")) {
+                    mensajeAdicional = "\n\n⚠️ ADVERTENCIA: Stock bajo (menos de 50 unidades)";
+                } else if (nuevoEstado.equals("Agotado")) {
+                    mensajeAdicional = "\n\n❌ ADVERTENCIA: Producto sin stock";
+                }
+                
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Stock actualizado exitosamente\n\n" +
+                    "Producto: " + nombre + "\n" +
+                    "Stock anterior: " + stockActual + "\n" +
+                    "Stock nuevo: " + nuevoStock + "\n" +
+                    "Estado: " + nuevoEstado + mensajeAdicional, 
+                    "Actualización Exitosa", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Error al actualizar el stock en la base de datos", 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
             }
-            
-            javax.swing.JOptionPane.showMessageDialog(this, 
-                "Stock actualizado exitosamente\n\n" +
-                "Producto: " + nombre + "\n" +
-                "Stock anterior: " + stockActual + "\n" +
-                "Stock nuevo: " + nuevoStock + "\n" +
-                "Estado: " + nuevoEstado + mensajeAdicional, 
-                "Actualización Exitosa", 
-                javax.swing.JOptionPane.INFORMATION_MESSAGE);
             
         } catch (NumberFormatException e) {
             javax.swing.JOptionPane.showMessageDialog(this, 
@@ -530,6 +766,20 @@ public class ModuloInventario extends javax.swing.JPanel {
                 javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
+    
+    // Método para refrescar la tabla desde fuera
+    // Agrega este método a tu ModuloInventario
+private void recargarTabla() {
+    System.out.println("🔄 Recargando tabla manualmente...");
+    cargarProductosEnTabla();
+    
+    // Mensaje informativo
+    javax.swing.JOptionPane.showMessageDialog(this, 
+        "Tabla recargada. Total de productos: " + jTable2.getRowCount() + 
+        "\n\nSi no ve todos los productos, use la barra de desplazamiento vertical.", 
+        "Info", 
+        javax.swing.JOptionPane.INFORMATION_MESSAGE);
+}
     
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -545,6 +795,7 @@ public class ModuloInventario extends javax.swing.JPanel {
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
         jButton5 = new javax.swing.JButton();
+        jButton6 = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable2 = new javax.swing.JTable();
@@ -607,6 +858,13 @@ public class ModuloInventario extends javax.swing.JPanel {
             }
         });
 
+        jButton6.setText("Recargar");
+        jButton6.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton6ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
@@ -619,11 +877,14 @@ public class ModuloInventario extends javax.swing.JPanel {
                     .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 100, Short.MAX_VALUE)
                     .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(95, 95, 95)
-                .addComponent(jLabel1)
-                .addGap(27, 27, 27)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addGap(27, 27, 27)
+                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 171, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(26, Short.MAX_VALUE))
         );
         jPanel4Layout.setVerticalGroup(
@@ -640,7 +901,9 @@ public class ModuloInventario extends javax.swing.JPanel {
                 .addGap(18, 18, 18)
                 .addComponent(jButton5)
                 .addGap(18, 18, 18)
-                .addComponent(jButton3)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton3)
+                    .addComponent(jButton6, javax.swing.GroupLayout.DEFAULT_SIZE, 37, Short.MAX_VALUE))
                 .addContainerGap(13, Short.MAX_VALUE))
         );
 
@@ -654,18 +917,21 @@ public class ModuloInventario extends javax.swing.JPanel {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(39, 39, 39)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 410, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(31, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(31, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 410, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(38, Short.MAX_VALUE))
+                .addGap(38, 38, 38))
         );
 
         jTable2.setModel(new javax.swing.table.DefaultTableModel(
@@ -789,11 +1055,11 @@ public class ModuloInventario extends javax.swing.JPanel {
                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(92, 92, 92))
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(43, 43, 43)
+                .addGap(16, 16, 16)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                .addContainerGap())
+                .addGap(33, 33, 33))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
@@ -809,7 +1075,7 @@ public class ModuloInventario extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
+        buscarPorCodigo();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
@@ -832,6 +1098,10 @@ public class ModuloInventario extends javax.swing.JPanel {
         registrarEntrada();
     }//GEN-LAST:event_jButton4ActionPerformed
 
+    private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
+        recargarTabla();
+    }//GEN-LAST:event_jButton6ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -839,6 +1109,7 @@ public class ModuloInventario extends javax.swing.JPanel {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
+    private javax.swing.JButton jButton6;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;
