@@ -2,51 +2,38 @@ package edu.UPAO.proyecto.Modelo;
 
 import java.time.LocalDateTime;
 
-/**
- *
- * @author Fabri
- */
 public class HistorialProveedor {
+    private int idHistorial;
+    private int idProveedor;
+    private String evento;
+    private String descripcion;
+    private LocalDateTime fecha;
 
-    private int idProveedor;     // Referencia al Proveedor
-    private String tipoEvento;   // "COMPRA", "ACTIVACION", "DESACTIVACION"
-    private String detalle;      // Motivo o descripción
-    private LocalDateTime fecha; 
-    private LocalDateTime fechaPeticion;  
-    private LocalDateTime fechaLlegada;   
-    private double monto; 
-
-    // Constructor para eventos simples (activación, desactivación)
-    public HistorialProveedor(int idProveedor, String tipoEvento, String detalle) {
+    public HistorialProveedor(int idHistorial, int idProveedor, String evento, String descripcion, LocalDateTime fecha) {
+        this.idHistorial = idHistorial;
         this.idProveedor = idProveedor;
-        this.tipoEvento = tipoEvento;
-        this.detalle = detalle;
-        this.fecha = LocalDateTime.now();
-    }
-     // Constructor para compras o servicios
-    public HistorialProveedor(int idProveedor, String tipoEvento, String detalle, 
-                              LocalDateTime fechaPeticion, LocalDateTime fechaLlegada, double monto) {
-        this(idProveedor, tipoEvento, detalle);
-        this.fechaPeticion = fechaPeticion;
-        this.fechaLlegada = fechaLlegada;
-        this.monto = monto;
+        this.evento = evento;
+        this.descripcion = descripcion;
+        this.fecha = fecha;
     }
 
-    // Getters
-    public int getIdProveedor() { return idProveedor; }
-    public String getTipoEvento() { return tipoEvento; }
-    public String getDetalle() { return detalle; }
-    public LocalDateTime getFecha() { return fecha; }
-    public LocalDateTime getFechaPeticion() { return fechaPeticion; }
-    public LocalDateTime getFechaLlegada() { return fechaLlegada; }
-    public double getMonto() { return monto; }
-    @Override
-    public String toString() {
-        return "HistorialProveedor{"
-                + "idProveedor=" + idProveedor
-                + ", tipoEvento='" + tipoEvento + '\''
-                + ", detalle='" + detalle + '\''
-                + ", fecha=" + fecha
-                + '}';
+    public HistorialProveedor(int idProveedor, String evento, String descripcion) {
+        this(0, idProveedor, evento, descripcion, LocalDateTime.now());
     }
+
+    // Getters y setters
+    public int getIdHistorial() { return idHistorial; }
+    public void setIdHistorial(int idHistorial) { this.idHistorial = idHistorial; }
+
+    public int getIdProveedor() { return idProveedor; }
+    public void setIdProveedor(int idProveedor) { this.idProveedor = idProveedor; }
+
+    public String getEvento() { return evento; }
+    public void setEvento(String evento) { this.evento = evento; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public LocalDateTime getFecha() { return fecha; }
+    public void setFecha(LocalDateTime fecha) { this.fecha = fecha; }
 }

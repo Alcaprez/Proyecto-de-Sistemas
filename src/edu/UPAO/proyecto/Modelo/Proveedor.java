@@ -1,10 +1,5 @@
 
 package edu.UPAO.proyecto.Modelo;
-
-/**
- *
- * @author Fabri
- */
 import java.time.LocalDate;
 
 public class Proveedor {

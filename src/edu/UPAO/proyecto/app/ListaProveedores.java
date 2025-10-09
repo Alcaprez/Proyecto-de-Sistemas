@@ -108,9 +108,9 @@ public class ListaProveedores extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        jPanel1.setBackground(new java.awt.Color(255, 153, 51));
+        jPanel1.setBackground(new java.awt.Color(245, 125, 7));
 
-        jPanel3.setBackground(new java.awt.Color(153, 0, 51));
+        jPanel3.setBackground(new java.awt.Color(179, 9, 1));
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -151,7 +151,7 @@ public class ListaProveedores extends javax.swing.JFrame {
 
         jPanel4.setBackground(new java.awt.Color(255, 255, 255));
 
-        jPanel6.setBackground(new java.awt.Color(153, 0, 51));
+        jPanel6.setBackground(new java.awt.Color(179, 9, 1));
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         jLabel1.setForeground(new java.awt.Color(255, 255, 255));
@@ -174,7 +174,7 @@ public class ListaProveedores extends javax.swing.JFrame {
                 .addContainerGap(17, Short.MAX_VALUE))
         );
 
-        REGISTRAR.setBackground(new java.awt.Color(51, 102, 0));
+        REGISTRAR.setBackground(new java.awt.Color(96, 129, 72));
         REGISTRAR.setForeground(new java.awt.Color(255, 255, 255));
         REGISTRAR.setText("REGISTRAR");
         REGISTRAR.addActionListener(new java.awt.event.ActionListener() {
@@ -183,7 +183,7 @@ public class ListaProveedores extends javax.swing.JFrame {
             }
         });
 
-        ACTUALIZAR.setBackground(new java.awt.Color(51, 102, 0));
+        ACTUALIZAR.setBackground(new java.awt.Color(96, 129, 72));
         ACTUALIZAR.setForeground(new java.awt.Color(255, 255, 255));
         ACTUALIZAR.setText("ACTUALIZAR");
         ACTUALIZAR.addActionListener(new java.awt.event.ActionListener() {
@@ -192,7 +192,7 @@ public class ListaProveedores extends javax.swing.JFrame {
             }
         });
 
-        ACTIVAR_DESACTIVAR.setBackground(new java.awt.Color(51, 102, 0));
+        ACTIVAR_DESACTIVAR.setBackground(new java.awt.Color(96, 129, 72));
         ACTIVAR_DESACTIVAR.setForeground(new java.awt.Color(255, 255, 255));
         ACTIVAR_DESACTIVAR.setText("ACTIVAR/DESACTIVAR");
         ACTIVAR_DESACTIVAR.addActionListener(new java.awt.event.ActionListener() {
@@ -201,7 +201,7 @@ public class ListaProveedores extends javax.swing.JFrame {
             }
         });
 
-        HISTORIAL.setBackground(new java.awt.Color(51, 102, 0));
+        HISTORIAL.setBackground(new java.awt.Color(96, 129, 72));
         HISTORIAL.setForeground(new java.awt.Color(255, 255, 255));
         HISTORIAL.setText("HISTORIAL");
         HISTORIAL.addActionListener(new java.awt.event.ActionListener() {
@@ -223,7 +223,7 @@ public class ListaProveedores extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(jTable1);
 
-        DETALLES.setBackground(new java.awt.Color(51, 102, 0));
+        DETALLES.setBackground(new java.awt.Color(96, 129, 72));
         DETALLES.setForeground(new java.awt.Color(255, 255, 255));
         DETALLES.setText("DETALLES");
         DETALLES.addActionListener(new java.awt.event.ActionListener() {
