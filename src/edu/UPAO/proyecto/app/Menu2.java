@@ -243,7 +243,7 @@ public class Menu2 extends javax.swing.JFrame {
 
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/miniLogo.png"))); // NOI18N
 
-        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 48)); // NOI18N
+        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 36)); // NOI18N
         lblFrase.setForeground(new java.awt.Color(193, 28, 28));
         lblFrase.setText("Todo lo que necesitas al alcance");
 
@@ -905,7 +905,7 @@ public class Menu2 extends javax.swing.JFrame {
     private void jButtonSiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSiguienteActionPerformed
         DefaultTableModel carrito = (DefaultTableModel) miniTabla.getModel();
 
-        // Crear un clon del carrito
+        // Crear un clon del carrito (tu código existente)
         DefaultTableModel carritoClonado = new DefaultTableModel(
                 new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
 
@@ -922,8 +922,15 @@ public class Menu2 extends javax.swing.JFrame {
         String descuento = lbl_descuento.getText().replace("Descuento:", "").trim();
         String total = resultadoTotal.getText().trim();
 
+        // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
+        String observaciones = txtObservaciones.getText().trim();
+
         // Abrir la ventana de boleta/factura
         jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total);
+
+        // ✅ PASAR OBSERVACIONES DE FORMA SIMPLE (agrega un método setter en jFrame_GenerarBoleta)
+        boletaFrame.setObservaciones(observaciones);
+
         boletaFrame.setLocationRelativeTo(this);
         boletaFrame.setVisible(true);
     }//GEN-LAST:event_jButtonSiguienteActionPerformed
@@ -1084,6 +1091,21 @@ public class Menu2 extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_btn_buscarActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
+        jFrame_añadirProducto1.setVisible(true);
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
+        jFrame_Asistncias jFrame_Asistncias1;
+        jFrame_Asistncias1 = new jFrame_Asistncias();
+        jFrame_Asistncias1.setVisible(true);
+    }//GEN-LAST:event_tb_entradaActionPerformed
+
+    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tb_reportesActionPerformed
+
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
         int confirmacion = JOptionPane.showConfirmDialog(
                 this,
@@ -1102,21 +1124,6 @@ public class Menu2 extends javax.swing.JFrame {
             this.dispose();
         }
     }//GEN-LAST:event_btn_salirActionPerformed
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
-        jFrame_añadirProducto1.setVisible(true);
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
-        jFrame_Asistncias jFrame_Asistncias1;
-        jFrame_Asistncias1 = new jFrame_Asistncias();
-        jFrame_Asistncias1.setVisible(true);
-    }//GEN-LAST:event_tb_entradaActionPerformed
-
-    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tb_reportesActionPerformed
 
     /**
      * @param args the command line arguments

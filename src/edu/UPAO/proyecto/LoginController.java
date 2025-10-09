@@ -29,7 +29,7 @@ public class LoginController {
         tiposUsuario.put("jhosep", "cajero");
 
         usuarios.put("lucas", "gerente");
-        tiposUsuario.put("gerente", "gerente"); // ✅ GERENTE
+        tiposUsuario.put("lucas", "gerente"); // ✅ GERENTE
     }
 
     public static boolean validarCredenciales(String identificacion, String password) {

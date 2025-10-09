@@ -2,8 +2,9 @@ package edu.UPAO.proyecto.Service;
 
 
 import edu.UPAO.proyecto.DAO.PromocionDAO;
-import edu.UPAO.proyecto.Modelo.Promocion;
+
 import java.util.*;
+import proyectosistemasempresariales.modelo.Promocion;
 
 public class PromocionService {
     private final PromocionDAO dao = PromocionDAO.getInstance();

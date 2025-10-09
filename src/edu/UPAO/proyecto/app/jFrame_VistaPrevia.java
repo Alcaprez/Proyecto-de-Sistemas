@@ -19,9 +19,7 @@ import javax.swing.JTextArea;
  */
 public class jFrame_VistaPrevia extends javax.swing.JFrame {
 
-    /**
-     * Creates new form jFrame_VistaPrevia
-     */
+    // ✅ CONSTRUCTOR ORIGINAL (mántelo para compatibilidad)
     public jFrame_VistaPrevia() {
         initComponents();
         setTitle("Vista Previa - Comprobante de Pago");
@@ -31,15 +29,12 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
 
     public jFrame_VistaPrevia(Venta venta) {
         initComponents();
-
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setTitle("Comprobante de Pago - Vista Previa");
         setLocationRelativeTo(null);
 
         area.setEditable(false);
-        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12)); // Fuente monoespaciada para alineación
-
-        // ✅ USAR EL NUEVO MÉTODO DE COMPROBANTE
+        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12));
         area.setText(venta.generarComprobante());
 
         btn_imprimir.addActionListener(e -> {
@@ -50,6 +45,116 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, "❌ Error al imprimir: " + ex.getMessage());
             }
         });
+    }
+
+    // ✅ NUEVO CONSTRUCTOR que recibe DNI y observaciones
+    public jFrame_VistaPrevia(Venta venta, String dniCliente, String observaciones) {
+        initComponents();
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setTitle("Comprobante de Pago - Vista Previa");
+        setLocationRelativeTo(null);
+
+        area.setEditable(false);
+        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12));
+
+        // ✅ GENERAR COMPROBANTE MODIFICADO CON DNI Y OBSERVACIONES
+        String comprobanteModificado = modificarComprobante(venta.generarComprobante(), dniCliente, observaciones);
+        area.setText(comprobanteModificado);
+
+        btn_imprimir.addActionListener(e -> {
+            try {
+                area.print();
+                JOptionPane.showMessageDialog(this, "✅ Comprobante enviado a impresión");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "❌ Error al imprimir: " + ex.getMessage());
+            }
+        });
+    }
+
+    private String modificarComprobante(String comprobanteOriginal, String dniCliente, String observaciones) {
+        StringBuilder sb = new StringBuilder();
+        String[] lineas = comprobanteOriginal.split("\n");
+
+        boolean dniAgregado = false;
+        boolean observacionesAgregadas = false;
+
+        for (String linea : lineas) {
+            sb.append(linea).append("\n");
+
+            // ✅ AGREGAR DNI DESPUÉS DE "Cajero ID:"
+            if (!dniAgregado && linea.contains("Cajero ID:")) {
+                if (dniCliente != null && !dniCliente.trim().isEmpty()) {
+                    sb.append("DNI Cliente: ").append(dniCliente.trim()).append("\n");
+                }
+                dniAgregado = true;
+            }
+
+            // ✅ AGREGAR OBSERVACIONES ANTES DE "¡GRACIAS POR SU COMPRA!"
+            if (!observacionesAgregadas && linea.contains("¡GRACIAS POR SU COMPRA!")) {
+                if (observaciones != null && !observaciones.trim().isEmpty()) {
+                    sb.append("\nOBSERVACIONES:\n");
+                    sb.append("-----------------------------------------\n");
+
+                    // Procesar observaciones (dividir si son muy largas)
+                    String obs = observaciones.trim();
+                    int maxLength = 40;
+                    for (int i = 0; i < obs.length(); i += maxLength) {
+                        int end = Math.min(obs.length(), i + maxLength);
+                        sb.append(obs.substring(i, end)).append("\n");
+                    }
+
+                    sb.append("=========================================\n");
+                }
+                observacionesAgregadas = true;
+            }
+        }
+
+        return sb.toString();
+    }
+
+// ✅ MÉTODO PARA AGREGAR DNI Y OBSERVACIONES AL COMPROBANTE EXISTENTE
+    private String generarComprobanteConExtras(Venta venta, String dniCliente, String observaciones) {
+        // Obtener el comprobante base de la venta
+        String comprobanteBase = venta.generarComprobante();
+
+        StringBuilder sb = new StringBuilder();
+
+        // Reconstruir el comprobante agregando DNI y observaciones
+        String[] lineas = comprobanteBase.split("\n");
+
+        for (int i = 0; i < lineas.length; i++) {
+            sb.append(lineas[i]).append("\n");
+
+            // ✅ INSERTAR DNI DESPUÉS DE LA LÍNEA DEL CAJERO
+            if (lineas[i].contains("Cajero ID:")) {
+                if (dniCliente != null && !dniCliente.isEmpty()) {
+                    sb.append("DNI Cliente: ").append(dniCliente).append("\n");
+                }
+            }
+
+            // ✅ INSERTAR OBSERVACIONES ANTES DE "¡GRACIAS POR SU COMPRA!"
+            if (lineas[i].contains("¡GRACIAS POR SU COMPRA!")) {
+                if (observaciones != null && !observaciones.trim().isEmpty()) {
+                    sb.append("\nOBSERVACIONES:\n");
+                    sb.append("-----------------------------------------\n");
+                    // Dividir observaciones en líneas
+                    String[] obsLineas = observaciones.split("\n");
+                    for (String obsLinea : obsLineas) {
+                        if (obsLinea.length() > 40) {
+                            // Dividir líneas muy largas
+                            for (int j = 0; j < obsLinea.length(); j += 40) {
+                                sb.append(obsLinea.substring(j, Math.min(obsLinea.length(), j + 40))).append("\n");
+                            }
+                        } else {
+                            sb.append(obsLinea).append("\n");
+                        }
+                    }
+                    sb.append("=========================================\n\n");
+                }
+            }
+        }
+
+        return sb.toString();
     }
 
     /**
@@ -97,16 +202,16 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
                         .addGap(16, 16, 16)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, layout.createSequentialGroup()
-                                .addComponent(btn_imprimir, javax.swing.GroupLayout.PREFERRED_SIZE, 162, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 149, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 375, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 333, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(50, 50, 50)
+                        .addGap(16, 16, 16)
+                        .addComponent(btn_imprimir, javax.swing.GroupLayout.PREFERRED_SIZE, 162, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 149, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(31, 31, 31)
                         .addComponent(jLabel1)))
-                .addContainerGap(21, Short.MAX_VALUE))
+                .addContainerGap(24, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -114,11 +219,11 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
                 .addGap(26, 26, 26)
                 .addComponent(jLabel1)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 551, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 501, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 35, Short.MAX_VALUE)
-                    .addComponent(btn_imprimir, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_imprimir, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(22, Short.MAX_VALUE))
         );
 

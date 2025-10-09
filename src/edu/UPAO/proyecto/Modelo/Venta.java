@@ -158,6 +158,8 @@ public class Venta {
         sb.append("Método Pago: ").append(metodoPago).append("\n");
         sb.append("-----------------------------------------\n");
 
+        
+        
         // Detalles de productos
         for (DetalleVenta detalle : detalleVenta) {
             String nombreProducto = (detalle.getProducto() != null) ? 

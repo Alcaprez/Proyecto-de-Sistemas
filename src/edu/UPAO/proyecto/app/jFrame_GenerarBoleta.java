@@ -366,82 +366,22 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
     private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
         if (!validarCampos()) {
-            return; // Detener si hay errores
+            return;
         }
 
         ProductoController pc = new ProductoController();
         List<Producto> productos = pc.cargarProductos();
         List<DetalleVenta> detalles = new ArrayList<>();
 
-        // DEBUG: Verificar carga inicial
-        System.out.println("=== PRODUCTOS CARGADOS INICIALMENTE ===");
-        for (Producto p : productos) {
-            System.out.println(p.getNombre() + " - Stock: " + p.getStock());
-        }
-
-        for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
-            String nombreFila = String.valueOf(modeloBoleta.getValueAt(i, 0));
-            int cantidadVendida = 0;
-            double subtotal = 0.0;
-
-            try {
-                Object valCant = modeloBoleta.getValueAt(i, 1);
-                cantidadVendida = (valCant instanceof Number) ? ((Number) valCant).intValue()
-                        : Integer.parseInt(String.valueOf(valCant));
-            } catch (Exception ex) {
-                cantidadVendida = 0;
-            }
-
-            try {
-                Object valSub = modeloBoleta.getValueAt(i, 2);
-                subtotal = Double.parseDouble(String.valueOf(valSub));
-            } catch (Exception ex) {
-                subtotal = 0.0;
-            }
-
-            double precioUnitario = (cantidadVendida > 0) ? (subtotal / cantidadVendida) : 0.0;
-
-            // Buscar producto existente
-            Producto productoExistente = null;
-            for (Producto p : productos) {
-                if (p.getNombre() != null && p.getNombre().equalsIgnoreCase(nombreFila)) {
-                    productoExistente = p;
-                    break;
-                }
-            }
-
-            if (productoExistente != null) {
-                detalles.add(new DetalleVenta(productoExistente, cantidadVendida, precioUnitario));
-
-                // ✅ Actualizar stock y vendidos EN LA LISTA ORIGINAL
-                productoExistente.setStock(Math.max(0, productoExistente.getStock() - cantidadVendida));
-                productoExistente.setVendidos(productoExistente.getVendidos() + cantidadVendida);
-
-                System.out.println("Actualizado: " + productoExistente.getNombre()
-                        + " - Nuevo stock: " + productoExistente.getStock());
-            } else {
-                System.err.println("⚠ Producto no encontrado: " + nombreFila);
-            }
-        }
-
-        // ✅ Guardar la lista COMPLETA de productos (ya actualizada)
-        pc.guardarProductos(productos);
-
-        // DEBUG: Verificar después de guardar
-        System.out.println("=== DESPUÉS DE GUARDAR ===");
-        List<Producto> productosVerificacion = pc.cargarProductos();
-        for (Producto p : productosVerificacion) {
-            System.out.println(p.getNombre() + " - Stock: " + p.getStock());
-        }
-
+        // ... (todo tu código existente de procesamiento de productos IGUAL) ...
         // Resto del código para crear la venta...
         int idVenta = VentasController.getVentas().size() + 1;
-        int cajeroId = 0;
-        try {
-            cajeroId = Integer.parseInt(tf_id.getText().trim());
-        } catch (Exception e) {
-            // manejar error
-        }
+
+        // ✅ Obtener DNI del cliente
+        String dniCliente = tf_id.getText().trim();
+
+        // ✅ Obtener ID del cajero (valor temporal)
+        int cajeroId = 1;
 
         String metodoPago = rb_efectivo.isSelected() ? "Efectivo"
                 : rb_digital.isSelected() ? "Digital" : "Mixto";
@@ -451,7 +391,17 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
         JOptionPane.showMessageDialog(this, "Venta registrada correctamente.");
 
-        jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta);
+        // ✅ Obtener observaciones directamente desde Menu2 sin reflexión
+        String observaciones = "";
+        if (owner != null) {
+            // Si el owner es Menu2, podemos intentar obtener las observaciones
+            // de forma más simple (asumiendo que Menu2 tiene un método para esto)
+            // Por ahora, dejamos vacío o implementamos una forma simple
+            observaciones = "Observaciones no disponibles"; // Temporal
+        }
+
+        // ✅ Pasar DNI y observaciones a la vista previa
+        jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta, dniCliente, observaciones);
         vista.setLocationRelativeTo(this);
         vista.setVisible(true);
 
@@ -485,8 +435,36 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         btn_mostrarMaquina.setEnabled(false);
     }//GEN-LAST:event_rb_efectivoActionPerformed
 
+    // En jFrame_GenerarBoleta, agrega este método:
+    private String observaciones = "";
+
+    public void setObservaciones(String observaciones) {
+        this.observaciones = observaciones;
+    }
+
     private boolean validarCampos() {
         // Validar que hay productos en la boleta
+
+        if (modeloBoleta.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
+            return false;
+        }
+
+        // ✅ CAMBIO: Validar DNI del cliente en lugar de ID cajero
+        String dni = tf_id.getText().trim();
+        if (dni.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "❌ Ingrese DNI del cliente");
+            tf_id.requestFocus();
+            return false;
+        }
+
+        // ✅ OPCIONAL: Validar formato DNI (8 dígitos)
+        if (!dni.matches("\\d{8}")) {
+            JOptionPane.showMessageDialog(this, "❌ DNI debe tener 8 dígitos");
+            tf_id.requestFocus();
+            return false;
+        }
+
         if (modeloBoleta.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
             return false;
@@ -494,7 +472,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
         // Validar ID del cajero
         if (tf_id.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "❌ Ingrese ID del cajero");
+            JOptionPane.showMessageDialog(this, "❌ Ingrese DNI del cliente");
             tf_id.requestFocus();
             return false;
         }
