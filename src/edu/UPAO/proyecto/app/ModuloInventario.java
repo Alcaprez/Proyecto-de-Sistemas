@@ -36,7 +36,7 @@ public class ModuloInventario extends javax.swing.JPanel {
         "Resize forzado. Ahora debería ver todos los productos.", 
         "Resize", 
         javax.swing.JOptionPane.INFORMATION_MESSAGE);
-} //hasta aqui es la prueba csmr maldito scroll
+} //hasta aqui es la prueba csmr maldito scrolllllll
     
     public ModuloInventario() {
         initComponents();
