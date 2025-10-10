@@ -191,7 +191,10 @@ public class Panel_Gerente extends javax.swing.JFrame {
     }//GEN-LAST:event_btnEmpleadosActionPerformed
 
     private void btnPromocionesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPromocionesActionPerformed
-       
+       PROMOCIONES promos = new PROMOCIONES();
+       promos.setVisible(true);
+       promos.setLocationRelativeTo(null); 
+        this.dispose(); 
     }//GEN-LAST:event_btnPromocionesActionPerformed
 
     private void btnLocalesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLocalesActionPerformed
@@ -220,6 +223,7 @@ public class Panel_Gerente extends javax.swing.JFrame {
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(Panel_Gerente.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         java.awt.EventQueue.invokeLater(new Runnable() {

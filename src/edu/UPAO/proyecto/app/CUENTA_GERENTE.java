@@ -3,7 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package edu.UPAO.proyecto.app;
-
+import javax.swing.JOptionPane;
 /**
  *
  * @author WIN-10
@@ -15,6 +15,30 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
      */
     public CUENTA_GERENTE() {
         initComponents();
+        txtCorreo.setRequestFocusEnabled(true);
+        txtCorreo.setEnabled(true);
+        txtCorreo.setEditable(true);
+
+        txtTelefono.setEnabled(true);
+        txtTelefono.setEditable(true);
+        txtTelefono.setRequestFocusEnabled(true);
+
+        txtTelefono.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent evt) {
+                char c = evt.getKeyChar();
+
+                               if (!Character.isDigit(c)) {
+                    evt.consume(); 
+                    return;
+                }
+
+                
+                if (txtTelefono.getText().length() >= 9) {
+                    evt.consume(); 
+                }
+            }
+        });
     }
 
     /**
@@ -35,10 +59,13 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
         panelTitle = new javax.swing.JPanel();
         lblTitulo = new javax.swing.JLabel();
         panelBody = new javax.swing.JPanel();
+        jPanel2 = new javax.swing.JPanel();
         lblNombre = new javax.swing.JLabel();
         txtNombre = new javax.swing.JTextField();
+        jPanel3 = new javax.swing.JPanel();
         lblCorreo = new javax.swing.JLabel();
         txtCorreo = new javax.swing.JTextField();
+        jPanel4 = new javax.swing.JPanel();
         lblTelefono = new javax.swing.JLabel();
         txtTelefono = new javax.swing.JTextField();
         jPanel1 = new javax.swing.JPanel();
@@ -53,12 +80,11 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
         panelHeader.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 16));
         panelHeader.setPreferredSize(new java.awt.Dimension(780, 70));
         panelHeader.setLayout(new java.awt.BorderLayout());
-
-        logoLabel.setIcon(new javax.swing.ImageIcon("C:\\Users\\WIN-10\\OneDrive\\Imágenes\\Logo_kuyay-convertido-a-pequeño-removebg-preview.png")); // NOI18N
         panelHeader.add(logoLabel, java.awt.BorderLayout.LINE_START);
 
         btnSalir.setFont(new java.awt.Font("Leelawadee UI", 1, 12)); // NOI18N
         btnSalir.setText("SALIR");
+        btnSalir.setPreferredSize(new java.awt.Dimension(72, 10));
         btnSalir.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnSalirActionPerformed(evt);
@@ -91,49 +117,70 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
         panelBody.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 12, 12));
         panelBody.setLayout(new java.awt.GridBagLayout());
 
-        lblNombre.setForeground(new java.awt.Color(0, 0, 0));
-        lblNombre.setText("Nombre:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        panelBody.add(lblNombre, gridBagConstraints);
+        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel2.setPreferredSize(new java.awt.Dimension(300, 38));
 
-        txtNombre.setText("jTextField1");
+        lblNombre.setText("Nombre:");
+        lblNombre.setPreferredSize(new java.awt.Dimension(55, 16));
+        jPanel2.add(lblNombre);
+
+        txtNombre.setPreferredSize(new java.awt.Dimension(200, 25));
         txtNombre.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 txtNombreActionPerformed(evt);
             }
         });
+        jPanel2.add(txtNombre);
+
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
-        panelBody.add(txtNombre, gridBagConstraints);
+        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
+        panelBody.add(jPanel2, gridBagConstraints);
 
-        lblCorreo.setForeground(new java.awt.Color(0, 0, 0));
+        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel3.setMinimumSize(new java.awt.Dimension(132, 32));
+        jPanel3.setPreferredSize(new java.awt.Dimension(300, 50));
+        jPanel3.setVerifyInputWhenFocusTarget(false);
+
         lblCorreo.setText("Correo:");
+        lblCorreo.setPreferredSize(new java.awt.Dimension(55, 25));
+        jPanel3.add(lblCorreo);
+
+        txtCorreo.setPreferredSize(new java.awt.Dimension(200, 35));
+        txtCorreo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtCorreoActionPerformed(evt);
+            }
+        });
+        jPanel3.add(txtCorreo);
+
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        panelBody.add(lblCorreo, gridBagConstraints);
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
+        panelBody.add(jPanel3, gridBagConstraints);
 
-        txtCorreo.setText("jTextField2");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        panelBody.add(txtCorreo, gridBagConstraints);
+        jPanel4.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel4.setPreferredSize(new java.awt.Dimension(300, 38));
+        jPanel4.setRequestFocusEnabled(false);
 
-        lblTelefono.setForeground(new java.awt.Color(0, 0, 0));
         lblTelefono.setText("Telefono: ");
+        lblTelefono.setPreferredSize(new java.awt.Dimension(54, 25));
+        jPanel4.add(lblTelefono);
+
+        txtTelefono.setPreferredSize(new java.awt.Dimension(200, 25));
+        jPanel4.add(txtTelefono);
+
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
-        panelBody.add(lblTelefono, gridBagConstraints);
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
+        panelBody.add(jPanel4, gridBagConstraints);
+        jPanel4.getAccessibleContext().setAccessibleName("");
 
-        txtTelefono.setText("jTextField3");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
-        panelBody.add(txtTelefono, gridBagConstraints);
+        jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
         jButton1.setText("GUARDAR");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -144,12 +191,19 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
         jPanel1.add(jButton1);
 
         jButton2.setText("CANCELAR");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
         jPanel1.add(jButton2);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 7;
         gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.insets = new java.awt.Insets(63, 5, 6, 12);
         panelBody.add(jPanel1, gridBagConstraints);
 
         getContentPane().add(panelBody, java.awt.BorderLayout.CENTER);
@@ -157,6 +211,7 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    
     private void btnSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSalirActionPerformed
         Panel_Gerente g = new Panel_Gerente(); // cambia por el nombre de tu JFrame de Gerente
         g.setVisible(true);
@@ -167,12 +222,77 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
     }//GEN-LAST:event_btnSalirActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
+        String nombre = txtNombre.getText().trim();
+        String correo = txtCorreo.getText().trim();
+        String telefono = txtTelefono.getText().trim();
+
+        if (nombre.isEmpty() || correo.isEmpty() || telefono.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Por favor complete todos los campos antes de continuar.",
+                    "Campos incompletos",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        if (!telefono.matches("\\d{9}")) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Ingresar 9 dígitos numéricos.",
+                    "Error en teléfono",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+                if (!correo.matches("^[\\w._%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Por favor ingrese un correo válido (ejemplo: usuario@dominio.com).",
+                    "Error en correo",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        // --- Si todo está correcto ---
+        System.out.println("Nombre: " + nombre);
+        System.out.println("Correo: " + correo);
+        System.out.println("Teléfono: " + telefono);
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Datos guardados correctamente.",
+                "Éxito",
+                JOptionPane.INFORMATION_MESSAGE
+        );
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void txtNombreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtNombreActionPerformed
-        // TODO add your handling code here:
+
     }//GEN-LAST:event_txtNombreActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        int opcion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Desea borrar todos los datos?",
+                "Confirmar acción",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (opcion == JOptionPane.YES_OPTION) {
+            txtNombre.setText("");
+            txtCorreo.setText("");
+            txtTelefono.setText("");
+            JOptionPane.showMessageDialog(this, "Datos borrados correctamente.");
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void txtCorreoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCorreoActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtCorreoActionPerformed
 
     /**
      * @param args the command line arguments
@@ -200,6 +320,7 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
             java.util.logging.Logger.getLogger(CUENTA_GERENTE.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
+        //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
@@ -215,6 +336,9 @@ public class CUENTA_GERENTE extends javax.swing.JFrame {
     private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
     private javax.swing.JLabel lblCorreo;
     private javax.swing.JLabel lblNombre;
     private javax.swing.JLabel lblTelefono;

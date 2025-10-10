@@ -380,7 +380,7 @@
                               <EmptySpace max="-2" attributes="0"/>
                               <Component id="txtCupon" min="-2" pref="145" max="-2" attributes="0"/>
                               <EmptySpace max="-2" attributes="0"/>
-                              <Component id="btn_validar" pref="102" max="32767" attributes="0"/>
+                              <Component id="btn_validar" max="32767" attributes="0"/>
                               <EmptySpace max="-2" attributes="0"/>
                           </Group>
                           <Group type="102" attributes="0">

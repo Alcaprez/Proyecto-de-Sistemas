@@ -5,6 +5,9 @@
 package edu.UPAO.proyecto.app;
 
 import java.io.*;
+import edu.UPAO.proyecto.Util.AsistenciaTxtRepo;
+import java.time.LocalDate;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.swing.*;
@@ -20,6 +23,8 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
     private String usuarioNombre;
     private boolean yaRegistroEntradaHoy = false;
     private boolean yaRegistroSalidaHoy = false;
+    private final AsistenciaTxtRepo repo = new AsistenciaTxtRepo("registros_asistencia.txt");
+    private LocalDate fechaHoy = LocalDate.now();
 
     /**
      * Creates new form jFrame_Asistncias
@@ -93,7 +98,12 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         // Verificar directamente del archivo cuál es el estado actual
         boolean tieneEntradaHoy = tieneRegistroHoy("ENTRADA");
         boolean tieneSalidaHoy = tieneRegistroHoy("SALIDA");
+        fechaHoy = LocalDate.now();
+        var map = repo.leerPorFecha(fechaHoy);
+        var r = map.get(usuarioNombre == null ? "" : usuarioNombre.toLowerCase());
 
+        boolean tieneEntrada = (r != null && r.entrada != null);
+        boolean tieneSalida = (r != null && r.salida != null);
         if (tieneEntradaHoy && !tieneSalidaHoy) {
             // Ya registró entrada pero no salida - ESPERANDO SALIDA
             btn_entrada.setEnabled(false);
@@ -141,9 +151,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         }
         return false;
     }
-    
-    
-    
 
     private void registrarAsistencia(String tipo) {
         try {
@@ -160,20 +167,20 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
             // Agregar a la tabla
             modelo.addRow(new Object[]{usuarioNombre, tipo, fecha, hora});
 
-            JOptionPane.showMessageDialog(this, 
-                "✅ " + tipo + " registrada exitosamente\n" +
-                "🕒 Hora: " + hora, 
-                tipo + " Registrada", 
-                JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "✅ " + tipo + " registrada exitosamente\n"
+                    + "🕒 Hora: " + hora,
+                    tipo + " Registrada",
+                    JOptionPane.INFORMATION_MESSAGE);
 
             // Actualizar estado de los botones BASADO EN EL ARCHIVO
             actualizarEstadoBotones();
 
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, 
-                "❌ Error al guardar: " + e.getMessage(), 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "❌ Error al guardar: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -206,6 +213,7 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         });
         timer.start();
     }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -504,6 +512,7 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(jFrame_Asistncias.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */

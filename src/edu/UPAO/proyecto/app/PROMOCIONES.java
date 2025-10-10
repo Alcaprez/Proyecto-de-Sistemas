@@ -1,547 +1,378 @@
 package edu.UPAO.proyecto.app;
 
-import edu.UPAO.proyecto.Service.PromocionService;
-import edu.UPAO.proyecto.Modelo.Promocion;
-import javax.swing.DefaultComboBoxModel;
+import edu.UPAO.proyecto.Modelo.Cupon;
+import edu.UPAO.proyecto.Modelo.Cupon.TipoDescuento;
+import edu.UPAO.proyecto.PromocionController;
+import edu.UPAO.proyecto.Promociones;
+import edu.UPAO.proyecto.app.Panel_Gerente;
 
-public class PROMOCIONES extends javax.swing.JFrame {
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 
-    private final PromocionService promoService = new PromocionService();
-    private final edu.UPAO.proyecto.DAO.ProductoDAO productoDAO = new edu.UPAO.proyecto.DAO.ProductoDAO();
+public class PROMOCIONES extends JFrame {
 
-    private final String[] CATEGORIAS_DEF = {
-        "Lácteos", "Bebidas", "Snacks", "Panadería", "Limpieza"
-    };
+    // --- UI components ---
+    private JTable tblCupones;
+    private DefaultTableModel model;
+
+    private JTextField txtCodigo;
+    private JSpinner   spnValor;
+    private JRadioButton rbPorcentaje, rbMontoFijo;
+    private ButtonGroup grpTipo;
+
+    private JTextField txtSku;
+    private JSpinner   spnMinimo;
+    private JTextField txtInicio, txtFin;
+    private JCheckBox  chkActivo;
+    private JSpinner   spnMaxUsos;
+
+    private JButton btnGuardar, btnLimpiar, btnActivar, btnDesactivar, btnEliminar,
+                    btnExportar, btnFecha, btnSalir;
 
     public PROMOCIONES() {
-        initComponents();
-        cargarTabla();
-        cargarAmbito();
-        cargarTipos();
+        setTitle("Gestión de Promociones / Cupones (Gerente)");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setMinimumSize(new Dimension(1000, 640));
+        setLocationRelativeTo(null);
 
-        cmbAmbito.addActionListener(e -> cargarSelectorPorAmbito());
-        cargarSelectorPorAmbito();
+        initComponents();
+        configurarTabla();
+        cargarCupones();
+        hookSeleccionTabla();
     }
 
-    private void cargarTabla() {
-        var lista = promoService.listar();
-        var model = (javax.swing.table.DefaultTableModel) tablaPromos.getModel();
+    // ----------------- INIT UI -----------------
+    private void initComponents() {
+        // Root
+        JPanel root = new JPanel(new BorderLayout(12, 12));
+        root.setBorder(new EmptyBorder(12, 12, 12, 12));
+        setContentPane(root);
+
+        // Header
+        JLabel title = new JLabel("Promociones (Cupones)");
+        title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
+        title.setHorizontalAlignment(SwingConstants.LEFT);
+        root.add(title, BorderLayout.NORTH);
+
+        // Center split: left(form) + right(table)
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        split.setResizeWeight(0.38); // 38% form, 62% tabla
+        root.add(split, BorderLayout.CENTER);
+
+        // ---- LEFT: FORM ----
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+        split.setLeftComponent(new JScrollPane(formPanel));
+
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.insets = new Insets(6, 6, 6, 6);
+        gc.anchor = GridBagConstraints.WEST;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.weightx = 1;
+
+        int row = 0;
+
+        // Código
+        addL(formPanel, gc, row, "Código:");
+        txtCodigo = new JTextField();
+        addF(formPanel, gc, row++, txtCodigo);
+
+        // Tipo (radio)
+        addL(formPanel, gc, row, "Tipo:");
+        JPanel tipoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        rbPorcentaje = new JRadioButton("Porcentaje (%)", true);
+        rbMontoFijo = new JRadioButton("Monto fijo (S/)");
+        grpTipo = new ButtonGroup();
+        grpTipo.add(rbPorcentaje);
+        grpTipo.add(rbMontoFijo);
+        tipoPanel.add(rbPorcentaje);
+        tipoPanel.add(rbMontoFijo);
+        addF(formPanel, gc, row++, tipoPanel);
+
+        // Valor
+        addL(formPanel, gc, row, "Valor:");
+        spnValor = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 1_000_000.0, 0.1));
+        addF(formPanel, gc, row++, spnValor);
+
+        // SKU (opcional)
+        addL(formPanel, gc, row, "SKU aplicado (opcional):");
+        txtSku = new JTextField();
+        addF(formPanel, gc, row++, txtSku);
+
+        // Mínimo compra
+        addL(formPanel, gc, row, "Mínimo compra (S/):");
+        spnMinimo = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 1_000_000.0, 0.5));
+        addF(formPanel, gc, row++, spnMinimo);
+
+        // Inicio
+        addL(formPanel, gc, row, "Inicio (yyyy-MM-dd):");
+        txtInicio = new JTextField();
+        addF(formPanel, gc, row++, txtInicio);
+
+        // Fin
+        addL(formPanel, gc, row, "Fin (yyyy-MM-dd):");
+        txtFin = new JTextField();
+        addF(formPanel, gc, row++, txtFin);
+
+        // Activo
+        addL(formPanel, gc, row, "Activo:");
+        chkActivo = new JCheckBox("Habilitado", true);
+        addF(formPanel, gc, row++, chkActivo);
+
+        // Máx usos
+        addL(formPanel, gc, row, "Máx usos (0 = ilimitado):");
+        spnMaxUsos = new JSpinner(new SpinnerNumberModel(0, 0, 1_000_000, 1));
+        addF(formPanel, gc, row++, spnMaxUsos);
+
+        // Fila extra: botones de formulario
+        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2; gc.weightx = 1;
+        JPanel formBtns = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        btnGuardar = new JButton("Guardar/Actualizar");
+        btnLimpiar = new JButton("Limpiar");
+        btnFecha   = new JButton("Fecha (hoy / +30)");
+        formBtns.add(btnGuardar);
+        formBtns.add(btnLimpiar);
+        formBtns.add(btnFecha);
+        formPanel.add(formBtns, gc);
+        row++;
+
+        // Wire actions form
+        btnGuardar.addActionListener(e -> onGuardar());
+        btnLimpiar.addActionListener(e -> limpiarFormulario());
+        btnFecha.addActionListener(e -> onFecha());
+
+        // ---- RIGHT: TABLE + FOOTER BUTTONS ----
+        JPanel rightPanel = new JPanel(new BorderLayout(6, 6));
+        split.setRightComponent(rightPanel);
+
+        tblCupones = new JTable();
+        rightPanel.add(new JScrollPane(tblCupones), BorderLayout.CENTER);
+
+        JPanel listBtns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 6));
+        btnActivar    = new JButton("Activar");
+        btnDesactivar = new JButton("Desactivar");
+        btnEliminar   = new JButton("Eliminar");
+        btnExportar   = new JButton("Abrir CSV");
+        btnSalir      = new JButton("Salir");
+        listBtns.add(btnActivar);
+        listBtns.add(btnDesactivar);
+        listBtns.add(btnEliminar);
+        listBtns.add(btnExportar);
+        listBtns.add(btnSalir);
+        rightPanel.add(listBtns, BorderLayout.SOUTH);
+
+        // Wire actions list
+        btnActivar.addActionListener(e -> onActivar());
+        btnDesactivar.addActionListener(e -> onDesactivar());
+        btnEliminar.addActionListener(e -> onEliminar());
+        btnExportar.addActionListener(e -> onExportar());
+        btnSalir.addActionListener(e -> onSalir());
+    }
+
+    // Helpers to place labels/fields nicely
+    private void addL(JPanel p, GridBagConstraints gc, int row, String text) {
+        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 1; gc.weightx = 0;
+        JLabel l = new JLabel(text);
+        p.add(l, gc);
+    }
+
+    private void addF(JPanel p, GridBagConstraints gc, int row, JComponent comp) {
+        gc.gridx = 1; gc.gridy = row; gc.gridwidth = 1; gc.weightx = 1;
+        p.add(comp, gc);
+    }
+
+    // ----------------- TABLE -----------------
+    private void configurarTabla() {
+        model = new DefaultTableModel(
+            new Object[]{
+                "Código","Tipo","Valor","SKU","Mínimo",
+                "Inicio","Fin","Activo","Máx Usos","Usos"
+            }, 0
+        ) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tblCupones.setModel(model);
+        tblCupones.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // opcional: ajustar ancho
+        tblCupones.getColumnModel().getColumn(0).setPreferredWidth(100);
+        tblCupones.getColumnModel().getColumn(1).setPreferredWidth(80);
+        tblCupones.getColumnModel().getColumn(2).setPreferredWidth(70);
+        tblCupones.getColumnModel().getColumn(3).setPreferredWidth(120);
+    }
+
+    private void hookSeleccionTabla() {
+        tblCupones.getSelectionModel().addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            int row = tblCupones.getSelectedRow();
+            if (row >= 0) llenarFormularioDesdeFila(row);
+        });
+    }
+
+    private void cargarCupones() {
+        List<Cupon> lista = PromocionController.listarCupones();
         model.setRowCount(0);
-        for (var p : lista) {
+        for (Cupon c : lista) {
             model.addRow(new Object[]{
-                p.getCodigo(),
-                p.getTipo(),
-                p.getDescuento(),
-                p.getCantidadMinima()
+                c.getCodigo(),
+                c.getTipo().name(),
+                c.getValor(),
+                c.getSkuAplicado(),
+                c.getMinimoCompra(),
+                c.getInicio(),
+                c.getFin(),
+                c.isActivo(),
+                c.getMaxUsos(),
+                c.getUsos()
             });
         }
     }
 
-    private void cargarAmbito() {
+    // ----------------- FORM BINDING -----------------
+    private Cupon leerFormulario() {
+        String codigo = txtCodigo.getText().trim();
+        if (codigo.isEmpty()) throw new IllegalArgumentException("Código es obligatorio.");
 
-        cmbAmbito.setModel(new DefaultComboBoxModel<>(new String[]{
-            "Producto", "Categoría", "Ticket"
-        }));
-    }
+        TipoDescuento tipo = rbPorcentaje.isSelected() ? TipoDescuento.PERCENT : TipoDescuento.FLAT;
+        double valor   = ((Number) spnValor.getValue()).doubleValue();
+        String sku     = txtSku.getText().trim();
+        if (sku.isEmpty()) sku = null;
+        double minimo  = ((Number) spnMinimo.getValue()).doubleValue();
 
-
-    private void cargarTipos() {
-        cmbTipo.setModel(new DefaultComboBoxModel<>(new String[]{
-            "Porcentaje (%)", 
-            "Monto fijo (S/)", 
-            "2x1", 
-            "3x2" 
-        }));
-    }
-
-    private void cargarSelectorPorAmbito() {
-        String ambito = (cmbAmbito.getSelectedItem() != null)
-                ? cmbAmbito.getSelectedItem().toString()
-                : "Producto";
-
-        switch (ambito) {
-            case "Producto":
-                cargarProductosEnSelector();
-                cmbSelector.setEnabled(true);
-                break;
-
-            case "Categoría":
-                cargarCategoriasEnSelector();
-                cmbSelector.setEnabled(true);
-                break;
-
-            case "Ticket":
-                // Para Ticket no necesitas seleccionar nada específico
-                cmbSelector.setModel(new DefaultComboBoxModel<>(new String[]{"—"}));
-                cmbSelector.setEnabled(false);
-                break;
-        }
-    }
-
-
-    private void cargarProductosEnSelector() {
+        LocalDate inicio = null, fin = null;
+        String sInicio = txtInicio.getText().trim();
+        String sFin    = txtFin.getText().trim();
         try {
-            java.util.List<edu.UPAO.proyecto.Modelo.Producto> productos = productoDAO.listar();
+            if (!sInicio.isEmpty()) inicio = LocalDate.parse(sInicio);
+            if (!sFin.isEmpty())    fin    = LocalDate.parse(sFin);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Formato de fecha inválido: usa yyyy-MM-dd.");
+        }
 
-            String[] nombres = productos.stream()
-                    .map(edu.UPAO.proyecto.Modelo.Producto::getNombre)
-                    .filter(java.util.Objects::nonNull)
-                    .distinct()
-                    .sorted(String::compareToIgnoreCase)
-                    .toArray(String[]::new);
+        boolean activo = chkActivo.isSelected();
+        int maxUsos = ((Number) spnMaxUsos.getValue()).intValue();
 
-            cmbSelector.setModel(new DefaultComboBoxModel<>(nombres.length > 0 ? nombres : new String[]{"(Sin productos)"}));
+        return new Cupon(codigo, tipo, valor, sku, minimo, inicio, fin, activo, maxUsos, 0);
+    }
+
+    private void llenarFormularioDesdeFila(int row) {
+        txtCodigo.setText(String.valueOf(model.getValueAt(row,0)));
+
+        String tipo = String.valueOf(model.getValueAt(row,1));
+        rbPorcentaje.setSelected("PERCENT".equalsIgnoreCase(tipo));
+        rbMontoFijo.setSelected("FLAT".equalsIgnoreCase(tipo));
+
+        spnValor.setValue(Double.valueOf(String.valueOf(model.getValueAt(row,2))));
+
+        Object sku = model.getValueAt(row,3);
+        txtSku.setText(sku == null ? "" : String.valueOf(sku));
+
+        spnMinimo.setValue(Double.valueOf(String.valueOf(model.getValueAt(row,4))));
+        txtInicio.setText(String.valueOf(model.getValueAt(row,5)));
+        txtFin.setText(String.valueOf(model.getValueAt(row,6)));
+
+        chkActivo.setSelected(Boolean.parseBoolean(String.valueOf(model.getValueAt(row,7))));
+        spnMaxUsos.setValue(Integer.valueOf(String.valueOf(model.getValueAt(row,8))));
+    }
+
+    private void limpiarFormulario() {
+        txtCodigo.setText("");
+        rbPorcentaje.setSelected(true);
+        spnValor.setValue(0.0);
+        txtSku.setText("");
+        spnMinimo.setValue(0.0);
+        txtInicio.setText("");
+        txtFin.setText("");
+        chkActivo.setSelected(true);
+        spnMaxUsos.setValue(0);
+        tblCupones.clearSelection();
+    }
+
+    // ----------------- ACTIONS -----------------
+    private void onGuardar() {
+        try {
+            Cupon c = leerFormulario();
+            PromocionController.crearActualizarCupon(c);
+            cargarCupones();
+            limpiarFormulario();
+            JOptionPane.showMessageDialog(this, "Cupón guardado/actualizado ✅");
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Validación", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            cmbSelector.setModel(new DefaultComboBoxModel<>(new String[]{"(No disponible)"}));
-            System.err.println("Error cargando productos: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al guardar cupón.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void cargarCategoriasEnSelector() {
+    private void onActivar() {
+        int row = tblCupones.getSelectedRow();
+        if (row < 0) { JOptionPane.showMessageDialog(this, "Selecciona un cupón."); return; }
+        String codigo = String.valueOf(model.getValueAt(row,0));
+        PromocionController.activar(codigo);
+        cargarCupones();
+    }
+
+    private void onDesactivar() {
+        int row = tblCupones.getSelectedRow();
+        if (row < 0) { JOptionPane.showMessageDialog(this, "Selecciona un cupón."); return; }
+        String codigo = String.valueOf(model.getValueAt(row,0));
+        PromocionController.desactivar(codigo);
+        cargarCupones();
+    }
+
+    private void onEliminar() {
+        int row = tblCupones.getSelectedRow();
+        if (row < 0) { JOptionPane.showMessageDialog(this, "Selecciona un cupón."); return; }
+        String codigo = String.valueOf(model.getValueAt(row,0));
+        int r = JOptionPane.showConfirmDialog(this, "¿Eliminar " + codigo + "?", "Confirmar",
+                JOptionPane.YES_NO_OPTION);
+        if (r == JOptionPane.YES_OPTION) {
+            PromocionController.eliminar(codigo);
+            cargarCupones();
+            limpiarFormulario();
+        }
+    }
+
+    private void onExportar() {
         try {
-            java.util.List<edu.UPAO.proyecto.Modelo.Producto> productos = productoDAO.listar();
+            Desktop.getDesktop().open(new java.io.File("data/cupones.csv"));
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "No se pudo abrir data/cupones.csv. Verifica que exista.");
+        }
+    }
 
-          
-            String[] cats = CATEGORIAS_DEF;
-
-            cmbSelector.setModel(new DefaultComboBoxModel<>(cats.length > 0 ? cats : new String[]{"(Sin categorías)"}));
+    private void onFecha() {
+        LocalDate hoy = LocalDate.now();
+        txtInicio.setText(hoy.toString());
+        txtFin.setText(hoy.plusDays(30).toString());
+    }
+private void onSalir() {
+    // Abre el panel del gerente y cierra esta ventana
+    SwingUtilities.invokeLater(() -> {
+        try {
+            new Panel_Gerente().setVisible(true);
         } catch (Exception ex) {
-            cmbSelector.setModel(new DefaultComboBoxModel<>(CATEGORIAS_DEF));
-            System.err.println("Error cargando categorías: " + ex.getMessage());
+            // Por si Panel_Gerente tiene constructor con argumentos
+            JOptionPane.showMessageDialog(this,
+                "No se pudo abrir Panel_Gerente.\n" + ex.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            this.dispose();
         }
-    }
+    });
+}
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
-        java.awt.GridBagConstraints gridBagConstraints;
-
-        panelTop = new javax.swing.JPanel();
-        panelHeader = new javax.swing.JPanel();
-        logoLabel = new javax.swing.JLabel();
-        btnSalir = new javax.swing.JButton();
-        lblFrase = new javax.swing.JLabel();
-        panelTitle = new javax.swing.JPanel();
-        lblTitulo = new javax.swing.JLabel();
-        panelBody = new javax.swing.JPanel();
-        panelFiltros = new javax.swing.JPanel();
-        lblFiltros = new javax.swing.JLabel();
-        cmbTienda = new javax.swing.JComboBox<>();
-        cmbEstado = new javax.swing.JComboBox<>();
-        btnFecha = new javax.swing.JButton();
-        btnExportar = new javax.swing.JButton();
-        panelSplit = new javax.swing.JSplitPane();
-        panelForm = new javax.swing.JPanel();
-        lblCodigo = new javax.swing.JLabel();
-        txtCodigo = new javax.swing.JTextField();
-        lblNombre = new javax.swing.JLabel();
-        txtNombre = new javax.swing.JTextField();
-        lblTipo = new javax.swing.JLabel();
-        cmbTipo = new javax.swing.JComboBox<>();
-        lblValor = new javax.swing.JLabel();
-        spnValor = new javax.swing.JSpinner();
-        lblAmbito = new javax.swing.JLabel();
-        cmbAmbito = new javax.swing.JComboBox<>();
-        lblSelector = new javax.swing.JLabel();
-        cmbSelector = new javax.swing.JComboBox<>();
-        lblFechaInciio = new javax.swing.JLabel();
-        txtFechaInicio = new javax.swing.JTextField();
-        lblFechaFin = new javax.swing.JLabel();
-        txtFechaFin = new javax.swing.JTextField();
-        lblEstado = new javax.swing.JLabel();
-        cmbEstado2 = new javax.swing.JComboBox<>();
-        tblPromos = new javax.swing.JScrollPane();
-        tablaPromos = new javax.swing.JTable();
-        panelAcciones = new javax.swing.JPanel();
-        btnGuardar = new javax.swing.JButton();
-        btnActivar = new javax.swing.JButton();
-        btnDesactivar = new javax.swing.JButton();
-        btnLimpiar = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        panelTop.setLayout(new java.awt.BorderLayout());
-
-        panelHeader.setBackground(new java.awt.Color(255, 153, 0));
-        panelHeader.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 16));
-        panelHeader.setPreferredSize(new java.awt.Dimension(780, 70));
-        panelHeader.setLayout(new java.awt.BorderLayout());
-        panelHeader.add(logoLabel, java.awt.BorderLayout.LINE_START);
-
-        btnSalir.setFont(new java.awt.Font("Leelawadee UI", 1, 12)); // NOI18N
-        btnSalir.setText("SALIR");
-        btnSalir.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnSalirActionPerformed(evt);
-            }
-        });
-        panelHeader.add(btnSalir, java.awt.BorderLayout.LINE_END);
-
-        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 12)); // NOI18N
-        lblFrase.setForeground(new java.awt.Color(193, 28, 28));
-        lblFrase.setText("Todo lo que necesitas al alcance");
-        panelHeader.add(lblFrase, java.awt.BorderLayout.CENTER);
-
-        panelTop.add(panelHeader, java.awt.BorderLayout.PAGE_START);
-
-        panelTitle.setBackground(new java.awt.Color(153, 0, 0));
-        panelTitle.setPreferredSize(new java.awt.Dimension(780, 40));
-        panelTitle.setLayout(new java.awt.BorderLayout());
-
-        lblTitulo.setFont(new java.awt.Font("Segoe UI", 1, 22)); // NOI18N
-        lblTitulo.setForeground(new java.awt.Color(255, 255, 255));
-        lblTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblTitulo.setText("PROMOCIONES");
-        panelTitle.add(lblTitulo, java.awt.BorderLayout.CENTER);
-
-        panelTop.add(panelTitle, java.awt.BorderLayout.PAGE_END);
-
-        getContentPane().add(panelTop, java.awt.BorderLayout.NORTH);
-
-        panelBody.setBackground(new java.awt.Color(191, 237, 237));
-        panelBody.setLayout(new java.awt.BorderLayout());
-
-        panelFiltros.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 8, 8));
-
-        lblFiltros.setText("FILTRAR POR:");
-        panelFiltros.add(lblFiltros);
-
-        cmbTienda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Todas", "Tienda A", "Tienda B", " " }));
-        panelFiltros.add(cmbTienda);
-
-        cmbEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Todos ", "Activas ", "Inactivas", " " }));
-        panelFiltros.add(cmbEstado);
-
-        btnFecha.setText("FECHA");
-        panelFiltros.add(btnFecha);
-
-        btnExportar.setText("EXPORTAR");
-        panelFiltros.add(btnExportar);
-
-        panelBody.add(panelFiltros, java.awt.BorderLayout.NORTH);
-
-        panelForm.setLayout(new java.awt.GridBagLayout());
-
-        lblCodigo.setText("Codigo:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        panelForm.add(lblCodigo, gridBagConstraints);
-
-        txtCodigo.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtCodigoActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(txtCodigo, gridBagConstraints);
-
-        lblNombre.setText("Nombre:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        panelForm.add(lblNombre, gridBagConstraints);
-
-        txtNombre.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtNombreActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(txtNombre, gridBagConstraints);
-
-        lblTipo.setText("Tipo:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblTipo, gridBagConstraints);
-
-        cmbTipo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Descuento %", "Descuento fijo (S/)", "2 x 1" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(cmbTipo, gridBagConstraints);
-
-        lblValor.setText("Valor:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblValor, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(spnValor, gridBagConstraints);
-
-        lblAmbito.setText("Ambito:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblAmbito, gridBagConstraints);
-
-        cmbAmbito.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(cmbAmbito, gridBagConstraints);
-
-        lblSelector.setText("Seleccion:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblSelector, gridBagConstraints);
-
-        cmbSelector.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Producto", "Categoria", " " }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(cmbSelector, gridBagConstraints);
-
-        lblFechaInciio.setText("Fecha Incio:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 6;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblFechaInciio, gridBagConstraints);
-
-        txtFechaInicio.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtFechaInicioActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(txtFechaInicio, gridBagConstraints);
-
-        lblFechaFin.setText("Fecha Fin:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 7;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(lblFechaFin, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 7;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(txtFechaFin, gridBagConstraints);
-
-        lblEstado.setText("Estado:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 8;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        panelForm.add(lblEstado, gridBagConstraints);
-
-        cmbEstado2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Activar", "Desactivar", " " }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 8;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(6, 12, 6, 12);
-        panelForm.add(cmbEstado2, gridBagConstraints);
-
-        panelSplit.setLeftComponent(panelForm);
-
-        tablaPromos.setAutoCreateRowSorter(true);
-        tablaPromos.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null, null},
-                {null, null, null, null, null, null, null, null, null}
-            },
-            new String [] {
-                "Codigo", "Nombre", "Tipo", "Valor", "Ambito", "Seleccion", "Inicio", "Fin", "Estado"
-            }
-        ));
-        tablaPromos.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-        tblPromos.setViewportView(tablaPromos);
-
-        panelSplit.setRightComponent(tblPromos);
-
-        panelBody.add(panelSplit, java.awt.BorderLayout.CENTER);
-
-        panelAcciones.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
-
-        btnGuardar.setText("GUARDAR");
-        btnGuardar.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnGuardarActionPerformed(evt);
-            }
-        });
-        panelAcciones.add(btnGuardar);
-
-        btnActivar.setText("ACTIVAR");
-        panelAcciones.add(btnActivar);
-
-        btnDesactivar.setText("DESACTIVAR");
-        panelAcciones.add(btnDesactivar);
-
-        btnLimpiar.setText("LIMPIAR");
-        panelAcciones.add(btnLimpiar);
-
-        panelBody.add(panelAcciones, java.awt.BorderLayout.SOUTH);
-
-        getContentPane().add(panelBody, java.awt.BorderLayout.CENTER);
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void btnSalirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSalirActionPerformed
-        Panel_Gerente g = new Panel_Gerente(); // cambia por el nombre de tu JFrame de Gerente
-        g.setVisible(true);
-        g.setLocationRelativeTo(null); // centrar la ventana en la pantalla
-
-        // Cerrar esta ventana (PERSONAL)
-        this.dispose();
-    }//GEN-LAST:event_btnSalirActionPerformed
-
-    private void txtCodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCodigoActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtCodigoActionPerformed
-
-    private void txtNombreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtNombreActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtNombreActionPerformed
-
-    private void txtFechaInicioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtFechaInicioActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtFechaInicioActionPerformed
-
-    private void btnGuardarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGuardarActionPerformed
-        String codigo = txtCodigo.getText();
-        String tipo = cmbTipo.getSelectedItem().toString();
-
-        double desc = ((Number) spnValor.getValue()).doubleValue(); // ✅ lee del spinner
-        int cant = tipo.equals("producto") ? 1 : 1; // puedes agregar campo si necesitas
-
-        Promocion p = new Promocion(codigo, tipo, desc, cant);
-        promoService.guardar(p);
-        cargarTabla();
-    }//GEN-LAST:event_btnGuardarActionPerformed
-
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(PROMOCIONES.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(PROMOCIONES.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(PROMOCIONES.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(PROMOCIONES.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    // ----------------- MAIN (opcional para test independiente) -----------------
+    public static void main(String[] args) {
+    java.awt.EventQueue.invokeLater(new Runnable() {
+        @Override public void run() {
+            new PROMOCIONES().setVisible(true);
         }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new PROMOCIONES().setVisible(true);
-            }
-        });
-    }
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnActivar;
-    private javax.swing.JButton btnDesactivar;
-    private javax.swing.JButton btnExportar;
-    private javax.swing.JButton btnFecha;
-    private javax.swing.JButton btnGuardar;
-    private javax.swing.JButton btnLimpiar;
-    private javax.swing.JButton btnSalir;
-    private javax.swing.JComboBox<String> cmbAmbito;
-    private javax.swing.JComboBox<String> cmbEstado;
-    private javax.swing.JComboBox<String> cmbEstado2;
-    private javax.swing.JComboBox<String> cmbSelector;
-    private javax.swing.JComboBox<String> cmbTienda;
-    private javax.swing.JComboBox<String> cmbTipo;
-    private javax.swing.JLabel lblAmbito;
-    private javax.swing.JLabel lblCodigo;
-    private javax.swing.JLabel lblEstado;
-    private javax.swing.JLabel lblFechaFin;
-    private javax.swing.JLabel lblFechaInciio;
-    private javax.swing.JLabel lblFiltros;
-    private javax.swing.JLabel lblFrase;
-    private javax.swing.JLabel lblNombre;
-    private javax.swing.JLabel lblSelector;
-    private javax.swing.JLabel lblTipo;
-    private javax.swing.JLabel lblTitulo;
-    private javax.swing.JLabel lblValor;
-    private javax.swing.JLabel logoLabel;
-    private javax.swing.JPanel panelAcciones;
-    private javax.swing.JPanel panelBody;
-    private javax.swing.JPanel panelFiltros;
-    private javax.swing.JPanel panelForm;
-    private javax.swing.JPanel panelHeader;
-    private javax.swing.JSplitPane panelSplit;
-    private javax.swing.JPanel panelTitle;
-    private javax.swing.JPanel panelTop;
-    private javax.swing.JSpinner spnValor;
-    private javax.swing.JTable tablaPromos;
-    private javax.swing.JScrollPane tblPromos;
-    private javax.swing.JTextField txtCodigo;
-    private javax.swing.JTextField txtFechaFin;
-    private javax.swing.JTextField txtFechaInicio;
-    private javax.swing.JTextField txtNombre;
-    // End of variables declaration//GEN-END:variables
+    });
+}
 }

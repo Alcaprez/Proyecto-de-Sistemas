@@ -13,13 +13,17 @@ import edu.UPAO.proyecto.Modelo.ResumenDiario;
 import edu.UPAO.proyecto.Modelo.Usuario;
 import edu.UPAO.proyecto.Service.AsistenciaService;
 import edu.UPAO.proyecto.Service.UsuarioService;
+import javax.swing.table.DefaultTableModel;
+import edu.UPAO.proyecto.Util.AsistenciaTxtRepo;
 
 public class PERSONAL extends javax.swing.JFrame {
 
+    private final edu.UPAO.proyecto.Service.UsuarioService usuarioService = new edu.UPAO.proyecto.Service.UsuarioService();
+    private final edu.UPAO.proyecto.Service.AsistenciaService asistenciaService = new edu.UPAO.proyecto.Service.AsistenciaService();
+    private java.time.LocalDate fechaActual = java.time.LocalDate.now();
     private final DateTimeFormatter DF = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-    private final AsistenciaService asistenciaService = new AsistenciaService();
-    private final UsuarioService usuarioService = new UsuarioService();
+    private final AsistenciaTxtRepo repo = new AsistenciaTxtRepo("registros_asistencia.txt");
+    private javax.swing.JTable tblEmpleados;
 
     private java.util.List<ResumenDiario> resumenFull = new ArrayList<>();
     private ResumenTableModel model; // (ver 4.5)
@@ -27,15 +31,36 @@ public class PERSONAL extends javax.swing.JFrame {
 
     public PERSONAL() {
         initComponents();
+        // ==== tabla empleados dentro del scroll ====
+        tblEmpleados = new javax.swing.JTable();
+        tblEmpleados.setModel(new javax.swing.table.DefaultTableModel(
+                new Object[][]{},
+                new String[]{
+                    "Nombre y Cargo", "Turno", "Entrada", "Salida",
+                    "Total de Horas", "Tardanza (min)", "Estado"
+                }
+        ) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        });
+        jScrollPane1.setViewportView(tblEmpleados);
+
+// cargar data inicial
+        cargarUsuariosGestion();    // <-- método del paso 3
+
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
         centrarTituloBarra();
         centrarKpisHorizontal();
+        cargarUsuariosConAsistencia();
         poblarTiendas();                  // NUEVO
         recargarResumen();
         configurarTabla();
         actualizarKPIs(resumenFull);
         wireListeners();
+        btnVerTodos.addActionListener(e -> cargarUsuariosGestion());
     }
 // Devuelve la JTable correcta (según tu Navigator es jTable1)
 
@@ -45,7 +70,70 @@ public class PERSONAL extends javax.swing.JFrame {
         lblTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         panelTitle.add(lblTitulo, java.awt.BorderLayout.CENTER);
     }
+private void cargarDesdeTxt() {
+    // 1) usuarios base (sin gerente) desde tu servicio/DAO actual
+    java.util.List<edu.UPAO.proyecto.Modelo.Usuario> usuarios =
+            usuarioService.listarParaGestion();
 
+    // (opcional) filtros por tienda y buscador aquí, igual que ya haces...
+
+    // 2) leer mapa del TXT para la fecha seleccionada
+    var map = repo.leerPorFecha(fechaSeleccionada);
+
+    // 3) pintar la tabla
+    var m = (javax.swing.table.DefaultTableModel) tblEmpleados.getModel();
+    m.setRowCount(0);
+
+    int presentes = 0, tardanzas = 0;
+
+    for (var u : usuarios) {
+        var r = map.get(u.getUsuario() == null ? "" : u.getUsuario().toLowerCase());
+
+        String turno = (u.getHoraEntradaProg()==null || u.getHoraSalidaProg()==null)
+                ? "— / —" : (u.getHoraEntradaProg() + " / " + u.getHoraSalidaProg());
+
+        String entrada = (r == null || r.entrada == null) ? "—" : r.entrada.toString();
+        String salida  = (r == null || r.salida  == null) ? "—" : r.salida.toString();
+
+        // total horas simple (si hay salida)
+        String total = "0 h 0 m";
+        if (r != null && r.entrada != null && r.salida != null) {
+            long mins = java.time.Duration.between(r.entrada, r.salida).toMinutes();
+            if (mins < 0) mins = 0;
+            total = (mins/60) + " h " + (mins%60) + " m";
+        }
+
+        // tardanza (si hay hora programada y hay entrada)
+        long tardMin = 0;
+        if (u.getHoraEntradaProg()!=null && r!=null && r.entrada!=null) {
+            tardMin = Math.max(0, java.time.Duration
+                    .between(u.getHoraEntradaProg(), r.entrada).toMinutes());
+            if (tardMin > 0) tardanzas++;
+        }
+
+        // presente = marcó ENTRADA y no ha marcado SALIDA (opción más común en tiempo real)
+        boolean presente = (r != null && r.entrada != null && (r.salida == null || r.salida.isBefore(r.entrada)==false));
+        if (presente) presentes++;
+
+        m.addRow(new Object[]{
+                u.getNombreComp() + "\n" + u.getCargo(),
+                turno,
+                entrada,
+                salida,
+                total,
+                tardMin,
+                presente ? "Presente" : "Ausente"
+        });
+    }
+
+    // 4) KPIs
+    int total = usuarios.size();
+    int ausentes = total - presentes;
+    lblValorTotal.setText(String.valueOf(total));
+    lblValorPresentes.setText(String.valueOf(presentes));
+    lblValorTardanzas.setText(String.valueOf(tardanzas));
+    lblValorAusencias.setText(String.valueOf(ausentes));
+}
     private void centrarKpisHorizontal() {
         javax.swing.JLabel[] titulos = {
             lblTituloTotal, lblTituloPresentes, lblTituloTardanzas, lblTituloAusencias
@@ -60,6 +148,89 @@ public class PERSONAL extends javax.swing.JFrame {
             l.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
             l.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
         }
+    }
+
+    private void cargarUsuariosConAsistencia() {
+        var usuarios = usuarioService.listarParaGestion();
+        var m = (javax.swing.table.DefaultTableModel) tblEmpleados.getModel();
+        m.setRowCount(0);
+
+        var mapAsis = asistenciaService.mapaDelDia(fechaActual);
+
+        int presentes = 0, tardanzas = 0;
+        for (edu.UPAO.proyecto.Modelo.Usuario u : usuarios) {
+            var a = mapAsis.getOrDefault(u.getUsuario().toLowerCase(), null);
+
+            String turno = (u.getHoraEntradaProg() == null || u.getHoraSalidaProg() == null)
+                    ? "— / —"
+                    : (u.getHoraEntradaProg() + " / " + u.getHoraSalidaProg());
+
+            String entrada = (a == null || a.getHoraEntrada() == null) ? "—" : a.getHoraEntrada().toString();
+            String salida = (a == null || a.getHoraSalida() == null) ? "—" : a.getHoraSalida().toString();
+            String total = asistenciaService.totalHoras(a);
+            long tardMin = asistenciaService.tardanzaMin(u, a);
+
+            boolean presente = (a != null && a.getHoraEntrada() != null);
+            if (presente) {
+                presentes++;
+            }
+            if (tardMin > 0) {
+                tardanzas++;
+            }
+
+            m.addRow(new Object[]{
+                u.getNombreComp() + "\n" + u.getCargo(), // Nombre y Cargo
+                turno,
+                entrada,
+                salida,
+                total,
+                tardMin,
+                presente ? "Presente" : "Ausente"
+            });
+        }
+
+        int total = usuarios.size();
+        int ausencias = total - presentes;
+
+        // KPIs (tus labels reales)
+        lblValorTotal.setText(String.valueOf(total));
+        lblValorPresentes.setText(String.valueOf(presentes));
+        lblValorTardanzas.setText(String.valueOf(tardanzas));
+        lblValorAusencias.setText(String.valueOf(ausencias));
+    }
+
+    private void cargarUsuariosGestion() {
+        usuarioService.seedIfMissing();
+
+        java.util.List<edu.UPAO.proyecto.Modelo.Usuario> lista
+                = usuarioService.listarParaGestion(); // excluye GERENTE
+
+        javax.swing.table.DefaultTableModel m
+                = (javax.swing.table.DefaultTableModel) tblEmpleados.getModel();
+        m.setRowCount(0);
+
+        for (edu.UPAO.proyecto.Modelo.Usuario u : lista) {
+            String nombreCargo = u.getNombreComp() + "\n" + u.getCargo();
+            String turno = (u.getHoraEntradaProg() == null || u.getHoraSalidaProg() == null)
+                    ? "— / —"
+                    : (u.getHoraEntradaProg() + " / " + u.getHoraSalidaProg());
+
+            m.addRow(new Object[]{
+                nombreCargo,
+                turno,
+                "—", // Entrada real (aún no hay lógica de asistencia)
+                "—", // Salida real
+                "0 h 0 m", // Total horas
+                0, // Tardanza (min)
+                u.isEstado() ? "Habilitado" : "Bloqueado"
+            });
+        }
+
+        // Actualiza los KPIs en el panel lateral
+        lblValorTotal.setText(String.valueOf(lista.size()));
+        lblValorPresentes.setText("0");
+        lblValorTardanzas.setText("0");
+        lblValorAusencias.setText("0");
     }
 
     private JTable getTable() {
@@ -108,6 +279,26 @@ public class PERSONAL extends javax.swing.JFrame {
         int estadoCol = cm.getColumnCount() - 1;
         if (estadoCol >= 0) {
             cm.getColumn(estadoCol).setCellRenderer(new EstadoRenderer());
+        }
+    }
+
+    private void poblarTiendas() {
+        try {
+            java.util.Set<String> tiendas = new java.util.TreeSet<>();
+            for (edu.UPAO.proyecto.Modelo.Usuario u : usuarioService.listarUsuarios()) {
+                if (u.getTienda() != null && !u.getTienda().isBlank()) {
+                    tiendas.add(u.getTienda());
+                }
+            }
+            cmbTienda.removeAllItems();
+            cmbTienda.addItem("Todas");
+            for (String t : tiendas) {
+                cmbTienda.addItem(t);
+            }
+            cmbTienda.setSelectedIndex(0);
+        } catch (Exception e) {
+            cmbTienda.removeAllItems();
+            cmbTienda.addItem("Todas");
         }
     }
 
@@ -188,19 +379,24 @@ public class PERSONAL extends javax.swing.JFrame {
         }
     }
 
-   private void actualizarKPIs(List<ResumenDiario> resumen) {
-    int total = resumen.size(), presentes=0, ausentes=0, tardanzas=0;
-    for (var r : resumen) {
-        String est = r.getEstado();
-        if ("Responsable".equalsIgnoreCase(est)) presentes++;
-        else if ("Tarde".equalsIgnoreCase(est)) { presentes++; tardanzas++; }
-        else if ("Ausente".equalsIgnoreCase(est) || "Incompleto".equalsIgnoreCase(est)) ausentes++;
+    private void actualizarKPIs(List<ResumenDiario> resumen) {
+        int total = resumen.size(), presentes = 0, ausentes = 0, tardanzas = 0;
+        for (var r : resumen) {
+            String est = r.getEstado();
+            if ("Responsable".equalsIgnoreCase(est)) {
+                presentes++;
+            } else if ("Tarde".equalsIgnoreCase(est)) {
+                presentes++;
+                tardanzas++;
+            } else if ("Ausente".equalsIgnoreCase(est) || "Incompleto".equalsIgnoreCase(est)) {
+                ausentes++;
+            }
+        }
+        lblValorTotal.setText(String.valueOf(total));
+        lblValorPresentes.setText(String.valueOf(presentes));
+        lblValorAusencias.setText(String.valueOf(ausentes));
+        lblValorTardanzas.setText(String.valueOf(tardanzas));
     }
-    lblValorTotal.setText(String.valueOf(total));
-    lblValorPresentes.setText(String.valueOf(presentes));
-    lblValorAusencias.setText(String.valueOf(ausentes));
-    lblValorTardanzas.setText(String.valueOf(tardanzas));
-}
 
     private void exportarCSV(List<ResumenDiario> data) {
         JFileChooser fc = new JFileChooser();
@@ -219,7 +415,7 @@ public class PERSONAL extends javax.swing.JFrame {
                     pw.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s%n",
                             r.getUsuario().getId(), r.getUsuario().getNombreComp(), r.getUsuario().getCargo(),
                             (r.getUsuario().getTienda() == null ? "" : r.getUsuario().getTienda()),
-                            r.getFecha(), in, out, tot, r.getMinTarde(),r.getEstado());
+                            r.getFecha(), in, out, tot, r.getMinTarde(), r.getEstado());
                 }
                 JOptionPane.showMessageDialog(this, "Exportado a:\n" + f.getAbsolutePath());
             } catch (Exception ex) {
@@ -228,60 +424,91 @@ public class PERSONAL extends javax.swing.JFrame {
         }
     }
 
-    private void poblarTiendas() {
-        try {
-            java.util.Set<String> tiendas = new java.util.TreeSet<>();
-            for (Usuario u : usuarioService.listarUsuarios()) {
-                if (u.getTienda() != null && !u.getTienda().isBlank()) {
-                    tiendas.add(u.getTienda());
-                }
-            }
-            cmbTienda.removeAllItems();
-            cmbTienda.addItem("Todas");
-            for (String t : tiendas) {
-                cmbTienda.addItem(t);
-            }
-            cmbTienda.setSelectedIndex(0);
-        } catch (Exception e) {
-            cmbTienda.removeAllItems();
-            cmbTienda.addItem("Todas");
-        }
-    }
-
     private void recargarResumen() {
-        resumenFull = asistenciaService.resumirDia(fechaSeleccionada);
-        model = new ResumenTableModel(resumenFull);
-        getTable().setModel(model);
-        configurarTabla();
-        actualizarKPIs(resumenFull);
+        aplicarFiltros(); // delega en el filtro que ya arma la tabla
     }
 
     private void aplicarFiltros() {
-        // base del servicio (día)
-        java.util.List<ResumenDiario> base = asistenciaService.resumirDia(fechaSeleccionada);
+        // ------------- base: usuarios (sin GERENTE) -------------
+        java.util.List<edu.UPAO.proyecto.Modelo.Usuario> base
+                = usuarioService.listarParaGestion();
 
-        // tienda
+        // ------------- filtro por tienda -------------
         if (cmbTienda != null && cmbTienda.getSelectedItem() != null) {
             String tienda = String.valueOf(cmbTienda.getSelectedItem());
             if (!"Todas".equalsIgnoreCase(tienda)) {
                 base = base.stream()
-                        .filter(r -> r.getUsuario() != null && tienda.equalsIgnoreCase(r.getUsuario().getTienda()))
-                        .toList();
+                        .filter(u -> u.getTienda() != null && tienda.equalsIgnoreCase(u.getTienda()))
+                        .collect(java.util.stream.Collectors.toList());
             }
         }
 
-        // buscador (por nombre o id)
+        // ------------- filtro por buscador (id/dni/nombre/usuario/cargo) -------------
         if (txtBuscar != null && !txtBuscar.getText().isBlank()) {
-            String q = txtBuscar.getText().toLowerCase();
-            base = base.stream().filter(r -> {
-                String nom = r.getUsuario() != null ? r.getUsuario().getNombreComp().toLowerCase() : "";
-                String id = r.getUsuario() != null ? String.valueOf(r.getUsuario().getId()) : "";
-                return nom.contains(q) || id.contains(q);
-            }).toList();
+            String q = txtBuscar.getText().toLowerCase().trim();
+            base = base.stream()
+                    .filter(u
+                            -> String.valueOf(u.getId()).contains(q)
+                    || String.valueOf(u.getDni()).contains(q)
+                    || (u.getNombreComp() != null && u.getNombreComp().toLowerCase().contains(q))
+                    || (u.getUsuario() != null && u.getUsuario().toLowerCase().contains(q))
+                    || (u.getCargo() != null && u.getCargo().toLowerCase().contains(q))
+                    )
+                    .collect(java.util.stream.Collectors.toList());
         }
 
-        model.setData(base);
-        actualizarKPIs(base);
+        // ------------- asistencia del día seleccionado -------------
+        java.util.Map<String, edu.UPAO.proyecto.Modelo.Asistencia> mapAsis
+                = asistenciaService.mapaDelDia(fechaSeleccionada);
+
+        // ------------- pinta la tabla -------------
+        javax.swing.table.DefaultTableModel m
+                = (javax.swing.table.DefaultTableModel) tblEmpleados.getModel();
+        m.setRowCount(0);
+
+        int presentes = 0;
+        int tardanzas = 0;
+
+        for (edu.UPAO.proyecto.Modelo.Usuario u : base) {
+            edu.UPAO.proyecto.Modelo.Asistencia a
+                    = mapAsis.getOrDefault(u.getUsuario().toLowerCase(), null);
+
+            String turno = (u.getHoraEntradaProg() == null || u.getHoraSalidaProg() == null)
+                    ? "— / —"
+                    : (u.getHoraEntradaProg() + " / " + u.getHoraSalidaProg());
+
+            String entrada = (a == null || a.getHoraEntrada() == null) ? "—" : a.getHoraEntrada().toString();
+            String salida = (a == null || a.getHoraSalida() == null) ? "—" : a.getHoraSalida().toString();
+            String total = asistenciaService.totalHoras(a);
+            long tardMin = asistenciaService.tardanzaMin(u, a);
+
+            boolean presente = (a != null && a.getHoraEntrada() != null);
+            if (presente) {
+                presentes++;
+            }
+            if (tardMin > 0) {
+                tardanzas++;
+            }
+
+            m.addRow(new Object[]{
+                u.getNombreComp() + "\n" + u.getCargo(), // Nombre y Cargo
+                turno,
+                entrada,
+                salida,
+                total,
+                tardMin,
+                presente ? "Presente" : "Ausente"
+            });
+        }
+
+        // ------------- KPIs -------------
+        int total = base.size();
+        int ausencias = total - presentes;
+
+        lblValorTotal.setText(String.valueOf(total));
+        lblValorPresentes.setText(String.valueOf(presentes));
+        lblValorTardanzas.setText(String.valueOf(tardanzas));
+        lblValorAusencias.setText(String.valueOf(ausencias));
     }
 
     @SuppressWarnings("unchecked")
@@ -331,8 +558,6 @@ public class PERSONAL extends javax.swing.JFrame {
         panelHeader.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 16));
         panelHeader.setPreferredSize(new java.awt.Dimension(780, 70));
         panelHeader.setLayout(new java.awt.BorderLayout());
-
-        logoLabel.setIcon(new javax.swing.ImageIcon("C:\\Users\\WIN-10\\OneDrive\\Imágenes\\Logo_kuyay-convertido-a-pequeño-removebg-preview.png")); // NOI18N
         panelHeader.add(logoLabel, java.awt.BorderLayout.LINE_START);
 
         btnSalir.setFont(new java.awt.Font("Leelawadee UI", 1, 12)); // NOI18N
@@ -585,6 +810,7 @@ public class PERSONAL extends javax.swing.JFrame {
             java.util.logging.Logger.getLogger(PERSONAL.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
+        //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
@@ -697,17 +923,24 @@ class ResumenTableModel extends javax.swing.table.AbstractTableModel {
         fireTableDataChanged();
     }
 }
+
 class EstadoRenderer extends DefaultTableCellRenderer {
-    @Override public Component getTableCellRendererComponent(JTable t,Object v,boolean s,boolean f,int r,int c){
-        JLabel l=(JLabel)super.getTableCellRendererComponent(t,v,s,f,r,c);
+
+    @Override
+    public Component getTableCellRendererComponent(JTable t, Object v, boolean s, boolean f, int r, int c) {
+        JLabel l = (JLabel) super.getTableCellRendererComponent(t, v, s, f, r, c);
         String e = String.valueOf(v).toLowerCase();
-        Color col = switch(e){
-            case "responsable" -> new Color(76,175,80);
-            case "tarde"       -> new Color(255,167,38);
-            case "incompleto"  -> new Color(33,150,243);
-            default            -> new Color(229,57,53); // ausente
+        Color col = switch (e) {
+            case "responsable" ->
+                new Color(76, 175, 80);
+            case "tarde" ->
+                new Color(255, 167, 38);
+            case "incompleto" ->
+                new Color(33, 150, 243);
+            default ->
+                new Color(229, 57, 53); // ausente
         };
-        l.setText("  "+String.valueOf(v));
+        l.setText("  " + String.valueOf(v));
         return l;
     }
 }

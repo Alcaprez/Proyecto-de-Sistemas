@@ -1,10 +1,10 @@
 package edu.UPAO.proyecto.Service;
 
-
 import edu.UPAO.proyecto.DAO.PromocionDAO;
+import edu.UPAO.proyecto.Modelo.Promocion;
 
-import java.util.*;
-import proyectosistemasempresariales.modelo.Promocion;
+import java.util.List;
+import java.util.Optional;
 
 public class PromocionService {
     private final PromocionDAO dao = PromocionDAO.getInstance();
@@ -21,20 +21,16 @@ public class PromocionService {
         dao.eliminar(codigo);
     }
 
-    // Verifica si existe un cupón válido
     public Optional<Promocion> validarCupon(String codigo) {
         return dao.buscarPorCodigo(codigo)
-                  .filter(p -> p.getTipo().equalsIgnoreCase("cupon"));
+                 .filter(p -> {
+                     // vigencia simple (igual que en Cupon.isVigente)
+                     java.time.LocalDate hoy = java.time.LocalDate.now();
+                     if (!p.isActivo()) return false;
+                     if (p.getInicio() != null && hoy.isBefore(p.getInicio())) return false;
+                     if (p.getFin() != null && hoy.isAfter(p.getFin())) return false;
+                     if (p.getMaxUsos() > 0 && p.getUsos() >= p.getMaxUsos()) return false;
+                     return true;
+                 });
     }
-    // Aplica descuentos por producto según cantidad
-    public double aplicarDescuentoPorProducto(String producto, int cantidad, double subtotal) {
-        return dao.listar().stream()
-            .filter(p -> p.getTipo().equalsIgnoreCase("producto"))
-            .filter(p -> p.getCodigo().equalsIgnoreCase(producto))
-            .filter(p -> cantidad >= p.getCantidadMinima())
-            .mapToDouble(p -> subtotal * (p.getDescuento() / 100.0))
-            .sum();
-    }
- 
-
 }
