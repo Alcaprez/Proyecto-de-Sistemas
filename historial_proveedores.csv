@@ -1,6 +1,0 @@
-idHistorial,idProveedor,evento,descripcion,fecha
-1,1,Creación,Proveedor agregado al sistema,2025-10-09T07:50:12.242551
-2,1,Actualización,Cambio de teléfono y correo,2025-10-09T07:50:12.242564
-3,2,Suspensión,Proveedor temporalmente inactivo,2025-10-09T07:50:12.242567
-4,1,ACTUALIZACION,Se actualizaron los campos: Nombre, RUC, Teléfono, Correo, Dirección, Contacto principal,2025-10-09T03:25:44.645713400
-5,1,ACTUALIZACION,Se actualizaron campos del proveedor,2025-10-09T03:25:44.645713400

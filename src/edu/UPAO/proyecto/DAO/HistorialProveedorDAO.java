@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HistorialProveedorDAO {
-  private static final String ARCHIVO_CSV = "C:\\Users\\Fabri\\Documents\\NetBeansProjects\\Proyecto-de-Sistemas\\historial_proveedores.csv";
+  private static final String ARCHIVO_CSV = "historial_proveedores.csv";
     private static final List<HistorialProveedor> historial = new ArrayList<>();
     private static int contadorId = 1;
 
