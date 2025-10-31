@@ -13,11 +13,12 @@ import java.util.List;
  */
 public class ProveedorDAO {
 
-    private static final String ARCHIVO_CSV = "C:\\Users\\Fabri\\Documents\\NetBeansProjects\\Proyecto-de-Sistemas\\proveedores.csv";
+    private static final String ARCHIVO_CSV = "proveedores.csv";
     private static final List<Proveedor> proveedores = new ArrayList<>();
     private static int contadorId = 1; // Generador de IDs únicos
     // DAO auxiliar para historial
     private final HistorialProveedorDAO historialDAO = new HistorialProveedorDAO();
+
     // Constructor: carga los datos al iniciar
     public ProveedorDAO() {
         cargarDesdeCSV();
@@ -28,8 +29,11 @@ public class ProveedorDAO {
                 .ifPresent(maxId -> contadorId = maxId + 1);
     }
 
-    /** Agrega un nuevo proveedor y guarda en CSV
-     * @param proveedor */
+    /**
+     * Agrega un nuevo proveedor y guarda en CSV
+     *
+     * @param proveedor
+     */
     public void agregar(Proveedor proveedor) {
         if (buscarPorRuc(proveedor.getRuc()) != null) {
             throw new IllegalArgumentException("Ya existe un proveedor con el RUC: " + proveedor.getRuc());
@@ -40,15 +44,18 @@ public class ProveedorDAO {
         }
         proveedores.add(proveedor);
         guardarEnCSV();
-          historialDAO.registrarEvento(
+        historialDAO.registrarEvento(
                 proveedor.getIdProveedor(),
                 "REGISTRO",
                 "Proveedor agregado: " + proveedor.getNombre()
         );
     }
 
-    /** Lista todos los proveedores (copiado para evitar modificaciones directas)
-     * @return  */
+    /**
+     * Lista todos los proveedores (copiado para evitar modificaciones directas)
+     *
+     * @return
+     */
     public List<Proveedor> listar() {
         return new ArrayList<>(proveedores);
     }
@@ -67,7 +74,9 @@ public class ProveedorDAO {
                 .orElse(null);
     }
 
-    /** Actualiza campos específicos del proveedor
+    /**
+     * Actualiza campos específicos del proveedor
+     *
      * @param id
      * @param nombre
      * @param ruc
@@ -75,14 +84,15 @@ public class ProveedorDAO {
      * @param correo
      * @param direccion
      * @param contactoPrincipal
-     * @return  */
+     * @return
+     */
     public boolean actualizarCampos(int id, String nombre, String ruc, String telefono, String correo,
-                                    String direccion, String contactoPrincipal) {
+            String direccion, String contactoPrincipal) {
         Proveedor proveedor = buscarPorId(id);
         if (proveedor == null) {
             return false;
         }
-StringBuilder cambios = new StringBuilder();
+        StringBuilder cambios = new StringBuilder();
 
         if (nombre != null && !nombre.isBlank()) {
             proveedor.setNombre(nombre);
@@ -127,7 +137,9 @@ StringBuilder cambios = new StringBuilder();
         return true;
     }
 
-    /** Cambia el estado activo/inactivo */
+    /**
+     * Cambia el estado activo/inactivo
+     */
     public void cambiarEstado(int id, boolean activo) {
         Proveedor p = buscarPorId(id);
         if (p != null) {
@@ -146,8 +158,9 @@ StringBuilder cambios = new StringBuilder();
     // ==============================
     //  MÉTODOS PRIVADOS DE ARCHIVO
     // ==============================
-
-    /** Carga los proveedores desde el archivo CSV */
+    /**
+     * Carga los proveedores desde el archivo CSV
+     */
     private void cargarDesdeCSV() {
         proveedores.clear();
         File archivo = new File(ARCHIVO_CSV);
@@ -158,21 +171,26 @@ StringBuilder cambios = new StringBuilder();
 
         try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
             String linea;
-            br.readLine(); // saltar encabezado
+            br.readLine(); // Saltar encabezado
             while ((linea = br.readLine()) != null) {
-                if (linea.trim().isEmpty()) continue;
-                String[] c = linea.split(",", -1); // -1 conserva campos vacíos
-                if (c.length < 9) continue;
+                if (linea.trim().isEmpty()) {
+                    continue;
+                }
 
-                int id = Integer.parseInt(c[0].trim());
-                String nombre = c[1].trim();
-                String ruc = c[2].trim();
-                String direccion = c[3].trim();
-                String telefono = c[4].trim();
-                String correo = c[5].trim();
-                String contacto = c[6].trim();
-                boolean activo = Boolean.parseBoolean(c[7].trim());
-                String fechaStr = c[8].trim();
+                String[] c = linea.split(";", -1);
+                if (c.length < 9) {
+                    continue;
+                }
+                // Leemos las columnas en el MISMO orden en que se guardaron
+                int id = Integer.parseInt(c[0].trim());           // Columna 1
+                String nombre = c[1].trim();                      // Columna 2
+                String ruc = c[2].trim();                         // Columna 3
+                String direccion = c[3].trim();                   // Columna 4
+                String telefono = c[4].trim();                    // Columna 5
+                String correo = c[5].trim();                      // Columna 6
+                String contacto = c[6].trim();                    // Columna 7
+                boolean activo = Boolean.parseBoolean(c[7].trim()); // Columna 8 (el booleano)
+                String fechaStr = c[8].trim();                    // Columna 9 (la fecha)
 
                 LocalDate fechaRegistro;
                 if (fechaStr.contains("T")) {
@@ -183,25 +201,37 @@ StringBuilder cambios = new StringBuilder();
 
                 proveedores.add(new Proveedor(id, nombre, ruc, telefono, correo, direccion, contacto, fechaRegistro, activo));
             }
-        } catch (IOException e) {
-            System.err.println("Error al leer CSV: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error fatal al leer CSV: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    /** Guarda la lista actual de proveedores en el CSV */
+    /**
+     * Guarda la lista actual de proveedores en el CSV
+     */
     private void guardarEnCSV() {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO_CSV))) {
-            bw.write("idProveedor,nombre,ruc,direccion,telefono,correo,contactoPrincipal,activo,fechaRegistro\n");
+            bw.write("idProveedor;nombre;ruc;direccion;telefono;correo;contactoPrincipal;activo;fechaRegistro\n");
             for (Proveedor p : proveedores) {
-                bw.write(String.format("%d,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                bw.write(String.format("%d;%s;%s;%s;%s;%s;%s;%b;%s\n",
+                        // 1. idProveedor
                         p.getIdProveedor(),
+                        // 2. nombre
                         p.getNombre(),
+                        // 3. ruc
                         p.getRuc(),
+                        // 4. direccion
                         p.getDireccion(),
+                        // 5. telefono
                         p.getTelefono(),
+                        // 6. correo
                         p.getCorreo(),
+                        // 7. contactoPrincipal
                         p.getContactoPrincipal(),
+                        // 8. activo (el booleano)
                         p.isActivo(),
+                        // 9. fechaRegistro (la fecha)
                         p.getFechaRegistro().toString()
                 ));
             }

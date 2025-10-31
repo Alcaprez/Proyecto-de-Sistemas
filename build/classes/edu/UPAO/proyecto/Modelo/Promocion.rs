@@ -1,1 +1,0 @@
-proyectosistemasempresariales.modelo.Promocion
