@@ -1,0 +1,5 @@
+codigo,descuento,activo,inicio,fin
+CUPON10,0.1,true,1/01/2025,1/01/2026
+NAVIDAD24,0.2,true,24/12/2025,26/12/2025
+PRUEBA5,0.05,true,4/10/2025,8/10/2025
+ELIAS,0.9,true,9/10/2024,4/01/2025

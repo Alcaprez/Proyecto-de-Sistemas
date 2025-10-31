@@ -1,25 +1,16 @@
-# Archivos de datos generados por la aplicación
-*.csv
-
-# Carpetas de compilación de NetBeans
-/build/
-/dist/
-
-# Carpeta de configuración de NetBeans (muy importante)
-# Contiene archivos específicos de tu computadora
-/nbproject/private/
-
-# Archivos de caché del IDE
-/nbbuild/
-/nb-gradle/
-
-# Archivos compilados de Java (por si acaso)
+# Archivos compilados de Java
+build/
 *.class
 *.jar
 
-# Archivos del sistema operativo
+# Archivos del IDE
+.idea/
+*.iml
+
+# Archivos del sistema
 .DS_Store
 Thumbs.db
 
-# Archivos de registro
-*.log
+# Archivos de datos temporales
+*.tmp
+*.temp
