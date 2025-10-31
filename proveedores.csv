@@ -1,0 +1,5 @@
+idProveedor,nombre,ruc,direccion,telefono,correo,contactoPrincipal,activo,fechaRegistro
+1,Distribuidora Norte SAC,20123456789,Calle A 321,044-123456,contacto@nortesac.com,Carlos Díaz,true,2025-10-09
+2,Servicios Industriales del Sur,20987654321,Av. B 456,054-654321,ventas@indsur.com,María López,true,2025-10-08
+3,AgroExport Trujillo,20678912345,Calle E 202,044-987654,ventas@agroexporttrujillo.com,Luis Gómez,true,2025-10-07
+4,pepa,12345678912,av peru,964873985,wewe@gmail.com,pepa lujan,true,2025-10-09
