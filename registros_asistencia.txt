@@ -7,3 +7,5 @@ Cajero cajero1|ENTRADA|2025-10-08|23:08:42
 Cajero cajero1|SALIDA|2025-10-08|23:08:43
 Cajero alberth|ENTRADA|2025-10-09|00:23:54
 Cajero alberth|SALIDA|2025-10-09|00:31:03
+Cajero alberth|ENTRADA|2025-11-07|18:56:47
+Cajero alberth|SALIDA|2025-11-07|18:59:03

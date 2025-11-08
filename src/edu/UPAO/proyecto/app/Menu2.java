@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.ProductoDAO;
@@ -303,7 +299,7 @@ public class Menu2 extends javax.swing.JFrame {
         setResizable(false);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jPanel1.setBackground(new java.awt.Color(245, 125, 7));
+        jPanel1.setBackground(new java.awt.Color(255, 153, 0));
 
         btn_salir.setText("SALIR");
         btn_salir.addActionListener(new java.awt.event.ActionListener() {
@@ -827,6 +823,325 @@ public class Menu2 extends javax.swing.JFrame {
         return subtotalGeneral;
     }
 
+    private boolean contieneSalteado(String texto, String patron) {
+        int j = 0;
+        for (int i = 0; i < texto.length() && j < patron.length(); i++) {
+            if (texto.charAt(i) == patron.charAt(j)) {
+                j++;
+            }
+        }
+        return j == patron.length();
+    }
+
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
+        jFrame_añadirProducto1.setVisible(true);
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
+        jFrame_Asistncias jFrame_Asistncias1;
+        jFrame_Asistncias1 = new jFrame_Asistncias();
+        jFrame_Asistncias1.setVisible(true);
+    }//GEN-LAST:event_tb_entradaActionPerformed
+
+    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tb_reportesActionPerformed
+
+    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
+        int confirmacion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro que desea cerrar sesión?",
+                "Cerrar Sesión",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // ✅ Volver al login
+            LoginjFrame login = new LoginjFrame();
+            login.setVisible(true);
+
+            // ✅ Cerrar el panel de gerente
+            this.dispose();
+        }
+    }//GEN-LAST:event_btn_salirActionPerformed
+
+    private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
+        String texto = txtBuscarCodigo.getText().trim().toLowerCase();
+
+        if (texto.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Ingrese un texto para buscar.");
+            return;
+        }
+
+        ProductoDAO dao = new ProductoDAO();
+        List<Producto> productos = dao.listar();
+        List<Producto> filtrados = new ArrayList<>();
+
+        for (Producto p : productos) {
+            // 🔎 Coincidencias no necesariamente en orden exacto
+            String nombre = p.getNombre().toLowerCase();
+            if (contieneSalteado(nombre, texto)) {
+                filtrados.add(p);
+            }
+        }
+
+        // Mostrar resultados en tabla
+        DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
+        modelo.setRowCount(0);
+        for (Producto p : filtrados) {
+            modelo.addRow(new Object[]{p.getCodigo(), p.getNombre(), p.getPrecioVenta(), p.getStock()});
+        }
+    }//GEN-LAST:event_btn_buscarActionPerformed
+
+    private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton12ActionPerformed
+        ProductoController pc = new ProductoController();
+        List<Producto> productos = pc.cargarProductos();
+
+        // Ordenar por vendidos (descendente)
+        productos.sort((p1, p2) -> Integer.compare(p2.getVendidos(), p1.getVendidos()));
+
+        // Mostrar en tablaProductos
+        DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
+        modelo.setRowCount(0);
+
+        for (Producto p : productos) {
+            modelo.addRow(new Object[]{p.getNombre(), p.getPrecioVenta(), p.getStock(), p.getVendidos()});
+        }
+    }//GEN-LAST:event_jButton12ActionPerformed
+
+    private void txtBuscarCodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarCodigoActionPerformed
+
+    }//GEN-LAST:event_txtBuscarCodigoActionPerformed
+
+    private void btn_validarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_validarActionPerformed
+        String cupon = txtCupon.getText().trim().replaceAll("\\s+", ""); // limpia espacios
+
+        if (cupon.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Ingrese un cupón primero.");
+            return;
+        }
+
+        double subtotal = calcularSubtotalCarrito();
+        List<edu.UPAO.proyecto.Modelo.VentaItem> itemsDelCarrito = obtenerItemsDelCarrito();
+
+        double descuento = edu.UPAO.proyecto.PromocionController.aplicarCupon(cupon, itemsDelCarrito, subtotal);
+        double totalConCupon = subtotal - descuento;
+
+        if (descuento > 0) {
+            double porcentaje = (subtotal > 0) ? (descuento / subtotal) * 100 : 0;
+            JOptionPane.showMessageDialog(this, "✓ Cupón válido: " + (int) porcentaje + "% aplicado.");
+        } else {
+            JOptionPane.showMessageDialog(this, "✗ Cupón inválido, caducado o inactivo.");
+        }
+
+        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
+        lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
+        resultadoTotal.setText(String.format("S/ %.2f", totalConCupon));
+    }//GEN-LAST:event_btn_validarActionPerformed
+
+    private void btn_eliminarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarItemActionPerformed
+        int fila = miniTabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un producto para eliminar.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "¿Está seguro de eliminar este producto?",
+            "Confirmar eliminación",
+            JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
+            modelo.removeRow(fila);
+            actualizarTotal(); // recalcula el total después de eliminar
+        }
+    }//GEN-LAST:event_btn_eliminarItemActionPerformed
+
+    private void btn_actualizarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_actualizarItemActionPerformed
+        int fila = miniTabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un producto para actualizar.");
+            return;
+        }
+
+        int nuevaCantidad = (int) sp_item.getValue();
+        if (nuevaCantidad <= 0) {
+            JOptionPane.showMessageDialog(this, "La cantidad debe ser mayor a 0.");
+            return;
+        }
+
+        DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
+
+        // ✅ Recuperar el código oculto (columna 0)
+        String codigo = modelo.getValueAt(fila, 4).toString();
+
+        ProductoDAO productoDAO = new ProductoDAO();
+        Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+        if (producto == null) {
+            JOptionPane.showMessageDialog(this, "No se encontró el producto en la base de datos.");
+            return;
+        }
+
+        // ✅ Validar stock
+        if (nuevaCantidad > producto.getStock()) {
+            JOptionPane.showMessageDialog(this, "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            return;
+        }
+
+        // ✅ Actualizar cantidad y subtotal en la tabla
+        modelo.setValueAt(nuevaCantidad, fila, 1); // cantidad
+        modelo.setValueAt(producto.getPrecioVenta(), fila, 2); // P/U
+        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3); // subtotal
+
+        actualizarTotal();
+    }//GEN-LAST:event_btn_actualizarItemActionPerformed
+
+    private void rb_cuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_cuponActionPerformed
+        txtCupon.setEnabled(rb_cupon.isSelected());
+    }//GEN-LAST:event_rb_cuponActionPerformed
+
+    private void rb_observacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_observacionActionPerformed
+        txtObservaciones.setEnabled(rb_observacion.isSelected());
+    }//GEN-LAST:event_rb_observacionActionPerformed
+
+    private void txtCuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCuponActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtCuponActionPerformed
+
+    private void jButtonSiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSiguienteActionPerformed
+        DefaultTableModel carrito = (DefaultTableModel) miniTabla.getModel();
+
+        // Crear un clon del carrito (tu código existente)
+        DefaultTableModel carritoClonado = new DefaultTableModel(
+            new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
+
+        for (int i = 0; i < carrito.getRowCount(); i++) {
+            Object[] fila = new Object[carrito.getColumnCount()];
+            for (int j = 0; j < carrito.getColumnCount(); j++) {
+                fila[j] = carrito.getValueAt(i, j);
+            }
+            carritoClonado.addRow(fila);
+        }
+
+        // Obtener los valores actuales de los labels
+        String subtotal = lbl_subtotal.getText().replace("Subtotal:", "").trim();
+        String descuento = lbl_descuento.getText().replace("Descuento:", "").trim();
+        String total = resultadoTotal.getText().trim();
+
+        // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
+        String observaciones = txtObservaciones.getText().trim();
+
+        // Abrir la ventana de boleta/factura
+        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total);
+
+        // ✅ PASAR OBSERVACIONES DE FORMA SIMPLE (agrega un método setter en jFrame_GenerarBoleta)
+        boletaFrame.setObservaciones(observaciones);
+
+        boletaFrame.setLocationRelativeTo(this);
+        boletaFrame.setVisible(true);
+    }//GEN-LAST:event_jButtonSiguienteActionPerformed
+
+    private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
+        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
+        modeloCarrito.setRowCount(0); // vacía el carrito
+        spCantidad.setValue(1);
+        sp_item.setValue(1);
+
+        lbl_subtotal.setText("Subtotal: S/ 0.00");
+        lbl_descuento.setText("Descuento: S/ 0.00");
+        resultadoTotal.setText("S/ 0.00");
+
+        txtObservaciones.setText("");
+        txtCupon.setText("");
+    }//GEN-LAST:event_btn_cancelarActionPerformed
+
+    private void btn_SKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SKUActionPerformed
+        // Cambiar texto y bloquear botón mientras simula escaneo
+        btn_SKU.setText("Escaneando...");
+        btn_SKU.setEnabled(false);
+
+        // Crear Timer (ejecuta la acción tras 2000 ms)
+        Timer t = new Timer(2000, e -> {
+            ProductoController pc = new ProductoController();
+            List<Producto> productos = pc.cargarProductos();
+
+            if (productos.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No hay productos cargados.");
+            } else {
+                Random rand = new Random();
+                Producto producto = productos.get(rand.nextInt(productos.size()));
+
+                // 🔹 Cantidad fija = 1 (como un escaneo real)
+                int cantidad = 1;
+
+                if (producto.getStock() <= 0) {
+                    JOptionPane.showMessageDialog(this, "❌ El producto " + producto.getNombre() + " no tiene stock.");
+                } else {
+                    DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
+
+                    // 🔹 Validar stock
+                    if (cantidad > producto.getStock()) {
+                        JOptionPane.showMessageDialog(this,
+                            "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+                        return;
+                    }
+
+                    // 🔹 Calcular subtotal
+                    double precioUnitario = producto.getPrecioVenta();
+                    double subtotal = precioUnitario * cantidad;
+
+                    // 🚀 Agregar al carrito en el mismo orden que btn_agregar
+                    modeloCarrito.addRow(new Object[]{
+                        producto.getNombre(), // Columna 0: Nombre
+                        cantidad, // Columna 1: Cantidad
+                        precioUnitario, // Columna 2: P/U
+                        subtotal, // Columna 3: Subtotal
+                        producto.getCodigo() // Columna 4: Código (oculto)
+                    });
+
+                    // 🔹 Recalcular total
+                    actualizarTotal();
+
+                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
+                }
+            }
+
+            // Restaurar el botón
+            btn_SKU.setText("ESCANEAR SKU");
+            btn_SKU.setEnabled(true);
+        });
+
+        t.setRepeats(false);
+        t.start();
+    }//GEN-LAST:event_btn_SKUActionPerformed
+
+    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
+        int fila = tablaProductos.getSelectedRow();
+        if (fila != -1) {
+            String nombre = tablaProductos.getValueAt(fila, 0).toString();
+            String codigo = tablaProductos.getValueAt(fila, 3).toString();
+
+            String reporte = JOptionPane.showInputDialog(this, "Ingrese el reporte del producto " + nombre + ":");
+
+            if (reporte != null && !reporte.trim().isEmpty()) {
+                try (BufferedWriter bw = new BufferedWriter(new FileWriter("reportes.txt", true))) {
+                    bw.write("Producto: " + nombre + " (" + codigo + ") - Reporte: " + reporte);
+                    bw.newLine();
+                    JOptionPane.showMessageDialog(this, "Reporte guardado correctamente.");
+                } catch (IOException e) {
+                    JOptionPane.showMessageDialog(this, "Error al guardar el reporte.");
+                }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Seleccione un producto para reportar.");
+        }
+    }//GEN-LAST:event_jButton11ActionPerformed
+
     private void btn_agregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarActionPerformed
         int filaSeleccionada = tablaProductos.getSelectedRow();
 
@@ -874,328 +1189,6 @@ public class Menu2 extends javax.swing.JFrame {
         // 🔹 Recalcular totales
         actualizarTotal();
     }//GEN-LAST:event_btn_agregarActionPerformed
-
-    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
-        int fila = tablaProductos.getSelectedRow();
-        if (fila != -1) {
-            String nombre = tablaProductos.getValueAt(fila, 0).toString();
-            String codigo = tablaProductos.getValueAt(fila, 3).toString();
-
-            String reporte = JOptionPane.showInputDialog(this, "Ingrese el reporte del producto " + nombre + ":");
-
-            if (reporte != null && !reporte.trim().isEmpty()) {
-                try (BufferedWriter bw = new BufferedWriter(new FileWriter("reportes.txt", true))) {
-                    bw.write("Producto: " + nombre + " (" + codigo + ") - Reporte: " + reporte);
-                    bw.newLine();
-                    JOptionPane.showMessageDialog(this, "Reporte guardado correctamente.");
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(this, "Error al guardar el reporte.");
-                }
-            }
-        } else {
-            JOptionPane.showMessageDialog(this, "Seleccione un producto para reportar.");
-        }
-    }//GEN-LAST:event_jButton11ActionPerformed
-
-    private void btn_SKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SKUActionPerformed
-// Cambiar texto y bloquear botón mientras simula escaneo
-        btn_SKU.setText("Escaneando...");
-        btn_SKU.setEnabled(false);
-
-// Crear Timer (ejecuta la acción tras 2000 ms)
-        Timer t = new Timer(2000, e -> {
-            ProductoController pc = new ProductoController();
-            List<Producto> productos = pc.cargarProductos();
-
-            if (productos.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "No hay productos cargados.");
-            } else {
-                Random rand = new Random();
-                Producto producto = productos.get(rand.nextInt(productos.size()));
-
-                // 🔹 Cantidad fija = 1 (como un escaneo real)
-                int cantidad = 1;
-
-                if (producto.getStock() <= 0) {
-                    JOptionPane.showMessageDialog(this, "❌ El producto " + producto.getNombre() + " no tiene stock.");
-                } else {
-                    DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
-
-                    // 🔹 Validar stock
-                    if (cantidad > producto.getStock()) {
-                        JOptionPane.showMessageDialog(this,
-                                "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
-                        return;
-                    }
-
-                    // 🔹 Calcular subtotal
-                    double precioUnitario = producto.getPrecioVenta();
-                    double subtotal = precioUnitario * cantidad;
-
-                    // 🚀 Agregar al carrito en el mismo orden que btn_agregar
-                    modeloCarrito.addRow(new Object[]{
-                        producto.getNombre(), // Columna 0: Nombre
-                        cantidad, // Columna 1: Cantidad
-                        precioUnitario, // Columna 2: P/U
-                        subtotal, // Columna 3: Subtotal
-                        producto.getCodigo() // Columna 4: Código (oculto)
-                    });
-
-                    // 🔹 Recalcular total
-                    actualizarTotal();
-
-                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
-                }
-            }
-
-            // Restaurar el botón
-            btn_SKU.setText("ESCANEAR SKU");
-            btn_SKU.setEnabled(true);
-        });
-
-        t.setRepeats(false);
-        t.start();
-
-    }//GEN-LAST:event_btn_SKUActionPerformed
-
-    private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
-        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
-        modeloCarrito.setRowCount(0); // vacía el carrito
-        spCantidad.setValue(1);
-        sp_item.setValue(1);
-
-        lbl_subtotal.setText("Subtotal: S/ 0.00");
-        lbl_descuento.setText("Descuento: S/ 0.00");
-        resultadoTotal.setText("S/ 0.00");
-
-        txtObservaciones.setText("");
-        txtCupon.setText("");
-    }//GEN-LAST:event_btn_cancelarActionPerformed
-
-    private void jButtonSiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSiguienteActionPerformed
-        DefaultTableModel carrito = (DefaultTableModel) miniTabla.getModel();
-
-        // Crear un clon del carrito (tu código existente)
-        DefaultTableModel carritoClonado = new DefaultTableModel(
-                new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
-
-        for (int i = 0; i < carrito.getRowCount(); i++) {
-            Object[] fila = new Object[carrito.getColumnCount()];
-            for (int j = 0; j < carrito.getColumnCount(); j++) {
-                fila[j] = carrito.getValueAt(i, j);
-            }
-            carritoClonado.addRow(fila);
-        }
-
-        // Obtener los valores actuales de los labels
-        String subtotal = lbl_subtotal.getText().replace("Subtotal:", "").trim();
-        String descuento = lbl_descuento.getText().replace("Descuento:", "").trim();
-        String total = resultadoTotal.getText().trim();
-
-        // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
-        String observaciones = txtObservaciones.getText().trim();
-
-        // Abrir la ventana de boleta/factura
-        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total);
-
-        // ✅ PASAR OBSERVACIONES DE FORMA SIMPLE (agrega un método setter en jFrame_GenerarBoleta)
-        boletaFrame.setObservaciones(observaciones);
-
-        boletaFrame.setLocationRelativeTo(this);
-        boletaFrame.setVisible(true);
-    }//GEN-LAST:event_jButtonSiguienteActionPerformed
-
-    private void rb_observacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_observacionActionPerformed
-        txtObservaciones.setEnabled(rb_observacion.isSelected());
-    }//GEN-LAST:event_rb_observacionActionPerformed
-
-    private void rb_cuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_cuponActionPerformed
-        txtCupon.setEnabled(rb_cupon.isSelected());
-    }//GEN-LAST:event_rb_cuponActionPerformed
-
-    private void btn_actualizarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_actualizarItemActionPerformed
-        int fila = miniTabla.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un producto para actualizar.");
-            return;
-        }
-
-        int nuevaCantidad = (int) sp_item.getValue();
-        if (nuevaCantidad <= 0) {
-            JOptionPane.showMessageDialog(this, "La cantidad debe ser mayor a 0.");
-            return;
-        }
-
-        DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
-
-        // ✅ Recuperar el código oculto (columna 0)
-        String codigo = modelo.getValueAt(fila, 4).toString();
-
-        ProductoDAO productoDAO = new ProductoDAO();
-        Producto producto = productoDAO.buscarPorCodigo(codigo);
-
-        if (producto == null) {
-            JOptionPane.showMessageDialog(this, "No se encontró el producto en la base de datos.");
-            return;
-        }
-
-        // ✅ Validar stock
-        if (nuevaCantidad > producto.getStock()) {
-            JOptionPane.showMessageDialog(this, "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
-            return;
-        }
-
-        // ✅ Actualizar cantidad y subtotal en la tabla
-        modelo.setValueAt(nuevaCantidad, fila, 1); // cantidad
-        modelo.setValueAt(producto.getPrecioVenta(), fila, 2); // P/U
-        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3); // subtotal
-
-        actualizarTotal();
-
-    }//GEN-LAST:event_btn_actualizarItemActionPerformed
-
-    private void btn_eliminarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarItemActionPerformed
-        int fila = miniTabla.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un producto para eliminar.");
-            return;
-        }
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de eliminar este producto?",
-                "Confirmar eliminación",
-                JOptionPane.YES_NO_OPTION);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
-            modelo.removeRow(fila);
-            actualizarTotal(); // recalcula el total después de eliminar
-        }
-    }//GEN-LAST:event_btn_eliminarItemActionPerformed
-
-    private void btn_validarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_validarActionPerformed
-        String cupon = txtCupon.getText().trim().replaceAll("\\s+", ""); // limpia espacios
-
-        if (cupon.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese un cupón primero.");
-            return;
-        }
-
-        double subtotal = calcularSubtotalCarrito();
-        List<edu.UPAO.proyecto.Modelo.VentaItem> itemsDelCarrito = obtenerItemsDelCarrito();
-
-        double descuento = edu.UPAO.proyecto.PromocionController.aplicarCupon(cupon, itemsDelCarrito, subtotal);
-        double totalConCupon = subtotal - descuento;
-
-        if (descuento > 0) {
-            double porcentaje = (subtotal > 0) ? (descuento / subtotal) * 100 : 0;
-            JOptionPane.showMessageDialog(this, "✓ Cupón válido: " + (int) porcentaje + "% aplicado.");
-        } else {
-            JOptionPane.showMessageDialog(this, "✗ Cupón inválido, caducado o inactivo.");
-        }
-
-        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
-        lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
-        resultadoTotal.setText(String.format("S/ %.2f", totalConCupon));
-
-    }//GEN-LAST:event_btn_validarActionPerformed
-
-    private void txtBuscarCodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarCodigoActionPerformed
-
-    }//GEN-LAST:event_txtBuscarCodigoActionPerformed
-
-    private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton12ActionPerformed
-        ProductoController pc = new ProductoController();
-        List<Producto> productos = pc.cargarProductos();
-
-        // Ordenar por vendidos (descendente)
-        productos.sort((p1, p2) -> Integer.compare(p2.getVendidos(), p1.getVendidos()));
-
-        // Mostrar en tablaProductos
-        DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
-        modelo.setRowCount(0);
-
-        for (Producto p : productos) {
-            modelo.addRow(new Object[]{p.getNombre(), p.getPrecioVenta(), p.getStock(), p.getVendidos()});
-        }
-    }//GEN-LAST:event_jButton12ActionPerformed
-
-    private boolean contieneSalteado(String texto, String patron) {
-        int j = 0;
-        for (int i = 0; i < texto.length() && j < patron.length(); i++) {
-            if (texto.charAt(i) == patron.charAt(j)) {
-                j++;
-            }
-        }
-        return j == patron.length();
-    }
-
-
-    private void txtCuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtCuponActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtCuponActionPerformed
-
-    private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
-        String texto = txtBuscarCodigo.getText().trim().toLowerCase();
-
-        if (texto.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese un texto para buscar.");
-            return;
-        }
-
-        ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar();
-        List<Producto> filtrados = new ArrayList<>();
-
-        for (Producto p : productos) {
-            // 🔎 Coincidencias no necesariamente en orden exacto
-            String nombre = p.getNombre().toLowerCase();
-            if (contieneSalteado(nombre, texto)) {
-                filtrados.add(p);
-            }
-        }
-
-        // Mostrar resultados en tabla
-        DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
-        modelo.setRowCount(0);
-        for (Producto p : filtrados) {
-            modelo.addRow(new Object[]{p.getCodigo(), p.getNombre(), p.getPrecioVenta(), p.getStock()});
-        }
-    }//GEN-LAST:event_btn_buscarActionPerformed
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
-        jFrame_añadirProducto1.setVisible(true);
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
-        jFrame_Asistncias jFrame_Asistncias1;
-        jFrame_Asistncias1 = new jFrame_Asistncias();
-        jFrame_Asistncias1.setVisible(true);
-    }//GEN-LAST:event_tb_entradaActionPerformed
-
-    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tb_reportesActionPerformed
-
-    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-        int confirmacion = JOptionPane.showConfirmDialog(
-                this,
-                "¿Está seguro que desea cerrar sesión?",
-                "Cerrar Sesión",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
-
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            // ✅ Volver al login
-            LoginjFrame login = new LoginjFrame();
-            login.setVisible(true);
-
-            // ✅ Cerrar el panel de gerente
-            this.dispose();
-        }
-    }//GEN-LAST:event_btn_salirActionPerformed
     
 
     /**
