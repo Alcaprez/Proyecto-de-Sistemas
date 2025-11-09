@@ -187,6 +187,4 @@ public class Venta {
 
         return sb.toString();
     }
-
-
 }

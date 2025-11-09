@@ -1,10 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.SucursalDAO;
+import edu.UPAO.proyecto.DAO.UsuarioDAO;
 import edu.UPAO.proyecto.LoginController;
+import edu.UPAO.proyecto.Modelo.Usuario;
+import java.util.List;
 import javax.swing.JOptionPane;
 
 /**
@@ -19,6 +19,31 @@ public class LoginjFrame extends javax.swing.JFrame {
     public LoginjFrame() {
         initComponents();
         setLocationRelativeTo(null);
+        cargarSucursales(); // Nueva línea para cargar sucursales
+
+    }
+
+    private void cargarSucursales() {
+        try {
+            SucursalDAO sucursalDAO = new SucursalDAO();
+            List<String> sucursales = sucursalDAO.obtenerSucursalesActivas();
+
+            // Limpiar el ComboBox
+            cb_sucursales.removeAllItems();
+
+            if (sucursales.isEmpty()) {
+                cb_sucursales.addItem("No hay sucursales disponibles");
+                System.out.println("⚠️ No se encontraron sucursales activas");
+            } else {
+                for (String sucursal : sucursales) {
+                    cb_sucursales.addItem(sucursal);
+                }
+                System.out.println("✅ Sucursales cargadas: " + sucursales.size());
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error al cargar sucursales: " + e.getMessage());
+            cb_sucursales.addItem("Error cargando sucursales");
+        }
     }
 
     /**
@@ -39,8 +64,9 @@ public class LoginjFrame extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         tf_identificacion = new javax.swing.JTextField();
         tf_contraseña = new javax.swing.JPasswordField();
-        btn_ingresar = new javax.swing.JButton();
+        btn_login = new javax.swing.JButton();
         btn_olivdeContraseña = new javax.swing.JButton();
+        cb_sucursales = new javax.swing.JComboBox<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("LOGIN");
@@ -97,12 +123,12 @@ public class LoginjFrame extends javax.swing.JFrame {
             }
         });
 
-        btn_ingresar.setBackground(new java.awt.Color(0, 153, 153));
-        btn_ingresar.setForeground(new java.awt.Color(255, 255, 255));
-        btn_ingresar.setText("INGRESAR");
-        btn_ingresar.addActionListener(new java.awt.event.ActionListener() {
+        btn_login.setBackground(new java.awt.Color(0, 153, 153));
+        btn_login.setForeground(new java.awt.Color(255, 255, 255));
+        btn_login.setText("INGRESAR");
+        btn_login.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_ingresarActionPerformed(evt);
+                btn_loginActionPerformed(evt);
             }
         });
 
@@ -116,6 +142,8 @@ public class LoginjFrame extends javax.swing.JFrame {
             }
         });
 
+        cb_sucursales.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
         javax.swing.GroupLayout LeftLayout = new javax.swing.GroupLayout(Left);
         Left.setLayout(LeftLayout);
         LeftLayout.setHorizontalGroup(
@@ -128,13 +156,13 @@ public class LoginjFrame extends javax.swing.JFrame {
                             .addComponent(btn_olivdeContraseña)
                             .addGroup(LeftLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel3)
-                                .addGroup(LeftLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(btn_ingresar, javax.swing.GroupLayout.DEFAULT_SIZE, 302, Short.MAX_VALUE)
-                                    .addComponent(tf_contraseña))
-                                .addComponent(tf_identificacion, javax.swing.GroupLayout.PREFERRED_SIZE, 303, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addGroup(LeftLayout.createSequentialGroup()
-                        .addGap(45, 45, 45)
-                        .addComponent(jLabel2))
+                                .addComponent(tf_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 302, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(tf_identificacion, javax.swing.GroupLayout.PREFERRED_SIZE, 303, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jLabel2)
+                                .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, LeftLayout.createSequentialGroup()
+                                    .addComponent(cb_sucursales, javax.swing.GroupLayout.PREFERRED_SIZE, 166, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                    .addComponent(btn_login, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)))))
                     .addGroup(LeftLayout.createSequentialGroup()
                         .addGap(88, 88, 88)
                         .addComponent(jLabel1)))
@@ -145,16 +173,18 @@ public class LoginjFrame extends javax.swing.JFrame {
             .addGroup(LeftLayout.createSequentialGroup()
                 .addGap(54, 54, 54)
                 .addComponent(jLabel1)
-                .addGap(38, 38, 38)
+                .addGap(63, 63, 63)
                 .addComponent(jLabel2)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tf_identificacion, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tf_contraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(31, 31, 31)
-                .addComponent(btn_ingresar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addGroup(LeftLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(cb_sucursales)
+                    .addComponent(btn_login, javax.swing.GroupLayout.DEFAULT_SIZE, 36, Short.MAX_VALUE))
                 .addGap(18, 18, 18)
                 .addComponent(btn_olivdeContraseña)
                 .addContainerGap(146, Short.MAX_VALUE))
@@ -181,9 +211,9 @@ public class LoginjFrame extends javax.swing.JFrame {
         realizarLogin();
     }//GEN-LAST:event_tf_contraseñaActionPerformed
 
-    private void btn_ingresarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ingresarActionPerformed
+    private void btn_loginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_loginActionPerformed
         realizarLogin();
-    }//GEN-LAST:event_btn_ingresarActionPerformed
+    }//GEN-LAST:event_btn_loginActionPerformed
 
     private void btn_olivdeContraseñaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_olivdeContraseñaActionPerformed
         JOptionPane.showMessageDialog(this,
@@ -192,7 +222,6 @@ public class LoginjFrame extends javax.swing.JFrame {
                 + "Email: soporte@kuyay.com",
                 "Recuperar Contraseña",
                 JOptionPane.INFORMATION_MESSAGE);
-
     }//GEN-LAST:event_btn_olivdeContraseñaActionPerformed
 
     private void tf_identificacionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_identificacionActionPerformed
@@ -200,78 +229,160 @@ public class LoginjFrame extends javax.swing.JFrame {
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
 
-    private void realizarLogin() {
-        String identificacion = tf_identificacion.getText().trim();
-        String password = new String(tf_contraseña.getPassword());
-
-        if (identificacion.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, complete todos los campos",
-                    "Campos Incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
+    private String obtenerTipoUsuario(String usuario) {
+        if (!usuario.matches("\\d{8}")) {
+            return "INVÁLIDO";
         }
 
-        if (LoginController.validarCredenciales(identificacion, password)) {
-            // ✅ OBTENER TIPO DE USUARIO (asumiendo que LoginController tiene este método)
-            String tipoUsuario = LoginController.getTipoUsuario(identificacion);
-            String nombreUsuario = LoginController.getNombreUsuario(identificacion);
+        int id = Integer.parseInt(usuario);
+        int prefix = id / 1000000;
 
-            String mensajeBienvenida = "";
-
-            // ✅ REDIRIGIR SEGÚN EL TIPO DE USUARIO
-            if ("gerente".equals(tipoUsuario)) {
-                mensajeBienvenida = "¡Bienvenido Gerente!";
-                JOptionPane.showMessageDialog(this,
-                        mensajeBienvenida,
-                        "Login Exitoso",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                Panel_Gerente panelGerente = new Panel_Gerente();
-                panelGerente.setVisible(true);
-
-            } else if ("admin".equals(tipoUsuario)) {
-                mensajeBienvenida = "¡Bienvenido Administrador!";
-                JOptionPane.showMessageDialog(this,
-                        mensajeBienvenida,
-                        "Login Exitoso",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                AdministradorPanel adminPanel = new AdministradorPanel();
-                adminPanel.setLocationRelativeTo(null);
-                adminPanel.setVisible(true);
-
-                // Admin puede definir horarios - USANDO CONSTRUCTOR SIN PARÁMETROS
-                RegistroEntrada registroEntrada = new RegistroEntrada();
-                registroEntrada.setVisible(true);
-
-            } else {
-                // Cajeros y otros usuarios
-                mensajeBienvenida = "¡Bienvenido al Sistema Kuyay!";
-                JOptionPane.showMessageDialog(this,
-                        mensajeBienvenida,
-                        "Login Exitoso",
-                        JOptionPane.INFORMATION_MESSAGE);
-
-                Menu2 menuPrincipal = new Menu2();
-                menuPrincipal.setVisible(true);
-
-                // Cajeros marcan su asistencia - USANDO CONSTRUCTOR CON PARÁMETRO
-                jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
-                asistencia.setVisible(true);
-            }
-
-            this.dispose();
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Identificación o contraseña incorrectos",
-                    "Error de Login",
-                    JOptionPane.ERROR_MESSAGE);
-
-            tf_contraseña.setText("");
-            tf_identificacion.requestFocus();
+        switch (prefix) {
+            case 10:
+                return "GERENTE";
+            case 11:
+                return "ADMINISTRADOR";
+            case 12:
+                return "CAJERO";
+            case 13:
+                return "PROVEEDOR";
+            default:
+                return "CLIENTE";
         }
     }
+
+    private void abrirPanelSegunRol(Usuario usuario) {
+        String rol = usuario.getCargo().toUpperCase();
+        String nombreUsuario = usuario.getNombreComp();
+
+        String mensajeBienvenida = "¡Bienvenido " + nombreUsuario + "!";
+
+        try {
+            switch (rol) {
+                case "GERENTE":
+                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                    // Abrir panel de gerente
+                    Panel_Gerente panelGerente = new Panel_Gerente();
+                    panelGerente.setVisible(true);
+                    break;
+
+                case "ADMINISTRADOR":
+                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                    // Abrir panel de administrador
+                    AdministradorPanel adminPanel = new AdministradorPanel();
+                    adminPanel.setLocationRelativeTo(null);
+                    adminPanel.setVisible(true);
+                    break;
+
+                case "CAJERO":
+                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                    // Abrir menú principal de cajero
+                    Menu2 menuPrincipal = new Menu2();
+                    menuPrincipal.setVisible(true);
+
+                    // Abrir ventana de asistencia para cajero
+                    jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                    asistencia.setVisible(true);
+                    break;
+
+                default:
+                    JOptionPane.showMessageDialog(this,
+                            "Rol no reconocido: " + rol,
+                            "Error de Sistema", JOptionPane.ERROR_MESSAGE);
+                    return;
+            }
+
+            // Cerrar ventana de login después de abrir el panel correspondiente
+            this.dispose();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al abrir el panel: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+
+   private void realizarLogin() {
+    String usuario = tf_identificacion.getText().trim();
+    String contrasena = new String(tf_contraseña.getPassword());
+    String sucursalSeleccionada = (String) cb_sucursales.getSelectedItem();
+
+    System.out.println("=== DEBUG LOGIN ===");
+    System.out.println("Usuario ingresado: " + usuario);
+    System.out.println("Contraseña ingresada: " + contrasena);
+    System.out.println("Sucursal seleccionada: " + sucursalSeleccionada);
+
+    // Validar campos vacíos
+    if (usuario.isEmpty() || contrasena.isEmpty()) {
+        JOptionPane.showMessageDialog(this,
+                "Por favor, complete todos los campos",
+                "Campos Incompletos",
+                JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    // Validar que se haya seleccionado una sucursal válida
+    if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
+        JOptionPane.showMessageDialog(this,
+                "Por favor, seleccione una sucursal válida",
+                "Sucursal Requerida",
+                JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    // Validar formato (8 dígitos)
+    if (!usuario.matches("\\d{8}")) {
+        JOptionPane.showMessageDialog(this,
+                "El usuario debe ser un número de 8 dígitos",
+                "Error de Formato", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    // Validar que sea usuario interno (10, 11, 12)
+    int id = Integer.parseInt(usuario);
+    int primerosDosDigitos = id / 1000000;
+
+    if (primerosDosDigitos < 10 || primerosDosDigitos > 12) {
+        JOptionPane.showMessageDialog(this,
+                "❌ Acceso denegado.\nSolo personal autorizado puede ingresar al sistema.\n\n"
+                + "Tipos de usuario permitidos:\n"
+                + "• 10xxxxxx - Gerentes\n"
+                + "• 11xxxxxx - Administradores\n"
+                + "• 12xxxxxx - Cajeros",
+                "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    // Intentar autenticación
+    UsuarioDAO usuarioDAO = new UsuarioDAO();
+    
+    // Verificar conexión primero (opcional, para debug)
+    usuarioDAO.verificarDatosUsuario(usuario);
+
+    Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
+
+    if (usuarioAutenticado != null) {
+        // Verificar que el usuario pertenezca a la sucursal seleccionada
+        if (!usuarioAutenticado.getTienda().equals(sucursalSeleccionada)) {
+            JOptionPane.showMessageDialog(this,
+                    "El usuario no pertenece a la sucursal seleccionada.\n"
+                    + "Usuario: " + usuarioAutenticado.getTienda() + "\n"
+                    + "Seleccionada: " + sucursalSeleccionada,
+                    "Error de Sucursal", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
+        abrirPanelSegunRol(usuarioAutenticado);
+    } else {
+        JOptionPane.showMessageDialog(this,
+                "Usuario o contraseña incorrectos",
+                "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
+        tf_contraseña.setText("");
+        tf_identificacion.requestFocus();
+    }
+}
 
     /**
      * @param args the command line arguments
@@ -315,8 +426,9 @@ public class LoginjFrame extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;
     private javax.swing.JPanel Right;
-    private javax.swing.JButton btn_ingresar;
+    private javax.swing.JButton btn_login;
     private javax.swing.JButton btn_olivdeContraseña;
+    private javax.swing.JComboBox<String> cb_sucursales;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

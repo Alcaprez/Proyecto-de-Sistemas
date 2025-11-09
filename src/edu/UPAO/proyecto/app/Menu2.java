@@ -75,7 +75,21 @@ public class Menu2 extends javax.swing.JFrame {
             if (fila == -1) {
                 return; // no hay producto seleccionado
             }
-            DefaultTableModel modeloProductos = (DefaultTableModel) tablaProductos.getModel();
+            DefaultTableModel modeloProductos = new DefaultTableModel(
+                    new Object[]{"Código", "Nombre", "Precio", "Stock"}, 0
+            ) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false; // Hacer la tabla no editable
+                }
+            };
+            tablaProductos.setModel(modeloProductos);
+
+            // Asegurar que las columnas tengan el ancho adecuado
+            tablaProductos.getColumnModel().getColumn(0).setPreferredWidth(80);  // Código
+            tablaProductos.getColumnModel().getColumn(1).setPreferredWidth(200); // Nombre
+            tablaProductos.getColumnModel().getColumn(2).setPreferredWidth(60);  // Precio
+            tablaProductos.getColumnModel().getColumn(3).setPreferredWidth(50);  // Stock
             String codigo = modeloProductos.getValueAt(fila, 0).toString();
 
             ProductoDAO productoDAO = new ProductoDAO();
@@ -152,19 +166,43 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     public void cargarProductosEnTabla() {
-        ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar();
+        try {
+            ProductoDAO dao = new ProductoDAO();
+            List<Producto> productos = dao.listar();
 
-        DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
-        modelo.setRowCount(0);
+            System.out.println("🔍 DEBUG: Se encontraron " + productos.size() + " productos");
 
-        for (Producto p : productos) {
-            modelo.addRow(new Object[]{
-                p.getCodigo(), // Columna 0
-                p.getNombre(), // Columna 1
-                p.getPrecioVenta(), // Columna 2
-                p.getStock() // Columna 3
-            });
+            DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
+            modelo.setRowCount(0);
+
+            if (productos.isEmpty()) {
+                System.out.println("⚠️ ADVERTENCIA: No se encontraron productos en la BD");
+                JOptionPane.showMessageDialog(this,
+                        "No se encontraron productos en la base de datos.\nVerifica que haya productos cargados.",
+                        "Sin productos",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            for (Producto p : productos) {
+                System.out.println("📦 Producto: " + p.getCodigo() + " - " + p.getNombre() + " - S/" + p.getPrecioVenta());
+                modelo.addRow(new Object[]{
+                    p.getCodigo(), // Columna 0: Código
+                    p.getNombre(), // Columna 1: Nombre  
+                    p.getPrecioVenta(), // Columna 2: Precio
+                    p.getStock() // Columna 3: Stock
+                });
+            }
+
+            System.out.println("✅ Tabla actualizada con " + modelo.getRowCount() + " productos");
+
+        } catch (Exception e) {
+            System.err.println("❌ ERROR en cargarProductosEnTabla: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar productos: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -833,7 +871,6 @@ public class Menu2 extends javax.swing.JFrame {
         return j == patron.length();
     }
 
-
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
         jFrame_añadirProducto1.setVisible(true);
@@ -950,9 +987,9 @@ public class Menu2 extends javax.swing.JFrame {
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-            "¿Está seguro de eliminar este producto?",
-            "Confirmar eliminación",
-            JOptionPane.YES_NO_OPTION);
+                "¿Está seguro de eliminar este producto?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
@@ -1018,7 +1055,7 @@ public class Menu2 extends javax.swing.JFrame {
 
         // Crear un clon del carrito (tu código existente)
         DefaultTableModel carritoClonado = new DefaultTableModel(
-            new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
+                new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
 
         for (int i = 0; i < carrito.getRowCount(); i++) {
             Object[] fila = new Object[carrito.getColumnCount()];
@@ -1087,7 +1124,7 @@ public class Menu2 extends javax.swing.JFrame {
                     // 🔹 Validar stock
                     if (cantidad > producto.getStock()) {
                         JOptionPane.showMessageDialog(this,
-                            "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+                                "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
                         return;
                     }
 
@@ -1153,8 +1190,8 @@ public class Menu2 extends javax.swing.JFrame {
         DefaultTableModel modeloProductos = (DefaultTableModel) tablaProductos.getModel();
         DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
 
-        String codigo = tablaProductos.getValueAt(filaSeleccionada, 0).toString().trim();
-        System.out.println("✅ Código seleccionado: " + codigo);
+String codigo = tablaProductos.getValueAt(filaSeleccionada, 0).toString().trim();
+        System.out.println("Código seleccionado: " + codigo);
 
         // 🔹 Usar DAO para obtener el objeto producto
         ProductoDAO productoDAO = new ProductoDAO();
@@ -1189,7 +1226,6 @@ public class Menu2 extends javax.swing.JFrame {
         // 🔹 Recalcular totales
         actualizarTotal();
     }//GEN-LAST:event_btn_agregarActionPerformed
-    
 
     /**
      * @param args the command line arguments

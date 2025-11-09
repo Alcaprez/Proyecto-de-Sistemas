@@ -1,155 +1,270 @@
 package edu.UPAO.proyecto.DAO;
 
+import java.sql.Connection;
+import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Producto;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoDAO {
 
-    private static List<Producto> productos = new ArrayList<>();
-    private static final String FILE_NAME = "productos.csv";
+    private Connection conexion;
 
-    static {
-        productos = leerDesdeCSV();
-
-        // Si el CSV no existe o está vacío, inicializamos con los 3 productos
-        if (productos.isEmpty()) {
-            productos.add(new Producto(
-                    1, "B001", "Gaseosa Inca Kola 500ml", "Bebidas",
-                    3.50, 20, 5, 0, "2025-01-01", "2026-01-01"
-            ));
-            productos.add(new Producto(
-                    2, "S001", "Galletas Oreo", "Snacks",
-                    2.00, 50, 10, 0, "2025-01-01", "2025-06-01"
-            ));
-            productos.add(new Producto(
-                    3, "H001", "Shampoo Sedal 200ml", "Higiene",
-                    7.50, 15, 3, 0, "2025-02-15", "2026-02-15"
-            ));
-
-            guardarEnCSV();
-        }
-    }
-
-    // ✅ AGREGAR ESTE MÉTODO NUEVO en ProductoDAO
-    public static void guardarListaProductos(List<Producto> nuevaLista) {
-        productos = new ArrayList<>(nuevaLista); // Reemplazar la lista completa
-        guardarEnCSV(); // Guardar en archivo
-    }
-
-    // =======================
-    // Métodos CSV
-    // =======================
-    // MÉTODO leerDesdeCSV - CORREGIR:
-    public static List<Producto> leerDesdeCSV() {
-        List<Producto> lista = new ArrayList<>();
-        File file = new File(FILE_NAME);
-
-        if (!file.exists()) {
-            return lista; // vacío si no existe
-        }
-
-        // ✅ CAMBIAR FileReader por InputStreamReader con UTF-8
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String linea;
-            boolean primeraLinea = true;
-
-            while ((linea = br.readLine()) != null) {
-                linea = linea.trim().replace("\uFEFF", ""); // limpiar BOM
-                if (primeraLinea && linea.toLowerCase().startsWith("id;")) {
-                    primeraLinea = false;
-                    continue;
-                }
-                primeraLinea = false;
-
-                String[] partes = linea.split(";");
-                if (partes.length < 10) {
-                    System.out.println("⚠ Línea inválida: " + linea);
-                    continue;
-                }
-
-                try {
-                    Producto p = new Producto(
-                            Integer.parseInt(partes[0]), // idProducto
-                            partes[1], // codigo
-                            partes[2], // nombre
-                            partes[3], // categoria
-                            Double.parseDouble(partes[4]), // precioVenta
-                            Integer.parseInt(partes[5]), // stock
-                            Integer.parseInt(partes[6]), // stockMinimo
-                            Integer.parseInt(partes[7]), // vendidos
-                            partes[8], // fechaIngreso
-                            partes[9] // fechaVencimiento
-                    );
-                    lista.add(p);
-                } catch (NumberFormatException e) {
-                    System.out.println("❌ Error en conversión numérica: " + linea);
-                }
-            }
+    public ProductoDAO() {
+        try {
+            this.conexion = new Conexion().establecerConexion();
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return lista;
-    }
-
-// MÉTODO guardarEnCSV - CORREGIR:
-    public static void guardarEnCSV() {
-        // ✅ CAMBIAR FileWriter por OutputStreamWriter con UTF-8
-        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(FILE_NAME), StandardCharsets.UTF_8))) {
-            // Encabezado
-            pw.println("id;codigo;nombre;categoria;precio;stock;stockMinimo;vendidos;fechaIngreso;fechaVencimiento");
-
-            for (Producto p : productos) {
-                pw.println(p.getIdProducto() + ";" + p.getCodigo() + ";" + p.getNombre() + ";"
-                        + p.getCategoria() + ";" + p.getPrecioVenta() + ";" + p.getStock() + ";"
-                        + p.getStockMinimo() + ";" + p.getVendidos() + ";"
-                        + p.getFechaIngreso() + ";" + p.getFechaVencimiento());
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error al conectar con BD: " + e.getMessage());
         }
     }
 
-    // =======================
-    // Métodos ya existentes
-    // =======================
     public List<Producto> listar() {
+        List<Producto> productos = new ArrayList<>();
+        String sql = "SELECT p.id_producto, p.nombre, p.stock_actual, p.stock_minimo, "
+                + "p.precio_compra, p.precio_venta, p.estado, p.fecha_caducidad, "
+                + "p.codigo, c.nombre as categoria_nombre "
+                + "FROM producto p "
+                + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
+                + "WHERE p.estado = 'ACTIVO'";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Producto producto = mapearProducto(rs);
+                productos.add(producto);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al listar productos: " + e.getMessage());
+            e.printStackTrace();
+        }
         return productos;
     }
 
+    // ✅ MÉTODO BUSCAR POR ID CORREGIDO
     public Producto buscarPorId(int id) {
-        return productos.stream()
-                .filter(p -> p.getIdProducto() == id)
-                .findFirst()
-                .orElse(null);
+        String sql = "SELECT id_producto, codigo, nombre, stock_actual, stock_minimo, precio_venta, estado, fecha_caducidad FROM producto WHERE id_producto = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearProducto(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error buscando producto ID " + id + ": " + e.getMessage());
+        }
+        return null;
     }
 
     public Producto buscarPorCodigo(String codigo) {
-        return productos.stream()
-                .filter(p -> p.getCodigo().equalsIgnoreCase(codigo))
-                .findFirst()
-                .orElse(null);
+        String sql = "SELECT p.id_producto, p.nombre, p.stock_actual, p.stock_minimo, "
+                + "p.precio_compra, p.precio_venta, p.estado, p.fecha_caducidad, "
+                + "p.codigo, c.nombre as categoria_nombre "
+                + "FROM producto p "
+                + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
+                + "WHERE p.codigo = ? AND p.estado = 'ACTIVO'";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, codigo);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearProducto(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al buscar producto por código: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
     }
 
+    public boolean actualizarStock(String codigo, int cantidadVendida) {
+        String sql = "UPDATE producto SET stock_actual = stock_actual - ? WHERE codigo = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, cantidadVendida);
+            stmt.setString(2, codigo);
+
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            System.err.println("Error al actualizar stock: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ✅ MÉTODO MAPEAR PRODUCTO CORREGIDO - sin campos que no existen
+    private Producto mapearProducto(ResultSet rs) throws SQLException {
+        Producto p = new Producto();
+        p.setId(rs.getInt("id_producto"));
+        p.setCodigo(rs.getString("codigo"));
+        p.setNombre(rs.getString("nombre"));
+        p.setStock(rs.getInt("stock_actual"));
+        p.setStockMinimo(rs.getInt("stock_minimo"));
+        p.setPrecioCompra(rs.getDouble("precio_compra"));
+        p.setPrecioVenta(rs.getDouble("precio_venta"));
+        p.setEstado(rs.getString("estado"));
+
+        // Manejar fecha_caducidad (campo que SÍ existe)
+        java.sql.Date fechaCaducidad = rs.getDate("fecha_caducidad");
+        if (fechaCaducidad != null) {
+            p.setFechaCaducidad(new java.util.Date(fechaCaducidad.getTime()));
+        }
+
+        p.setCategoria(rs.getString("categoria_nombre"));
+
+        return p;
+    }
+
+    public boolean actualizar(Producto producto) {
+        String sql = "UPDATE producto SET codigo=?, nombre=?, stock_actual=?, stock_minimo=?, "
+                + "precio_compra=?, precio_venta=?, estado=?, fecha_caducidad=?, id_categoria=? "
+                + "WHERE id_producto=?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, producto.getCodigo());
+            stmt.setString(2, producto.getNombre());
+            stmt.setInt(3, producto.getStock());
+            stmt.setInt(4, producto.getStockMinimo());
+            stmt.setDouble(5, producto.getPrecioCompra());
+            stmt.setDouble(6, producto.getPrecioVenta());
+            stmt.setString(7, producto.getEstado());
+
+            // Manejar fecha de caducidad
+            if (producto.getFechaCaducidad() != null) {
+                stmt.setDate(8, new java.sql.Date(producto.getFechaCaducidad().getTime()));
+            } else {
+                stmt.setNull(8, java.sql.Types.DATE);
+            }
+
+            // ID categoría temporal - puedes mejorarlo obteniendo el ID real de la categoría
+            stmt.setInt(9, 1); // Categoría por defecto
+
+            stmt.setInt(10, producto.getId());
+
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Error actualizando producto: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public String generarSiguienteCodigo(String letraCategoria) {
+        String sql = "SELECT MAX(codigo) as ultimo_codigo FROM producto WHERE codigo LIKE ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, letraCategoria + "%");
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String ultimoCodigo = rs.getString("ultimo_codigo");
+                if (ultimoCodigo != null) {
+                    try {
+                        // Extraer el número y incrementar (formato: L00001)
+                        int numero = Integer.parseInt(ultimoCodigo.substring(1));
+                        return String.format("%s%05d", letraCategoria, numero + 1);
+                    } catch (NumberFormatException e) {
+                        System.err.println("❌ Formato de código inválido: " + ultimoCodigo);
+                    }
+                }
+            }
+            // Si no hay códigos existentes para esta categoría
+            return String.format("%s%05d", letraCategoria, 1);
+
+        } catch (SQLException e) {
+            System.err.println("❌ Error al generar código: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public List<Producto> buscarPorNombre(String nombre) {
+        List<Producto> productos = new ArrayList<>();
+        String sql = "SELECT p.id_producto, p.nombre, p.stock_actual, p.stock_minimo, "
+                + "p.precio_compra, p.precio_venta, p.estado, p.fecha_caducidad, "
+                + "p.codigo, c.nombre as categoria_nombre "
+                + "FROM producto p "
+                + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
+                + "WHERE p.nombre LIKE ? AND p.estado = 'ACTIVO'";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, "%" + nombre + "%");
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                productos.add(mapearProducto(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al buscar productos por nombre: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return productos;
+    }
+
+    // ✅ MÉTODO PRODUCTOS MÁS VENDIDOS CORREGIDO
+    public List<Producto> productosMasVendidos() {
+        List<Producto> productos = new ArrayList<>();
+        // Por ahora, ordenar por stock (después implementaremos vendidos)
+        String sql = "SELECT id_producto, codigo, nombre, stock_actual, stock_minimo, precio_venta, estado, fecha_caducidad FROM producto WHERE estado = 'ACTIVO' ORDER BY stock_actual ASC";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Producto p = mapearProducto(rs);
+                productos.add(p);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error en productosMasVendidos: " + e.getMessage());
+        }
+        return productos;
+    }
+
+    // ✅ MÉTODOS COMPATIBILIDAD (pueden quedar vacíos temporalmente)
     public void agregar(Producto producto) {
-        productos.add(producto);
-        guardarEnCSV();
+        // Implementar después
     }
 
     public void eliminar(int id) {
-        productos.removeIf(p -> p.getIdProducto() == id);
-        guardarEnCSV();
+        // Implementar después  
     }
 
-    public void actualizarStock(int id, int cantidadVendida) {
-        Producto p = buscarPorId(id);
-        if (p != null) {
-            int nuevoStock = p.getStock() - cantidadVendida;
-            p.setStock(Math.max(nuevoStock, 0));
-            guardarEnCSV();
+    public boolean insertar(Producto producto) {
+        String sql = "INSERT INTO producto (codigo, nombre, stock_actual, stock_minimo, "
+                + "precio_compra, precio_venta, estado, fecha_caducidad, id_categoria) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, producto.getCodigo());
+            stmt.setString(2, producto.getNombre());
+            stmt.setInt(3, producto.getStock());
+            stmt.setInt(4, producto.getStockMinimo());
+            stmt.setDouble(5, producto.getPrecioCompra());
+            stmt.setDouble(6, producto.getPrecioVenta());
+            stmt.setString(7, producto.getEstado());
+
+            if (producto.getFechaCaducidad() != null) {
+                stmt.setDate(8, new java.sql.Date(producto.getFechaCaducidad().getTime()));
+            } else {
+                stmt.setNull(8, java.sql.Types.DATE);
+            }
+
+            stmt.setInt(9, 1); // Categoría por defecto
+
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("❌ Error insertando producto: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
@@ -157,68 +272,34 @@ public class ProductoDAO {
         Producto p = buscarPorId(id);
         return p != null && p.getStock() <= p.getStockMinimo();
     }
-    // Método para insertar nuevo producto
-
-    public boolean insertar(Producto producto) {
-        try {
-            // Encontrar el próximo ID disponible
-            int maxId = productos.stream()
-                    .mapToInt(Producto::getIdProducto)
-                    .max()
-                    .orElse(0);
-            producto.setIdProducto(maxId + 1);
-
-            productos.add(producto);
-            guardarEnCSV();
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    // Método para actualizar producto existente
-
-    public boolean actualizar(Producto producto) {
-        try {
-            for (int i = 0; i < productos.size(); i++) {
-                if (productos.get(i).getCodigo().equals(producto.getCodigo())) {
-                    productos.set(i, producto);
-                    guardarEnCSV();
-                    return true;
-                }
-            }
-            return false;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    // Método para eliminar por código (String)
 
     public boolean eliminar(String codigo) {
-        try {
-            boolean eliminado = productos.removeIf(p -> p.getCodigo().equals(codigo));
-            if (eliminado) {
-                guardarEnCSV();
-            }
-            return eliminado;
-        } catch (Exception e) {
+        return false; // Temporal
+    }
+    
+    public boolean cambiarEstado(String codigo, String nuevoEstado) {
+        String sql = "UPDATE producto SET estado = ? WHERE codigo = ?";
+        
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, nuevoEstado);
+            stmt.setString(2, codigo);
+            
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Error cambiando estado del producto: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
-    public List<Producto> productosMasVendidos() {
-        productos.sort((a, b) -> Integer.compare(b.getVendidos(), a.getVendidos()));
-        return productos;
-    }
-
-    public Producto buscarPorNombre(String nombre) {
-        if (nombre == null) {
-            return null;
-        }
-        for (Producto p : productos) {
-            if (nombre.equalsIgnoreCase(p.getNombre())) {
-                return p;
+    public void cerrarConexion() {
+        try {
+            if (conexion != null && !conexion.isClosed()) {
+                conexion.close();
             }
+        } catch (SQLException e) {
+            System.err.println("Error cerrando conexión: " + e.getMessage());
         }
-        return null;
     }
 }

@@ -1,70 +1,40 @@
 package edu.UPAO.proyecto.Modelo;
 
+import java.util.Date;
+
 public class Producto {
 
-    private int idProducto;         // Identificador único
-    private String codigo;          // Código interno
-    private String nombre;          // Nombre del producto
-    private String categoria;       // Categoría del producto
-
-    private double precioVenta;     // Precio de venta
-
-    private int stock;              // Stock actual
-    private int stockMinimo;        // Stock mínimo permitido
-    private int vendidos;           // Cantidad de productos vendidos
-
-    private String fechaIngreso;    // Fecha en que ingresó
-    private String fechaVencimiento;// Fecha de vencimiento (si aplica)
+    private int id;
+    private String nombre;
+    private int stock;
+    private int stockMinimo;
+    private double precioCompra;
+    private double precioVenta;
+    private String estado;
+    private Date fechaCaducidad;
+    private String categoria;
+    private String codigo; // Usaremos el ID como código temporal
 
     // Constructores
-    
     public Producto() {
     }
 
-    public Producto(String nombre, double precioVenta, int stock, String codigo) {
-        this.nombre = nombre;
-        this.precioVenta = precioVenta;
-        this.stock = stock;
-        this.codigo = codigo;
-        
-        // Valores por defecto
-        this.idProducto = 0;
-        this.categoria = "Sin categoría";
-        this.stockMinimo = 0;
-        this.vendidos = 0;
-        this.fechaIngreso = "";
-        this.fechaVencimiento = "";
-    }
-    public Producto(int idProducto, String codigo, String nombre, String categoria,double precioVenta,
-            int stock, int stockMinimo, int vendidos,
-            String fechaIngreso, String fechaVencimiento) {
-        this.idProducto = idProducto;
+    public Producto(int id, String nombre, int stock, double precioVenta) {
+        this.id = id;
         this.codigo = codigo;
         this.nombre = nombre;
-        this.categoria = categoria;
-        this.precioVenta = precioVenta;
         this.stock = stock;
-        this.stockMinimo = stockMinimo;
-        this.vendidos = vendidos;
-        this.fechaIngreso = fechaIngreso;
-        this.fechaVencimiento = fechaVencimiento;
+        this.precioVenta = precioVenta;
     }
 
-    // Getters y Setters
-    public int getIdProducto() {
-        return idProducto;
+// Getters y Setters
+    public int getId() {
+        return id;
     }
 
-    public void setIdProducto(int idProducto) {
-        this.idProducto = idProducto;
-    }
-
-    public String getCodigo() {
-        return codigo;
-    }
-
-    public void setCodigo(String codigo) {
-        this.codigo = codigo;
+    public void setId(int id) {
+        this.id = id;
+        this.codigo = String.valueOf(id); // Auto-generar código desde ID
     }
 
     public String getNombre() {
@@ -73,22 +43,6 @@ public class Producto {
 
     public void setNombre(String nombre) {
         this.nombre = nombre;
-    }
-
-    public String getCategoria() {
-        return categoria;
-    }
-
-    public void setCategoria(String categoria) {
-        this.categoria = categoria;
-    }
-
-    public double getPrecioVenta() {
-        return precioVenta;
-    }
-
-    public void setPrecioVenta(double precioVenta) {
-        this.precioVenta = precioVenta;
     }
 
     public int getStock() {
@@ -107,45 +61,59 @@ public class Producto {
         this.stockMinimo = stockMinimo;
     }
 
-    public int getVendidos() {
-        return vendidos;
+    public double getPrecioCompra() {
+        return precioCompra;
     }
 
-    public void setVendidos(int vendidos) {
-        this.vendidos = vendidos;
+    public void setPrecioCompra(double precioCompra) {
+        this.precioCompra = precioCompra;
     }
 
-    public String getFechaIngreso() {
-        return fechaIngreso;
+    public double getPrecioVenta() {
+        return precioVenta;
     }
 
-    public void setFechaIngreso(String fechaIngreso) {
-        this.fechaIngreso = fechaIngreso;
+    public void setPrecioVenta(double precioVenta) {
+        this.precioVenta = precioVenta;
     }
 
-    public String getFechaVencimiento() {
-        return fechaVencimiento;
+    public String getEstado() {
+        return estado;
     }
 
-    public void setFechaVencimiento(String fechaVencimiento) {
-        this.fechaVencimiento = fechaVencimiento;
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
-    // Métodos útiles
-    public boolean estaBajoStock() {
-        return stock <= stockMinimo;
+    public Date getFechaCaducidad() {
+        return fechaCaducidad;
     }
 
-    // Para guardar en archivo (CSV)
-    public String toCSV() {
-        return nombre + ";" + precioVenta + ";" + stock + ";" + codigo + ";" + vendidos;
+    public void setFechaCaducidad(Date fechaCaducidad) {
+        this.fechaCaducidad = fechaCaducidad;
     }
 
-    // Para mostrar en pantalla
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public String getCodigo() {
+        if (codigo == null && id > 0) {
+            return String.valueOf(id);
+        }
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
+    }
+
     @Override
     public String toString() {
-            return idProducto + ";" + codigo + ";" + nombre + ";" + categoria + ";" + 
-           precioVenta + ";" + stock + ";" + stockMinimo + ";" + vendidos + ";" +
-           fechaIngreso + ";" + fechaVencimiento;
+        return nombre + " (ID: " + id + ") - S/" + precioVenta;
     }
 }
