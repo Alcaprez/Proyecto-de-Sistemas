@@ -98,7 +98,6 @@ public class ProductoDAO {
         }
     }
 
-    // ✅ MÉTODO MAPEAR PRODUCTO CORREGIDO - sin campos que no existen
     private Producto mapearProducto(ResultSet rs) throws SQLException {
         Producto p = new Producto();
         p.setId(rs.getInt("id_producto"));
@@ -110,13 +109,21 @@ public class ProductoDAO {
         p.setPrecioVenta(rs.getDouble("precio_venta"));
         p.setEstado(rs.getString("estado"));
 
-        // Manejar fecha_caducidad (campo que SÍ existe)
+        // Manejar fecha_caducidad
         java.sql.Date fechaCaducidad = rs.getDate("fecha_caducidad");
         if (fechaCaducidad != null) {
             p.setFechaCaducidad(new java.util.Date(fechaCaducidad.getTime()));
         }
 
         p.setCategoria(rs.getString("categoria_nombre"));
+
+        // ✅ AGREGAR VENDIDOS - con manejo de null
+        try {
+            p.setVendidos(rs.getInt("vendidos"));
+        } catch (SQLException e) {
+            // Si la columna no existe o es null, establecer 0
+            p.setVendidos(0);
+        }
 
         return p;
     }
@@ -209,11 +216,15 @@ public class ProductoDAO {
         return productos;
     }
 
-    // ✅ MÉTODO PRODUCTOS MÁS VENDIDOS CORREGIDO
+// MÉTODO PRODUCTOS MÁS VENDIDOS CORREGIDO
     public List<Producto> productosMasVendidos() {
         List<Producto> productos = new ArrayList<>();
-        // Por ahora, ordenar por stock (después implementaremos vendidos)
-        String sql = "SELECT id_producto, codigo, nombre, stock_actual, stock_minimo, precio_venta, estado, fecha_caducidad FROM producto WHERE estado = 'ACTIVO' ORDER BY stock_actual ASC";
+        String sql = "SELECT p.id_producto, p.nombre, p.stock_actual, p.stock_minimo, "
+                + "p.precio_compra, p.precio_venta, p.estado, p.fecha_caducidad, "
+                + "p.codigo, p.vendidos, c.nombre as categoria_nombre "
+                + "FROM producto p "
+                + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
+                + "WHERE p.estado = 'ACTIVO' ORDER BY p.vendidos DESC"; // ✅ Ordenar por vendidos descendente
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
 
@@ -223,6 +234,7 @@ public class ProductoDAO {
             }
         } catch (SQLException e) {
             System.err.println("❌ Error en productosMasVendidos: " + e.getMessage());
+            e.printStackTrace();
         }
         return productos;
     }
@@ -276,14 +288,14 @@ public class ProductoDAO {
     public boolean eliminar(String codigo) {
         return false; // Temporal
     }
-    
+
     public boolean cambiarEstado(String codigo, String nuevoEstado) {
         String sql = "UPDATE producto SET estado = ? WHERE codigo = ?";
-        
+
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, nuevoEstado);
             stmt.setString(2, codigo);
-            
+
             int filasAfectadas = stmt.executeUpdate();
             return filasAfectadas > 0;
         } catch (SQLException e) {
@@ -301,5 +313,22 @@ public class ProductoDAO {
         } catch (SQLException e) {
             System.err.println("Error cerrando conexión: " + e.getMessage());
         }
+    }
+
+    public int obtenerIdPorCodigo(String codigo) {
+        String sql = "SELECT id_producto FROM producto WHERE codigo = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, codigo);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("id_producto");
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al obtener ID por código: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return -1;
     }
 }

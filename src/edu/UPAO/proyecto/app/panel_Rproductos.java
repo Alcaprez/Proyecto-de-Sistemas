@@ -1,57 +1,20 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
+ */
 package edu.UPAO.proyecto.app;
 
-import java.util.List;
-import javax.accessibility.AccessibleContext;
-import javax.swing.table.DefaultTableModel;
-import edu.UPAO.proyecto.ProductoController;
-import edu.UPAO.proyecto.Modelo.Producto;
-import javax.swing.JOptionPane;
-
-public class jFrame_añadirProducto extends javax.swing.JFrame {
+/**
+ *
+ * @author ALBERTH
+ */
+public class panel_Rproductos extends javax.swing.JPanel {
 
     /**
-     * Creates new form jFrame_añadirProducto
+     * Creates new form panel_Rproductos
      */
-    //CREAMOS LAS VARIABLES DE TIPO GESTORCAJERO Y FRAME PRINCIPAL
-    private edu.UPAO.proyecto.app.Menu2 ventanaPrincipal;
-    DefaultTableModel mt = new DefaultTableModel();
-
-    public void setAccessibleContext(AccessibleContext accessibleContext) {
-        this.accessibleContext = accessibleContext;
-    }
-
-    @Override
-    public void setDefaultCloseOperation(int operation) {
-        super.setDefaultCloseOperation(operation); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
-    }
-
-    public jFrame_añadirProducto() {
-
+    public panel_Rproductos() {
         initComponents();
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        String ids[] = {"NOMBRE", "PRECIO", "STOCK", "CODIGO"};
-
-        mt.setColumnIdentifiers(ids);
-        tabla_productos.setModel(mt);
-
-        // ✅ CONFIGURAR CATEGORÍAS (solo esto es nuevo)
-        configurarCategorias();
-
-        cargarTablaProductos();
-
-    }
-
-    private void configurarCategorias() {
-        String[] categorias = {
-            "BEBIDAS", "SNACKS", "HIGIENE", "ABARROTES",
-            "LÁCTEOS", "PANADERÍA", "LIMPIEZA", "CEREALES", "GENERAL"
-        };
-
-        cb_categoria.removeAllItems();
-        for (String categoria : categorias) {
-            cb_categoria.addItem(categoria);
-        }
-        cb_categoria.setSelectedItem("GENERAL"); // Valor por defecto
     }
 
     /**
@@ -63,12 +26,6 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jSeparator1 = new javax.swing.JSeparator();
-        buttonGroup1 = new javax.swing.ButtonGroup();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jEditorPane1 = new javax.swing.JEditorPane();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
@@ -91,24 +48,6 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
         jScrollPane2 = new javax.swing.JScrollPane();
         tabla_productos = new javax.swing.JTable();
         btn_cancelar = new javax.swing.JButton();
-
-        jScrollPane1.setViewportView(jEditorPane1);
-
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
-        jScrollPane3.setViewportView(jTable1);
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setResizable(false);
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
@@ -293,30 +232,28 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(224, 224, 224)
+                .addGap(216, 216, 216)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(12, 12, 12)
                         .addComponent(jLabel1)
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addGroup(jPanel1Layout.createSequentialGroup()
-                                        .addComponent(btn_actualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(btn_eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                        .addGap(196, 196, 196))))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 734, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addGap(0, 0, Short.MAX_VALUE)
+                            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGroup(jPanel1Layout.createSequentialGroup()
+                                    .addComponent(btn_actualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                    .addComponent(btn_eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 104, javax.swing.GroupLayout.PREFERRED_SIZE))))))
+                .addGap(204, 204, 204))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(30, 30, 30)
+                .addGap(17, 17, 17)
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -325,166 +262,137 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
                     .addComponent(btn_actualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(9, 9, 9)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 308, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 264, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(15, 15, 15))
+                .addGap(28, 28, 28))
         );
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
+        this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
-
-        pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private boolean validarCampos() {
-        String nombre = tf_nombre.getText().trim();
-        String precioStr = tf_precio.getText().trim();
-        String stockStr = tf_stock.getText().trim();
-        String codigo = tf_codigoProducto.getText().trim();
+    private void rb_generarcodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_generarcodigoActionPerformed
+        // "Ingresar código" seleccionado
+        tf_codigoProducto.setEditable(true);
+        btn_escanearrSKU.setEnabled(false);
+    }//GEN-LAST:event_rb_generarcodigoActionPerformed
 
-        // Validar campos vacíos
-        if (nombre.isEmpty() || precioStr.isEmpty() || stockStr.isEmpty() || codigo.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Todos los campos son obligatorios",
-                    "Campos Incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return false;
+    private void rb_skuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_skuActionPerformed
+        // "SKU" seleccionado
+        tf_codigoProducto.setEditable(false);
+        btn_escanearrSKU.setEnabled(true);
+
+        // Generar código automático
+        String categoria = (String) cb_categoria.getSelectedItem();
+        if (categoria != null) {
+            String codigoGenerado = generarCodigoPorCategoria(categoria);
+            tf_codigoProducto.setText(codigoGenerado);
+        }
+    }//GEN-LAST:event_rb_skuActionPerformed
+
+    private void btn_escanearrSKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_escanearrSKUActionPerformed
+        // Simulación de escaneo
+        String[] codigosSimulados = {"7501234567890", "7509876543210", "7501112223334"};
+        String codigoEscaneado = codigosSimulados[(int) (Math.random() * codigosSimulados.length)];
+        tf_codigoProducto.setText(codigoEscaneado);
+
+        JOptionPane.showMessageDialog(this,
+            "Código escaneado: " + codigoEscaneado,
+            "SKU Escaneado",
+            JOptionPane.INFORMATION_MESSAGE);
+    }//GEN-LAST:event_btn_escanearrSKUActionPerformed
+
+    private void btn_añadirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_añadirActionPerformed
+        // ✅ PRIMERO VALIDAR
+        if (!validarCampos()) {
+            return;
         }
 
-        // Validar precio
         try {
-            double precio = Double.parseDouble(precioStr);
-            if (precio <= 0) {
+            String nombre = tf_nombre.getText().trim();
+            double precio = Double.parseDouble(tf_precio.getText().trim());
+            int stock = Integer.parseInt(tf_stock.getText().trim());
+            String codigo = tf_codigoProducto.getText().trim().toUpperCase();
+            String categoria = (String) cb_categoria.getSelectedItem();
+
+            // Verificar si el código ya existe
+            ProductoController pc = new ProductoController();
+            List<Producto> productos = pc.cargarProductos();
+
+            boolean codigoExiste = productos.stream()
+            .anyMatch(p -> p.getCodigo() != null && p.getCodigo().equalsIgnoreCase(codigo));
+
+            if (codigoExiste) {
                 JOptionPane.showMessageDialog(this,
-                        "El precio debe ser mayor a 0",
-                        "Precio Inválido",
-                        JOptionPane.WARNING_MESSAGE);
-                return false;
+                    "El código " + codigo + " ya existe. Use un código único.",
+                    "Código Duplicado",
+                    JOptionPane.WARNING_MESSAGE);
+                return;
             }
-            // Validar máximo 2 decimales
-            if (precioStr.contains(".") && precioStr.split("\\.")[1].length() > 2) {
-                JOptionPane.showMessageDialog(this,
-                        "El precio no puede tener más de 2 decimales",
-                        "Precio Inválido",
-                        JOptionPane.WARNING_MESSAGE);
-                return false;
+
+            // ✅ CREAR PRODUCTO CON CONSTRUCTOR EXISTENTE
+            Producto nuevo = new Producto(nombre, precio, stock, codigo);
+            // ✅ SETTEAR CATEGORÍA POR SEPARADO
+            nuevo.setCategoria(categoria);
+
+            // Guardar producto
+            pc.agregarProducto(nuevo);
+
+            // Refrescar tablas
+            cargarTablaProductos();
+            if (ventanaPrincipal != null) {
+                ventanaPrincipal.cargarProductosEnTabla();
             }
+
+            // Limpiar campos
+            limpiarCampos();
+
+            JOptionPane.showMessageDialog(this,
+                "Producto agregado exitosamente",
+                "Éxito",
+                JOptionPane.INFORMATION_MESSAGE);
+
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this,
-                    "Ingrese un precio válido (ej: 15.50)",
-                    "Precio Inválido",
-                    JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        // Validar stock
-        try {
-            int stock = Integer.parseInt(stockStr);
-            if (stock < 0) {
-                JOptionPane.showMessageDialog(this,
-                        "El stock no puede ser negativo",
-                        "Stock Inválido",
-                        JOptionPane.WARNING_MESSAGE);
-                return false;
-            }
-            if (stock > 10000) {
-                JOptionPane.showMessageDialog(this,
-                        "El stock no puede ser mayor a 10,000 unidades",
-                        "Stock Inválido",
-                        JOptionPane.WARNING_MESSAGE);
-                return false;
-            }
-        } catch (NumberFormatException e) {
+                "Error en los valores numéricos",
+                "Error de Formato",
+                JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                    "Ingrese un stock válido (número entero)",
-                    "Stock Inválido",
-                    JOptionPane.WARNING_MESSAGE);
-            return false;
+                "Error al agregar producto: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
+    }//GEN-LAST:event_btn_añadirActionPerformed
 
-        return true;
-    }
-
-    private String generarCodigoPorCategoria(String categoria) {
-        ProductoController pc = new ProductoController();
-        List<Producto> productos = pc.cargarProductos();
-
-        // Prefijos por categoría
-        String prefijo = "";
-        switch (categoria.toUpperCase()) {
-            case "BEBIDAS":
-                prefijo = "B";
-                break;
-            case "SNACKS":
-                prefijo = "S";
-                break;
-            case "HIGIENE":
-                prefijo = "H";
-                break;
-            case "ABARROTES":
-                prefijo = "A";
-                break;
-            case "LÁCTEOS":
-                prefijo = "L";
-                break;
-            case "PANADERÍA":
-                prefijo = "P";
-                break;
-            case "LIMPIEZA":
-                prefijo = "F";
-                break;
-            case "CEREALES":
-                prefijo = "C";
-                break;
-            default:
-                prefijo = "G";
-                break;
-        }
-
-        // Buscar el último número usado en esta categoría
-        int ultimoNumero = 0;
-        for (Producto p : productos) {
-            if (p.getCodigo() != null && p.getCodigo().startsWith(prefijo)) {
-                try {
-                    String numeroStr = p.getCodigo().substring(prefijo.length());
-                    int num = Integer.parseInt(numeroStr);
-                    if (num > ultimoNumero) {
-                        ultimoNumero = num;
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignorar códigos que no siguen el formato
-                }
+    private void cb_categoriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_categoriaActionPerformed
+        if (rb_sku.isSelected()) {
+            String categoria = (String) cb_categoria.getSelectedItem();
+            if (categoria != null) {
+                String codigoGenerado = generarCodigoPorCategoria(categoria);
+                tf_codigoProducto.setText(codigoGenerado);
             }
         }
-
-        // Generar nuevo código
-        int nuevoNumero = ultimoNumero + 1;
-        return String.format("%s%03d", prefijo, nuevoNumero);
-    }
-
+    }//GEN-LAST:event_cb_categoriaActionPerformed
 
     private void btn_eliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarActionPerformed
         int fila = tabla_productos.getSelectedRow();
         if (fila != -1) {
             String nombreProducto = tabla_productos.getValueAt(fila, 0).toString();
             int confirmacion = JOptionPane.showConfirmDialog(this,
-                    "¿Está seguro de eliminar el producto: " + nombreProducto + "?",
-                    "Confirmar Eliminación",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
+                "¿Está seguro de eliminar el producto: " + nombreProducto + "?",
+                "Confirmar Eliminación",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
 
             if (confirmacion == JOptionPane.YES_OPTION) {
                 try {
@@ -494,7 +402,7 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
                     String codigoEliminar = tabla_productos.getValueAt(fila, 3).toString();
 
                     productos.removeIf(p -> p.getCodigo() != null
-                            && p.getCodigo().equals(codigoEliminar));
+                        && p.getCodigo().equals(codigoEliminar));
 
                     pc.guardarProductos(productos);
 
@@ -506,32 +414,24 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
                     limpiarCampos();
 
                     JOptionPane.showMessageDialog(this,
-                            "Producto eliminado exitosamente",
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
+                        "Producto eliminado exitosamente",
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
 
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this,
-                            "Error al eliminar producto: " + ex.getMessage(),
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                        "Error al eliminar producto: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
                 }
             }
         } else {
             JOptionPane.showMessageDialog(this,
-                    "Seleccione un producto para eliminar.",
-                    "Selección Requerida",
-                    JOptionPane.WARNING_MESSAGE);
+                "Seleccione un producto para eliminar.",
+                "Selección Requerida",
+                JOptionPane.WARNING_MESSAGE);
         }
     }//GEN-LAST:event_btn_eliminarActionPerformed
-
-    private void limpiarCampos() {
-        tf_nombre.setText("");
-        tf_precio.setText("");
-        tf_stock.setText("");
-        tf_codigoProducto.setText("");
-        cb_categoria.setSelectedItem("GENERAL");
-    }
 
     private void btn_actualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_actualizarActionPerformed
         int fila = tabla_productos.getSelectedRow();
@@ -553,13 +453,13 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
                     ProductoController pc = new ProductoController();
                     List<Producto> productos = pc.cargarProductos();
                     boolean codigoExiste = productos.stream()
-                            .anyMatch(p -> p.getCodigo() != null && p.getCodigo().equalsIgnoreCase(codigo));
+                    .anyMatch(p -> p.getCodigo() != null && p.getCodigo().equalsIgnoreCase(codigo));
 
                     if (codigoExiste) {
                         JOptionPane.showMessageDialog(this,
-                                "El código " + codigo + " ya existe.",
-                                "Código Duplicado",
-                                JOptionPane.WARNING_MESSAGE);
+                            "El código " + codigo + " ya existe.",
+                            "Código Duplicado",
+                            JOptionPane.WARNING_MESSAGE);
                         return;
                     }
                 }
@@ -593,143 +493,24 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
                 limpiarCampos();
 
                 JOptionPane.showMessageDialog(this,
-                        "Producto actualizado exitosamente",
-                        "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
+                    "Producto actualizado exitosamente",
+                    "Éxito",
+                    JOptionPane.INFORMATION_MESSAGE);
 
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Ingrese valores válidos.");
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this,
-                        "Error al actualizar producto: " + e.getMessage());
+                    "Error al actualizar producto: " + e.getMessage());
             }
         } else {
             JOptionPane.showMessageDialog(this, "Seleccione un producto para actualizar.");
         }
     }//GEN-LAST:event_btn_actualizarActionPerformed
 
-    private void cargarTablaProductos() {
-        ProductoController pc = new ProductoController();
-        List<Producto> productos = pc.cargarProductos();
-
-        mt.setRowCount(0); // limpiar tabla antes de cargar
-        for (Producto p : productos) {
-            mt.addRow(new Object[]{p.getNombre(), p.getPrecioVenta(), p.getStock(), p.getCodigo()});
-        }
-    }
-
-
-    private void rb_skuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_skuActionPerformed
-        // "SKU" seleccionado
-        tf_codigoProducto.setEditable(false);
-        btn_escanearrSKU.setEnabled(true);
-
-        // Generar código automático
-        String categoria = (String) cb_categoria.getSelectedItem();
-        if (categoria != null) {
-            String codigoGenerado = generarCodigoPorCategoria(categoria);
-            tf_codigoProducto.setText(codigoGenerado);
-        }
-    }//GEN-LAST:event_rb_skuActionPerformed
-
-    private void rb_generarcodigoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_generarcodigoActionPerformed
-        // "Ingresar código" seleccionado
-        tf_codigoProducto.setEditable(true);
-        btn_escanearrSKU.setEnabled(false);
-    }//GEN-LAST:event_rb_generarcodigoActionPerformed
-
-    private void btn_añadirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_añadirActionPerformed
-        // ✅ PRIMERO VALIDAR
-        if (!validarCampos()) {
-            return;
-        }
-
-        try {
-            String nombre = tf_nombre.getText().trim();
-            double precio = Double.parseDouble(tf_precio.getText().trim());
-            int stock = Integer.parseInt(tf_stock.getText().trim());
-            String codigo = tf_codigoProducto.getText().trim().toUpperCase();
-            String categoria = (String) cb_categoria.getSelectedItem();
-
-            // Verificar si el código ya existe
-            ProductoController pc = new ProductoController();
-            List<Producto> productos = pc.cargarProductos();
-
-            boolean codigoExiste = productos.stream()
-                    .anyMatch(p -> p.getCodigo() != null && p.getCodigo().equalsIgnoreCase(codigo));
-
-            if (codigoExiste) {
-                JOptionPane.showMessageDialog(this,
-                        "El código " + codigo + " ya existe. Use un código único.",
-                        "Código Duplicado",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            // ✅ CREAR PRODUCTO CON CONSTRUCTOR EXISTENTE
-            Producto nuevo = new Producto(nombre, precio, stock, codigo);
-            // ✅ SETTEAR CATEGORÍA POR SEPARADO
-            nuevo.setCategoria(categoria);
-
-            // Guardar producto
-            pc.agregarProducto(nuevo);
-
-            // Refrescar tablas
-            cargarTablaProductos();
-            if (ventanaPrincipal != null) {
-                ventanaPrincipal.cargarProductosEnTabla();
-            }
-
-            // Limpiar campos
-            limpiarCampos();
-
-            JOptionPane.showMessageDialog(this,
-                    "Producto agregado exitosamente",
-                    "Éxito",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error en los valores numéricos",
-                    "Error de Formato",
-                    JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al agregar producto: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }//GEN-LAST:event_btn_añadirActionPerformed
-
-    private void btn_escanearrSKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_escanearrSKUActionPerformed
-        // Simulación de escaneo
-        String[] codigosSimulados = {"7501234567890", "7509876543210", "7501112223334"};
-        String codigoEscaneado = codigosSimulados[(int) (Math.random() * codigosSimulados.length)];
-        tf_codigoProducto.setText(codigoEscaneado);
-
-        JOptionPane.showMessageDialog(this,
-                "Código escaneado: " + codigoEscaneado,
-                "SKU Escaneado",
-                JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_btn_escanearrSKUActionPerformed
-
-    private void cb_categoriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_categoriaActionPerformed
-        if (rb_sku.isSelected()) {
-            String categoria = (String) cb_categoria.getSelectedItem();
-            if (categoria != null) {
-                String codigoGenerado = generarCodigoPorCategoria(categoria);
-                tf_codigoProducto.setText(codigoGenerado);
-            }
-        }
-    }//GEN-LAST:event_cb_categoriaActionPerformed
-
     private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_cancelarActionPerformed
-
-    public void setVentanaPrincipal(edu.UPAO.proyecto.app.Menu2 ventana) {
-        this.ventanaPrincipal = ventana;
-    }
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -738,9 +519,7 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
     private javax.swing.JButton btn_cancelar;
     private javax.swing.JButton btn_eliminar;
     private javax.swing.JButton btn_escanearrSKU;
-    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JComboBox<String> cb_categoria;
-    private javax.swing.JEditorPane jEditorPane1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -749,11 +528,7 @@ public class jFrame_añadirProducto extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JSeparator jSeparator1;
-    private javax.swing.JTable jTable1;
     private javax.swing.JRadioButton rb_generarcodigo;
     private javax.swing.JRadioButton rb_sku;
     private static javax.swing.JTable tabla_productos;

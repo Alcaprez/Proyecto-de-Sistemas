@@ -296,8 +296,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelHeader.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 16));
         panelHeader.setPreferredSize(new java.awt.Dimension(780, 70));
         panelHeader.setLayout(new java.awt.BorderLayout());
-
-        logoLabel.setIcon(new javax.swing.ImageIcon("C:\\Users\\WIN-10\\OneDrive\\Imágenes\\Logo_kuyay-convertido-a-pequeño-removebg-preview.png")); // NOI18N
         panelHeader.add(logoLabel, java.awt.BorderLayout.WEST);
 
         btnSalir.setFont(new java.awt.Font("Leelawadee UI", 1, 12)); // NOI18N
@@ -337,7 +335,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelFiltros.setLayout(new java.awt.GridBagLayout());
 
         lblFiltrar.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
-        lblFiltrar.setForeground(new java.awt.Color(0, 0, 0));
         lblFiltrar.setText("FILTRAR POR:");
         panelFiltros.add(lblFiltrar, new java.awt.GridBagConstraints());
 
@@ -452,7 +449,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelVentasMensuales.setLayout(new java.awt.BorderLayout());
 
         lblVentasMensuales.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        lblVentasMensuales.setForeground(new java.awt.Color(0, 0, 0));
         lblVentasMensuales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblVentasMensuales.setText("VENTAS MENSUALES");
         panelVentasMensuales.add(lblVentasMensuales, java.awt.BorderLayout.PAGE_START);
@@ -464,7 +460,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelVentasPorProducto.setLayout(new java.awt.BorderLayout());
 
         lblVentasPorProductos.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        lblVentasPorProductos.setForeground(new java.awt.Color(0, 0, 0));
         lblVentasPorProductos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblVentasPorProductos.setText("VENTAS POR PRODUCTO");
         panelVentasPorProducto.add(lblVentasPorProductos, java.awt.BorderLayout.PAGE_START);
@@ -476,7 +471,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelMediosPago.setLayout(new java.awt.BorderLayout());
 
         lblMediosPago.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        lblMediosPago.setForeground(new java.awt.Color(0, 0, 0));
         lblMediosPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblMediosPago.setText("MEDIOS DE PAGO");
         panelMediosPago.add(lblMediosPago, java.awt.BorderLayout.PAGE_START);
@@ -488,7 +482,6 @@ public class VENTAS extends javax.swing.JFrame {
         panelVentasDiarias.setLayout(new java.awt.BorderLayout());
 
         lblVentasDiarias.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        lblVentasDiarias.setForeground(new java.awt.Color(0, 0, 0));
         lblVentasDiarias.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblVentasDiarias.setText("VENTAS DIARIAS");
         panelVentasDiarias.add(lblVentasDiarias, java.awt.BorderLayout.PAGE_START);

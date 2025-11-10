@@ -1,5 +1,7 @@
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.ProductoDAO;
+import edu.UPAO.proyecto.DAO.VentaDAO;
 import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
 import edu.UPAO.proyecto.app.Menu2;
@@ -13,6 +15,9 @@ import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.Venta;
 import edu.UPAO.proyecto.Modelo.VentaItem;
 import javax.swing.JFrame;
+import java.sql.SQLException;
+import edu.UPAO.proyecto.DAO.VentaDAO;
+import edu.UPAO.proyecto.DAO.ClienteDAO;
 
 public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
@@ -138,8 +143,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         rb_boleta = new javax.swing.JRadioButton();
         rb_factura = new javax.swing.JRadioButton();
         cb_id = new javax.swing.JComboBox<>();
-        tf_nombre = new javax.swing.JTextField();
-        tf_id = new javax.swing.JTextField();
+        tf_nombres = new javax.swing.JTextField();
+        tf_dni = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
         rb_digital = new javax.swing.JRadioButton();
         rb_efectivo = new javax.swing.JRadioButton();
@@ -152,6 +157,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         lbl_igv = new javax.swing.JLabel();
         lbl_total = new javax.swing.JLabel();
         lbl_descueto = new javax.swing.JLabel();
+        tf_apellidos = new javax.swing.JTextField();
+        jLabel3 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(204, 204, 204));
@@ -180,13 +187,13 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             }
         });
 
-        tf_id.addActionListener(new java.awt.event.ActionListener() {
+        tf_dni.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tf_idActionPerformed(evt);
+                tf_dniActionPerformed(evt);
             }
         });
 
-        jLabel2.setText("Nombre:");
+        jLabel2.setText("Nombres:");
 
         rb_digital.setText("Pago digital");
         rb_digital.addActionListener(new java.awt.event.ActionListener() {
@@ -244,6 +251,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
         lbl_descueto.setText("Descuento:");
 
+        jLabel3.setText("Apellidos");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -262,21 +271,25 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                                 .addGap(47, 47, 47)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel1Layout.createSequentialGroup()
-                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                                .addGap(31, 31, 31)
-                                                .addComponent(jLabel2))
-                                            .addComponent(cb_id, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addComponent(tf_nombre, javax.swing.GroupLayout.PREFERRED_SIZE, 510, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(tf_id, javax.swing.GroupLayout.PREFERRED_SIZE, 510, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                            .addComponent(cb_id, javax.swing.GroupLayout.PREFERRED_SIZE, 79, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING))
+                                        .addGap(18, 18, 18)
+                                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(tf_dni, javax.swing.GroupLayout.PREFERRED_SIZE, 510, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                                .addComponent(tf_nombres, javax.swing.GroupLayout.PREFERRED_SIZE, 175, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(44, 44, 44)
+                                                .addComponent(jLabel3)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(tf_apellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE))))
                                     .addComponent(rb_factura)
                                     .addGroup(jPanel1Layout.createSequentialGroup()
                                         .addComponent(rb_digital)
                                         .addGap(56, 56, 56)
                                         .addComponent(rb_mixto))
-                                    .addComponent(btn_mostrarMaquina, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                    .addComponent(btn_mostrarMaquina, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(24, 24, 24))
                             .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                                 .addComponent(lbl_subtotal, javax.swing.GroupLayout.PREFERRED_SIZE, 148, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
@@ -304,12 +317,16 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(cb_id, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(tf_id, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(tf_dni, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(tf_nombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel2))
-                .addGap(31, 31, 31)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(tf_nombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel2))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jLabel3)
+                        .addComponent(tf_apellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(27, 27, 27)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(rb_digital)
                     .addComponent(rb_efectivo)
@@ -360,52 +377,116 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_cb_idActionPerformed
 
-    private void tf_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_idActionPerformed
+    private void tf_dniActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_dniActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_tf_idActionPerformed
+    }//GEN-LAST:event_tf_dniActionPerformed
 
     private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
         if (!validarCampos()) {
             return;
         }
 
-        ProductoController pc = new ProductoController();
-        List<Producto> productos = pc.cargarProductos();
-        List<DetalleVenta> detalles = new ArrayList<>();
+        try {
+            // Calcular totales desde los labels
+            String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").trim();
+            String subtotalText = lbl_subtotal.getText().replace("Subtotal:", "").replace("S/", "").trim();
+            String descuentoText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
 
-        // ... (todo tu código existente de procesamiento de productos IGUAL) ...
-        // Resto del código para crear la venta...
-        int idVenta = VentasController.getVentas().size() + 1;
+            double total = Double.parseDouble(totalText);
+            double subtotal = Double.parseDouble(subtotalText);
+            double descuento = Double.parseDouble(descuentoText);
+            double igv = total - subtotal;
 
-        // ✅ Obtener DNI del cliente
-        String dniCliente = tf_id.getText().trim();
+            // Obtener datos del formulario
+            String dniCliente = tf_dni.getText().trim();
+            String nombres = tf_nombres.getText().trim();
+            String apellidos = tf_apellidos.getText().trim();
+            int cajeroId = 1; // Temporal - luego obtener del login
+            String metodoPago = rb_efectivo.isSelected() ? "Efectivo"
+                    : rb_digital.isSelected() ? "Digital" : "Mixto";
 
-        // ✅ Obtener ID del cajero (valor temporal)
-        int cajeroId = 1;
+            // ✅ 1. REGISTRAR CLIENTE SI NO EXISTE
+            try {
+                ClienteDAO clienteDAO = new ClienteDAO();
 
-        String metodoPago = rb_efectivo.isSelected() ? "Efectivo"
-                : rb_digital.isSelected() ? "Digital" : "Mixto";
+                // Validar campos obligatorios
+                if (nombres.isEmpty()) {
+                    nombres = "CLIENTE";
+                }
+                if (apellidos.isEmpty()) {
+                    apellidos = dniCliente; // Usar DNI como apellido por defecto
+                }
 
-        Venta venta = new Venta(idVenta, cajeroId, metodoPago, detalles);
-        VentasController.registrarVenta(venta);
+                clienteDAO.registrarClienteSiNoExiste(dniCliente, nombres, apellidos);
+                clienteDAO.cerrarConexion();
+            } catch (Exception e) {
+                System.err.println("⚠️ Error al registrar cliente, pero continuando con la venta: " + e.getMessage());
+                // Continuar con la venta aunque falle el registro del cliente
+            }
 
-        JOptionPane.showMessageDialog(this, "Venta registrada correctamente.");
+            // ✅ 2. CREAR DETALLES DE VENTA
+            List<DetalleVenta> detalles = new ArrayList<>();
+            ProductoDAO productoDAO = new ProductoDAO();
 
-        // ✅ Obtener observaciones directamente desde Menu2 sin reflexión
-        String observaciones = "";
-        if (owner != null) {
-            // Si el owner es Menu2, podemos intentar obtener las observaciones
-            // de forma más simple (asumiendo que Menu2 tiene un método para esto)
-            // Por ahora, dejamos vacío o implementamos una forma simple
-            observaciones = "Observaciones no disponibles"; // Temporal
+            for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
+                String nombreProducto = modeloBoleta.getValueAt(i, 0).toString();
+                int cantidad = Integer.parseInt(modeloBoleta.getValueAt(i, 1).toString());
+                double precioUnitario = Double.parseDouble(modeloBoleta.getValueAt(i, 2).toString());
+                double subtotalItem = Double.parseDouble(modeloBoleta.getValueAt(i, 3).toString());
+                String codigoProducto = modeloBoleta.getValueAt(i, 4).toString(); // Código oculto
+
+                // Buscar producto por código
+                Producto producto = productoDAO.buscarPorCodigo(codigoProducto);
+
+                if (producto != null) {
+                    DetalleVenta detalle = new DetalleVenta(producto, cantidad, precioUnitario);
+                    detalles.add(detalle);
+                } else {
+                    JOptionPane.showMessageDialog(this, "⚠️ Producto no encontrado: " + nombreProducto + " (Código: " + codigoProducto + ")");
+                    return;
+                }
+            }
+
+            // ✅ 3. CREAR OBJETO VENTA
+            Venta venta = new Venta();
+            venta.setCajeroId(cajeroId);
+            venta.setDniCliente(dniCliente);
+            venta.setMetodoPago(metodoPago);
+            venta.setDetalleVenta(detalles);
+            venta.setSubtotal(subtotal);
+            venta.setIgv(igv);
+            venta.setTotal(total);
+
+            // ✅ 4. GUARDAR EN BD USANDO VentaDAO
+            VentaDAO ventaDAO = new VentaDAO();
+            int idVentaGenerada = ventaDAO.registrarVenta(venta);
+
+            JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada + "\nCliente: " + nombres + " " + apellidos);
+
+            // ✅ 5. OBTENER OBSERVACIONES
+            String observaciones = this.observaciones;
+
+            // ✅ 6. TAMBIÉN GUARDAR EN ARCHIVO CSV (PARA COMPATIBILIDAD)
+            edu.UPAO.proyecto.VentasController.registrarVenta(venta);
+
+            // ✅ 7. PASAR A VISTA PREVIA
+            jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta, dniCliente, observaciones);
+            vista.setLocationRelativeTo(this);
+            vista.setVisible(true);
+
+            // ✅ 8. CERRAR VENTANA ACTUAL
+            this.dispose();
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "❌ Error de base de datos: " + e.getMessage());
+            e.printStackTrace();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "❌ Error en formato de números: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "❌ Error al registrar venta: " + e.getMessage());
+            e.printStackTrace();
         }
-
-        // ✅ Pasar DNI y observaciones a la vista previa
-        jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta, dniCliente, observaciones);
-        vista.setLocationRelativeTo(this);
-        vista.setVisible(true);
-
-        this.dispose();
     }//GEN-LAST:event_btn_pagadoActionPerformed
 
     private void rb_mixtoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_mixtoActionPerformed
@@ -444,36 +525,39 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
     private boolean validarCampos() {
         // Validar que hay productos en la boleta
-
         if (modeloBoleta.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
             return false;
         }
 
-        // ✅ CAMBIO: Validar DNI del cliente en lugar de ID cajero
-        String dni = tf_id.getText().trim();
+        // ✅ Validar DNI del cliente
+        String dni = tf_dni.getText().trim();
         if (dni.isEmpty()) {
             JOptionPane.showMessageDialog(this, "❌ Ingrese DNI del cliente");
-            tf_id.requestFocus();
+            tf_dni.requestFocus();
             return false;
         }
 
-        // ✅ OPCIONAL: Validar formato DNI (8 dígitos)
+        // ✅ Validar formato DNI (8 dígitos)
         if (!dni.matches("\\d{8}")) {
             JOptionPane.showMessageDialog(this, "❌ DNI debe tener 8 dígitos");
-            tf_id.requestFocus();
+            tf_dni.requestFocus();
             return false;
         }
 
-        if (modeloBoleta.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
+        // ✅ Validar nombres (opcional pero recomendado)
+        String nombres = tf_nombres.getText().trim();
+        if (nombres.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "❌ Ingrese los nombres del cliente");
+            tf_nombres.requestFocus();
             return false;
         }
 
-        // Validar ID del cajero
-        if (tf_id.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "❌ Ingrese DNI del cliente");
-            tf_id.requestFocus();
+        // ✅ Validar apellidos (opcional pero recomendado)
+        String apellidos = tf_apellidos.getText().trim();
+        if (apellidos.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "❌ Ingrese los apellidos del cliente");
+            tf_apellidos.requestFocus();
             return false;
         }
 
@@ -541,6 +625,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     private javax.swing.JComboBox<String> cb_id;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
@@ -553,7 +638,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     private javax.swing.JRadioButton rb_efectivo;
     private javax.swing.JRadioButton rb_factura;
     private javax.swing.JRadioButton rb_mixto;
-    private javax.swing.JTextField tf_id;
-    private javax.swing.JTextField tf_nombre;
+    private javax.swing.JTextField tf_apellidos;
+    private javax.swing.JTextField tf_dni;
+    private javax.swing.JTextField tf_nombres;
     // End of variables declaration//GEN-END:variables
 }

@@ -12,6 +12,10 @@ public class Venta {
     private int cajeroId;
     private String metodoPago;
     private List<DetalleVenta> detalleVenta;
+     private String dniCliente;
+    private double subtotal;
+    private double igv;
+    private double total;
 
     // Constructor vacío
     public Venta() {
@@ -186,5 +190,32 @@ public class Venta {
         sb.append("=========================================\n");
 
         return sb.toString();
+    }
+    
+    public String getDniCliente() {
+        return dniCliente;
+    }
+
+    public void setDniCliente(String dniCliente) {
+        this.dniCliente = dniCliente;
+    }
+
+
+
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public double getIgv() {
+        return igv;
+    }
+
+    public void setIgv(double igv) {
+        this.igv = igv;
+    }
+
+
+    public void setTotal(double total) {
+        this.total = total;
     }
 }

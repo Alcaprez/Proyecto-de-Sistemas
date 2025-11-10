@@ -3,7 +3,6 @@ package edu.UPAO.proyecto.Modelo;
 import java.util.Date;
 
 public class Producto {
-
     private int id;
     private String nombre;
     private int stock;
@@ -13,10 +12,12 @@ public class Producto {
     private String estado;
     private Date fechaCaducidad;
     private String categoria;
-    private String codigo; // Usaremos el ID como código temporal
+    private String codigo;
+    private int vendidos; // ✅ NUEVO CAMPO
 
     // Constructores
     public Producto() {
+        this.vendidos = 0;
     }
 
     public Producto(int id, String nombre, int stock, double precioVenta) {
@@ -25,16 +26,17 @@ public class Producto {
         this.nombre = nombre;
         this.stock = stock;
         this.precioVenta = precioVenta;
+        this.vendidos = 0;
     }
 
-// Getters y Setters
+    // Getters y Setters
     public int getId() {
         return id;
     }
 
     public void setId(int id) {
         this.id = id;
-        this.codigo = String.valueOf(id); // Auto-generar código desde ID
+        this.codigo = String.valueOf(id);
     }
 
     public String getNombre() {
@@ -112,8 +114,17 @@ public class Producto {
         this.codigo = codigo;
     }
 
+    // ✅ NUEVO GETTER Y SETTER PARA VENDIDOS
+    public int getVendidos() {
+        return vendidos;
+    }
+
+    public void setVendidos(int vendidos) {
+        this.vendidos = vendidos;
+    }
+
     @Override
     public String toString() {
-        return nombre + " (ID: " + id + ") - S/" + precioVenta;
+        return nombre + " (ID: " + id + ") - S/" + precioVenta + " - Vendidos: " + vendidos;
     }
 }
