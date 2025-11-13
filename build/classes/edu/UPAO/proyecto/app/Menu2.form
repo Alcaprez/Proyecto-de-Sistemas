@@ -458,7 +458,7 @@
                                       </Group>
                                       <Group type="103" groupAlignment="0" max="-2" attributes="0">
                                           <Component id="resultadoTotal" max="32767" attributes="0"/>
-                                          <Component id="jButtonSiguiente" pref="112" max="32767" attributes="0"/>
+                                          <Component id="btn_Siguiente" pref="112" max="32767" attributes="0"/>
                                       </Group>
                                   </Group>
                               </Group>
@@ -509,7 +509,7 @@
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="3" attributes="0">
-                          <Component id="jButtonSiguiente" alignment="3" min="-2" pref="35" max="-2" attributes="0"/>
+                          <Component id="btn_Siguiente" alignment="3" min="-2" pref="35" max="-2" attributes="0"/>
                           <Component id="btn_cancelar" alignment="3" min="-2" pref="35" max="-2" attributes="0"/>
                       </Group>
                       <EmptySpace min="-2" pref="12" max="-2" attributes="0"/>
@@ -552,7 +552,7 @@
                 <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_cancelarActionPerformed"/>
               </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="jButtonSiguiente">
+            <Component class="javax.swing.JButton" name="btn_Siguiente">
               <Properties>
                 <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
                   <Color blue="0" green="99" red="0" type="rgb"/>
@@ -566,7 +566,7 @@
                 <Property name="text" type="java.lang.String" value="SIGUIENTE"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jButtonSiguienteActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_SiguienteActionPerformed"/>
               </Events>
             </Component>
             <Container class="javax.swing.JScrollPane" name="jScrollPane1">

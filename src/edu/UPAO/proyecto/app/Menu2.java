@@ -25,13 +25,16 @@ import edu.UPAO.proyecto.app.panel_Rproductos;
 public class Menu2 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Menu2.class.getName());
+    private String idEmpleado;
 
     /**
      * Creates new form Menu2
      */
-    public Menu2() {
+    public Menu2(String idEmpleado) {
         initComponents();
         btn_validar.addActionListener(e -> onValidarCupon());
+        this.idEmpleado = idEmpleado;
+        System.out.println("✅ Menu2 - Empleado en sesión: " + this.idEmpleado);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -45,6 +48,8 @@ public class Menu2 extends javax.swing.JFrame {
 
         SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1);
         sp_item.setModel(spinnerModel);
+
+        btn_validar.addActionListener(e -> onValidarCupon());
 
         spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         sp_item.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
@@ -165,6 +170,10 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
         btn_inicio.doClick();
+    }
+
+    public String getIdEmpleado() {
+        return this.idEmpleado;
     }
 
     public void cargarProductosEnTabla() {
@@ -316,7 +325,7 @@ public class Menu2 extends javax.swing.JFrame {
         panel = new javax.swing.JPanel();
         btn_SKU = new javax.swing.JButton();
         btn_cancelar = new javax.swing.JButton();
-        jButtonSiguiente = new javax.swing.JButton();
+        btn_Siguiente = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         txtObservaciones = new javax.swing.JTextArea();
         txtCupon = new javax.swing.JTextField();
@@ -564,13 +573,13 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
-        jButtonSiguiente.setBackground(new java.awt.Color(0, 153, 0));
-        jButtonSiguiente.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
-        jButtonSiguiente.setForeground(new java.awt.Color(255, 255, 255));
-        jButtonSiguiente.setText("SIGUIENTE");
-        jButtonSiguiente.addActionListener(new java.awt.event.ActionListener() {
+        btn_Siguiente.setBackground(new java.awt.Color(0, 153, 0));
+        btn_Siguiente.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_Siguiente.setForeground(new java.awt.Color(255, 255, 255));
+        btn_Siguiente.setText("SIGUIENTE");
+        btn_Siguiente.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButtonSiguienteActionPerformed(evt);
+                btn_SiguienteActionPerformed(evt);
             }
         });
 
@@ -715,7 +724,7 @@ public class Menu2 extends javax.swing.JFrame {
                                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)))
                                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(resultadoTotal, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jButtonSiguiente, javax.swing.GroupLayout.DEFAULT_SIZE, 112, Short.MAX_VALUE))))
+                                    .addComponent(btn_Siguiente, javax.swing.GroupLayout.DEFAULT_SIZE, 112, Short.MAX_VALUE))))
                         .addContainerGap())
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelLayout.createSequentialGroup()
                         .addGap(0, 0, Short.MAX_VALUE)
@@ -753,7 +762,7 @@ public class Menu2 extends javax.swing.JFrame {
                     .addComponent(resultadoTotal, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButtonSiguiente, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_Siguiente, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(12, 12, 12))
         );
@@ -1115,10 +1124,10 @@ public class Menu2 extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtCuponActionPerformed
 
-    private void jButtonSiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSiguienteActionPerformed
+    private void btn_SiguienteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SiguienteActionPerformed
         DefaultTableModel carrito = (DefaultTableModel) miniTabla.getModel();
 
-        // Crear un clon del carrito (tu código existente)
+        // Crear un clon del carrito
         DefaultTableModel carritoClonado = new DefaultTableModel(
                 new Object[]{"Producto", "Cantidad", "P/U", "Subtotal", "Código"}, 0);
 
@@ -1138,15 +1147,15 @@ public class Menu2 extends javax.swing.JFrame {
         // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
         String observaciones = txtObservaciones.getText().trim();
 
-        // Abrir la ventana de boleta/factura
-        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total);
+        // ✅ PASAR id_empleado al crear jFrame_GenerarBoleta
+        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total, this.idEmpleado);
 
-        // ✅ PASAR OBSERVACIONES DE FORMA SIMPLE (agrega un método setter en jFrame_GenerarBoleta)
+        // ✅ PASAR OBSERVACIONES
         boletaFrame.setObservaciones(observaciones);
 
         boletaFrame.setLocationRelativeTo(this);
         boletaFrame.setVisible(true);
-    }//GEN-LAST:event_jButtonSiguienteActionPerformed
+    }//GEN-LAST:event_btn_SiguienteActionPerformed
 
     private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
         DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
@@ -1339,6 +1348,7 @@ public class Menu2 extends javax.swing.JFrame {
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btn_SKU;
+    private javax.swing.JButton btn_Siguiente;
     private javax.swing.JButton btn_actualizarItem;
     private javax.swing.JButton btn_agregar;
     private javax.swing.JButton btn_buscar;
@@ -1351,7 +1361,6 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton11;
     private javax.swing.JButton jButton12;
-    private javax.swing.JButton jButtonSiguiente;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

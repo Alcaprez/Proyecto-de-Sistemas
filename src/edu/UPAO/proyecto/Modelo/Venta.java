@@ -9,10 +9,10 @@ public class Venta {
 
     private int idVenta;
     private LocalDateTime fecha;
-    private int cajeroId;
+    private String idEmpleado;           // ✅ CAMBIADO: de int cajeroId a String idEmpleado
     private String metodoPago;
     private List<DetalleVenta> detalleVenta;
-     private String dniCliente;
+    private String dniCliente;
     private double subtotal;
     private double igv;
     private double total;
@@ -23,10 +23,10 @@ public class Venta {
         this.fecha = LocalDateTime.now();
     }
 
-    // Constructor completo
-    public Venta(int idVenta, int cajeroId, String metodoPago, List<DetalleVenta> detalleVenta) {
+    // ✅ CONSTRUCTOR COMPLETO CORREGIDO - ahora recibe idEmpleado
+    public Venta(int idVenta, String idEmpleado, String metodoPago, List<DetalleVenta> detalleVenta) {
         this.idVenta = idVenta;
-        this.cajeroId = cajeroId;
+        this.idEmpleado = idEmpleado;    // ✅ INICIALIZAR idEmpleado
         this.metodoPago = metodoPago;
         this.detalleVenta = detalleVenta != null ? detalleVenta : new ArrayList<>();
         this.fecha = LocalDateTime.now();
@@ -49,14 +49,8 @@ public class Venta {
         this.fecha = fecha;
     }
 
-    public int getCajeroId() {
-        return cajeroId;
-    }
-
-    public void setCajeroId(int cajeroId) {
-        this.cajeroId = cajeroId;
-    }
-
+    // ✅ ELIMINADO: getCajeroId() y setCajeroId() - ya no existen
+    
     public String getMetodoPago() {
         return metodoPago;
     }
@@ -94,12 +88,12 @@ public class Venta {
         this.detalleVenta.add(detalle);
     }
 
-    // ✅ Convertir la venta completa a línea de archivo
+    // ✅ CORREGIDO: toFileLine() - reemplazado cajeroId por idEmpleado
     public String toFileLine() {
         StringBuilder sb = new StringBuilder();
         sb.append(getFechaFormateada()).append(";")
                 .append(idVenta).append(";")
-                .append(cajeroId).append(";")
+                .append(idEmpleado).append(";")  // ✅ CAMBIADO: cajeroId → idEmpleado
                 .append(metodoPago).append(";")
                 .append(String.format("%.2f", calcularTotal())).append(";");
 
@@ -113,14 +107,14 @@ public class Venta {
         return sb.toString();
     }
 
-    // ✅ Representación amigable de la venta
+    // ✅ CORREGIDO: toString() - reemplazado cajeroId por idEmpleado
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("=== BOLETA DE VENTA ===\n")
                 .append("Venta ID: ").append(idVenta).append("\n")
                 .append("Fecha: ").append(getFechaFormateada()).append("\n")
-                .append("Cajero ID: ").append(cajeroId).append("\n")
+                .append("Empleado ID: ").append(idEmpleado).append("\n")  // ✅ CAMBIADO: cajeroId → idEmpleado
                 .append("Método de pago: ").append(metodoPago).append("\n\n")
                 .append("Detalle:\n");
 
@@ -151,19 +145,18 @@ public class Venta {
         return getSubtotal() + getIGV();
     }
     
+    // ✅ CORREGIDO: generarComprobante() - reemplazado cajeroId por idEmpleado
     public String generarComprobante() {
         StringBuilder sb = new StringBuilder();
         sb.append("=========================================\n");
         sb.append("         COMPROBANTE DE PAGO\n");
         sb.append("=========================================\n");
         sb.append("N° Venta: ").append(idVenta).append("\n");
-        sb.append("Cajero ID: ").append(cajeroId).append("\n");
-        sb.append("Fecha: ").append(getFechaFormateada()).append("\n");
+        sb.append("Empleado ID: ").append(idEmpleado).append("\n")  // ✅ CAMBIADO: cajeroId → idEmpleado
+        .append("Fecha: ").append(getFechaFormateada()).append("\n");
         sb.append("Método Pago: ").append(metodoPago).append("\n");
         sb.append("-----------------------------------------\n");
 
-        
-        
         // Detalles de productos
         for (DetalleVenta detalle : detalleVenta) {
             String nombreProducto = (detalle.getProducto() != null) ? 
@@ -200,8 +193,6 @@ public class Venta {
         this.dniCliente = dniCliente;
     }
 
-
-
     public void setSubtotal(double subtotal) {
         this.subtotal = subtotal;
     }
@@ -214,8 +205,15 @@ public class Venta {
         this.igv = igv;
     }
 
-
     public void setTotal(double total) {
         this.total = total;
+    }
+    
+    public String getIdEmpleado() {
+        return idEmpleado;
+    }
+
+    public void setIdEmpleado(String idEmpleado) {
+        this.idEmpleado = idEmpleado;
     }
 }

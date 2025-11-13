@@ -11,3 +11,4 @@ Cajero alberth|ENTRADA|2025-11-07|18:56:47
 Cajero alberth|SALIDA|2025-11-07|18:59:03
 Jhosep Narvaez|ENTRADA|2025-11-09|15:15:54
 Jhosep Narvaez|SALIDA|2025-11-09|15:54:49
+Jhosep Narvaez|ENTRADA|2025-11-12|23:34:14

@@ -32,24 +32,24 @@ public class VentaDAO {
 
         try {
             conn = this.conexion;
-            conn.setAutoCommit(false); // Iniciar transacción
+            conn.setAutoCommit(false);
 
-            // 1. INSERTAR EN TABLA VENTA - ESTRUCTURA ACTUALIZADA
+            // ✅ OBTENER ID_CLIENTE REAL (no usar DNI directamente)
+            ClienteDAO clienteDAO = new ClienteDAO();
+            String idClienteReal = clienteDAO.obtenerIdClienteParaVenta(venta.getDniCliente());
+            clienteDAO.cerrarConexion();
+
+            // 1. INSERTAR EN TABLA VENTA
             String sqlVenta = "INSERT INTO venta (fecha_hora, total, id_cliente, id_empleado, id_metodo_pago, id_caja) VALUES (?, ?, ?, ?, ?, ?)";
             stmtVenta = conn.prepareStatement(sqlVenta, Statement.RETURN_GENERATED_KEYS);
 
-            // Usar TIMESTAMP para fecha_hora
             stmtVenta.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
             stmtVenta.setDouble(2, venta.getTotal());
-
-            // Convertir DNI a id_cliente (CHAR(8))
-            String idCliente = venta.getDniCliente().length() <= 8
-                    ? venta.getDniCliente() : venta.getDniCliente().substring(0, 8);
-            stmtVenta.setString(3, idCliente);
-
-            stmtVenta.setString(4, "1"); // id_empleado temporal (CHAR(8))
-            stmtVenta.setInt(5, obtenerIdMetodoPago(venta.getMetodoPago()));
-            stmtVenta.setInt(6, 1); // id_caja temporal
+            stmtVenta.setString(3, idClienteReal);
+            stmtVenta.setString(4, venta.getIdEmpleado()); // ✅ SOLO UNA VEZ - índice 4
+            stmtVenta.setInt(5, obtenerIdMetodoPago(venta.getMetodoPago())); // ✅ índice 5  
+            int idCaja = obtenerIdCajaActiva();
+            stmtVenta.setInt(6, idCaja);
 
             int filasAfectadas = stmtVenta.executeUpdate();
 
@@ -65,11 +65,10 @@ public class VentaDAO {
             }
 
             // 3. INSERTAR DETALLES DE VENTA
-            String sqlDetalle = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal, estado) VALUES (?, ?, ?, ?, ?, 'ACTIVO')";
+            String sqlDetalle = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
             stmtDetalle = conn.prepareStatement(sqlDetalle);
 
             for (DetalleVenta detalle : venta.getDetalleVenta()) {
-                // Obtener ID del producto usando el código
                 int idProducto = productoDAO.obtenerIdPorCodigo(detalle.getProducto().getCodigo());
 
                 if (idProducto == -1) {
@@ -89,16 +88,15 @@ public class VentaDAO {
             // 4. ACTUALIZAR STOCK DE PRODUCTOS
             actualizarStockProductos(venta.getDetalleVenta(), conn);
 
-            conn.commit(); // ✅ CONFIRMAR TRANSACCIÓN
+            conn.commit();
             return idVentaGenerada;
 
         } catch (SQLException e) {
             if (conn != null) {
-                conn.rollback(); // ❌ REVERTIR EN ERROR
+                conn.rollback();
             }
             throw e;
         } finally {
-            // Cerrar recursos
             if (generatedKeys != null) {
                 generatedKeys.close();
             }
@@ -109,7 +107,7 @@ public class VentaDAO {
                 stmtVenta.close();
             }
             if (conn != null) {
-                conn.setAutoCommit(true); // Restaurar auto-commit
+                conn.setAutoCommit(true);
             }
         }
     }
@@ -145,29 +143,89 @@ public class VentaDAO {
         return -1;
     }
 
-    // ✅ MÉTODO PARA OBTENER ID DE MÉTODO DE PAGO
+    //  MÉTODO PARA OBTENER ID DE MÉTODO DE PAGO
     private int obtenerIdMetodoPago(String metodoPago) throws SQLException {
-        String sql = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre LIKE ?";
+        System.out.println("🔍 Buscando ID para método de pago: " + metodoPago);
+
+        // Buscar por nombre exacto primero
+        String sql = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre = ?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setString(1, "%" + metodoPago + "%");
+            stmt.setString(1, metodoPago);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getInt("id_metodo_pago");
+                int id = rs.getInt("id_metodo_pago");
+                System.out.println("✅ Método encontrado en BD: " + metodoPago + " -> ID: " + id);
+                return id;
             } else {
-                // Si no encuentra, usar efectivo por defecto (ID 1)
-                return 1;
+                // Si no encuentra, buscar por coincidencia parcial
+                System.err.println("⚠️ No se encontró método pago exacto: " + metodoPago);
+
+                String sqlLike = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre LIKE ? LIMIT 1";
+                try (PreparedStatement stmtLike = conexion.prepareStatement(sqlLike)) {
+                    stmtLike.setString(1, "%" + metodoPago + "%");
+                    ResultSet rsLike = stmtLike.executeQuery();
+
+                    if (rsLike.next()) {
+                        int id = rsLike.getInt("id_metodo_pago");
+                        System.out.println("✅ Encontrado por LIKE: " + metodoPago + " -> ID: " + id);
+                        return id;
+                    } else {
+                        // Por defecto usar Efectivo (ID 1)
+                        System.err.println("❌ No se encontró método pago. Usando Efectivo por defecto.");
+                        return 1;
+                    }
+                }
             }
         } catch (SQLException e) {
             System.err.println("❌ Error al obtener ID método pago: " + e.getMessage());
-            e.printStackTrace();
             return 1; // Por defecto efectivo
         }
     }
 
-    // ✅ MÉTODOS COMPATIBILIDAD
+    private int obtenerIdCajaActiva() throws SQLException {
+        String sql = "SELECT id_caja FROM caja WHERE estado = 'ABIERTA' LIMIT 1";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                int idCaja = rs.getInt("id_caja");
+                System.out.println("✅ Caja activa encontrada: " + idCaja);
+                return idCaja;
+            } else {
+                // Si no hay caja activa, crear una automáticamente
+                System.out.println("⚠️ No hay caja activa. Creando una nueva...");
+                return crearCajaAutomaticamente();
+            }
+        }
+    }
+
+    private int crearCajaAutomaticamente() throws SQLException {
+        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal) VALUES (NOW(), 0.00, 0.00, 'ABIERTA', 1)";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            int affectedRows = stmt.executeUpdate();
+
+            if (affectedRows == 0) {
+                throw new SQLException("No se pudo crear la caja automáticamente");
+            }
+
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    int idCaja = generatedKeys.getInt(1);
+                    System.out.println("✅ Caja creada automáticamente con ID: " + idCaja);
+                    return idCaja;
+                } else {
+                    throw new SQLException("No se pudo obtener el ID de la caja creada");
+                }
+            }
+        }
+    }
+
     public List<Venta> listar() {
         return new ArrayList<>();
     }
+
 }

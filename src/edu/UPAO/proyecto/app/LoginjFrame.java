@@ -254,6 +254,7 @@ public class LoginjFrame extends javax.swing.JFrame {
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
+        String idEmpleado = usuario.getUsuario();
 
         String mensajeBienvenida = "¡Bienvenido " + nombreUsuario + "!";
 
@@ -275,9 +276,8 @@ public class LoginjFrame extends javax.swing.JFrame {
                     break;
 
                 case "CAJERO":
-                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Abrir menú principal de cajero
-                    Menu2 menuPrincipal = new Menu2();
+                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);                    // Abrir menú principal de cajero
+                    Menu2 menuPrincipal = new Menu2(idEmpleado);
                     menuPrincipal.setVisible(true);
 
                     // Abrir ventana de asistencia para cajero
@@ -303,86 +303,86 @@ public class LoginjFrame extends javax.swing.JFrame {
         }
     }
 
-   private void realizarLogin() {
-    String usuario = tf_identificacion.getText().trim();
-    String contrasena = new String(tf_contraseña.getPassword());
-    String sucursalSeleccionada = (String) cb_sucursales.getSelectedItem();
+    private void realizarLogin() {
+        String usuario = tf_identificacion.getText().trim();
+        String contrasena = new String(tf_contraseña.getPassword());
+        String sucursalSeleccionada = (String) cb_sucursales.getSelectedItem();
 
-    System.out.println("=== DEBUG LOGIN ===");
-    System.out.println("Usuario ingresado: " + usuario);
-    System.out.println("Contraseña ingresada: " + contrasena);
-    System.out.println("Sucursal seleccionada: " + sucursalSeleccionada);
+        System.out.println("=== DEBUG LOGIN ===");
+        System.out.println("Usuario ingresado: " + usuario);
+        System.out.println("Contraseña ingresada: " + contrasena);
+        System.out.println("Sucursal seleccionada: " + sucursalSeleccionada);
 
-    // Validar campos vacíos
-    if (usuario.isEmpty() || contrasena.isEmpty()) {
-        JOptionPane.showMessageDialog(this,
-                "Por favor, complete todos los campos",
-                "Campos Incompletos",
-                JOptionPane.WARNING_MESSAGE);
-        return;
-    }
-
-    // Validar que se haya seleccionado una sucursal válida
-    if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
-        JOptionPane.showMessageDialog(this,
-                "Por favor, seleccione una sucursal válida",
-                "Sucursal Requerida",
-                JOptionPane.WARNING_MESSAGE);
-        return;
-    }
-
-    // Validar formato (8 dígitos)
-    if (!usuario.matches("\\d{8}")) {
-        JOptionPane.showMessageDialog(this,
-                "El usuario debe ser un número de 8 dígitos",
-                "Error de Formato", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
-
-    // Validar que sea usuario interno (10, 11, 12)
-    int id = Integer.parseInt(usuario);
-    int primerosDosDigitos = id / 1000000;
-
-    if (primerosDosDigitos < 10 || primerosDosDigitos > 12) {
-        JOptionPane.showMessageDialog(this,
-                "❌ Acceso denegado.\nSolo personal autorizado puede ingresar al sistema.\n\n"
-                + "Tipos de usuario permitidos:\n"
-                + "• 10xxxxxx - Gerentes\n"
-                + "• 11xxxxxx - Administradores\n"
-                + "• 12xxxxxx - Cajeros",
-                "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
-        return;
-    }
-
-    // Intentar autenticación
-    UsuarioDAO usuarioDAO = new UsuarioDAO();
-    
-    // Verificar conexión primero (opcional, para debug)
-    usuarioDAO.verificarDatosUsuario(usuario);
-
-    Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
-
-    if (usuarioAutenticado != null) {
-        // Verificar que el usuario pertenezca a la sucursal seleccionada
-        if (!usuarioAutenticado.getTienda().equals(sucursalSeleccionada)) {
+        // Validar campos vacíos
+        if (usuario.isEmpty() || contrasena.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "El usuario no pertenece a la sucursal seleccionada.\n"
-                    + "Usuario: " + usuarioAutenticado.getTienda() + "\n"
-                    + "Seleccionada: " + sucursalSeleccionada,
-                    "Error de Sucursal", JOptionPane.ERROR_MESSAGE);
+                    "Por favor, complete todos los campos",
+                    "Campos Incompletos",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
-        System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
-        abrirPanelSegunRol(usuarioAutenticado);
-    } else {
-        JOptionPane.showMessageDialog(this,
-                "Usuario o contraseña incorrectos",
-                "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
-        tf_contraseña.setText("");
-        tf_identificacion.requestFocus();
+
+        // Validar que se haya seleccionado una sucursal válida
+        if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
+            JOptionPane.showMessageDialog(this,
+                    "Por favor, seleccione una sucursal válida",
+                    "Sucursal Requerida",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Validar formato (8 dígitos)
+        if (!usuario.matches("\\d{8}")) {
+            JOptionPane.showMessageDialog(this,
+                    "El usuario debe ser un número de 8 dígitos",
+                    "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Validar que sea usuario interno (10, 11, 12)
+        int id = Integer.parseInt(usuario);
+        int primerosDosDigitos = id / 1000000;
+
+        if (primerosDosDigitos < 10 || primerosDosDigitos > 12) {
+            JOptionPane.showMessageDialog(this,
+                    "❌ Acceso denegado.\nSolo personal autorizado puede ingresar al sistema.\n\n"
+                    + "Tipos de usuario permitidos:\n"
+                    + "• 10xxxxxx - Gerentes\n"
+                    + "• 11xxxxxx - Administradores\n"
+                    + "• 12xxxxxx - Cajeros",
+                    "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Intentar autenticación
+        UsuarioDAO usuarioDAO = new UsuarioDAO();
+
+        // Verificar conexión primero (opcional, para debug)
+        usuarioDAO.verificarDatosUsuario(usuario);
+
+        Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
+
+        if (usuarioAutenticado != null) {
+            // Verificar que el usuario pertenezca a la sucursal seleccionada
+            if (!usuarioAutenticado.getTienda().equals(sucursalSeleccionada)) {
+                JOptionPane.showMessageDialog(this,
+                        "El usuario no pertenece a la sucursal seleccionada.\n"
+                        + "Usuario: " + usuarioAutenticado.getTienda() + "\n"
+                        + "Seleccionada: " + sucursalSeleccionada,
+                        "Error de Sucursal", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
+            abrirPanelSegunRol(usuarioAutenticado);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "Usuario o contraseña incorrectos",
+                    "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
+            tf_contraseña.setText("");
+            tf_identificacion.requestFocus();
+        }
     }
-}
 
     /**
      * @param args the command line arguments

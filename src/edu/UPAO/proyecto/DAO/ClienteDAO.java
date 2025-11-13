@@ -15,7 +15,7 @@ public class ClienteDAO {
         }
     }
     
-    // ✅ MÉTODO ACTUALIZADO - recibe nombres y apellidos
+    // ✅ MÉTODO CORREGIDO - Sin id_persona
     public void registrarClienteSiNoExiste(String dni, String nombres, String apellidos) {
         // Primero verificar si el cliente ya existe
         if (existeCliente(dni)) {
@@ -27,11 +27,11 @@ public class ClienteDAO {
         try {
             conexion.setAutoCommit(false);
             
-            // 1. Insertar en tabla persona
-            int idPersona = insertarPersona(dni, nombres, apellidos);
+            // 1. Insertar en tabla persona (sin id_persona)
+            insertarPersona(dni, nombres, apellidos);
             
             // 2. Insertar en tabla cliente
-            insertarCliente(dni, idPersona);
+            insertarCliente(dni);
             
             conexion.commit();
             System.out.println("✅ Cliente registrado: " + nombres + " " + apellidos + " (DNI: " + dni + ")");
@@ -53,11 +53,10 @@ public class ClienteDAO {
         }
     }
     
-    // ✅ VERIFICAR SI EL CLIENTE EXISTE
+    // ✅ VERIFICAR SI EL CLIENTE EXISTE - CORREGIDO (sin id_persona)
     private boolean existeCliente(String dni) {
-        String sql = "SELECT COUNT(*) as count FROM persona p " +
-                    "INNER JOIN cliente c ON p.id_persona = c.id_persona " +
-                    "WHERE p.dni = ?";
+        // Consulta simplificada - solo verificar por DNI
+        String sql = "SELECT COUNT(*) as count FROM cliente WHERE dni = ?";
         
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, dni);
@@ -73,11 +72,12 @@ public class ClienteDAO {
         return false;
     }
     
-    // ✅ INSERTAR EN TABLA PERSONA - CON NOMBRES Y APELLIDOS
-    private int insertarPersona(String dni, String nombres, String apellidos) throws SQLException {
+    // ✅ INSERTAR EN TABLA PERSONA - CORREGIDO (sin GeneratedKeys)
+    private void insertarPersona(String dni, String nombres, String apellidos) throws SQLException {
+        // Insertar sin esperar ID generado
         String sql = "INSERT INTO persona (dni, nombres, apellidos, estado) VALUES (?, ?, ?, 'ACTIVO')";
         
-        try (PreparedStatement stmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, dni);
             stmt.setString(2, nombres);
             stmt.setString(3, apellidos);
@@ -86,26 +86,20 @@ public class ClienteDAO {
             if (filasAfectadas == 0) {
                 throw new SQLException("Error al insertar persona, ninguna fila afectada.");
             }
-            
-            ResultSet generatedKeys = stmt.getGeneratedKeys();
-            if (generatedKeys.next()) {
-                return generatedKeys.getInt(1);
-            } else {
-                throw new SQLException("Error al obtener ID de persona generado.");
-            }
+            // ✅ ELIMINADO: No intentamos obtener GeneratedKeys
         }
     }
     
-    // ✅ INSERTAR EN TABLA CLIENTE
-    private void insertarCliente(String dni, int idPersona) throws SQLException {
-        // Usar el dni como id_cliente (formato CHAR(8))
-        String idCliente = dni.length() <= 8 ? dni : dni.substring(0, 8);
+    // ✅ INSERTAR EN TABLA CLIENTE - CORREGIDO
+    private void insertarCliente(String dni) throws SQLException {
+        // Generar id_cliente a partir del DNI
+        String idCliente = generarIdCliente(dni);
         
-        String sql = "INSERT INTO cliente (id_cliente_CHAR, id_persona) VALUES (?, ?)";
+        String sql = "INSERT INTO cliente (id_cliente, dni) VALUES (?, ?)";
         
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, idCliente);
-            stmt.setInt(2, idPersona);
+            stmt.setString(2, dni);
             
             int filasAfectadas = stmt.executeUpdate();
             if (filasAfectadas == 0) {
@@ -114,10 +108,33 @@ public class ClienteDAO {
         }
     }
     
-    // ✅ OBTENER ID_CLIENTE PARA LA VENTA
+    // ✅ GENERAR ID_CLIENTE (CHAR(8))
+    private String generarIdCliente(String dni) {
+        // Si el DNI tiene 8 caracteres, usarlo directamente
+        if (dni.length() == 8) {
+            return dni;
+        }
+        // Si no, generar formato CLI + números
+        return "CLI" + String.format("%05d", (int)(Math.random() * 10000));
+    }
+    
+    // ✅ OBTENER ID_CLIENTE PARA LA VENTA - CORREGIDO
     public String obtenerIdClienteParaVenta(String dni) {
-        // Para la tabla venta, usar el DNI como id_cliente (CHAR(8))
-        return dni.length() <= 8 ? dni : dni.substring(0, 8);
+        String sql = "SELECT id_cliente FROM cliente WHERE dni = ?";
+        
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, dni);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("id_cliente");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo ID cliente: " + e.getMessage());
+        }
+        
+        // Si no encuentra, usar cliente genérico
+        return "00000000";
     }
     
     public void cerrarConexion() {
