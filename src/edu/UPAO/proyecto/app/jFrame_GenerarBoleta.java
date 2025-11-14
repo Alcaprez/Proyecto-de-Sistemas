@@ -22,6 +22,7 @@ import edu.UPAO.proyecto.DAO.ClienteDAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import javax.swing.Timer;
 
 public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
@@ -35,6 +36,8 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado, String subtotal, String descuento, String total) {
 
         initComponents();
+        configurarAutocompletarCliente();
+
         bg_boletaOfactura = new ButtonGroup();
         bg_boletaOfactura.add(rb_boleta);
         bg_boletaOfactura.add(rb_factura);
@@ -70,6 +73,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     public jFrame_GenerarBoleta() {
 
         initComponents();
+        configurarAutocompletarCliente();
         bg_boletaOfactura = new ButtonGroup();
         bg_boletaOfactura.add(rb_boleta);
         bg_boletaOfactura.add(rb_factura);
@@ -89,6 +93,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado, String subtotal, String descuento, String total, String idEmpleado) {
 
         initComponents();
+        configurarAutocompletarCliente();
         bg_boletaOfactura = new ButtonGroup();
         bg_boletaOfactura.add(rb_boleta);
         bg_boletaOfactura.add(rb_factura);
@@ -397,14 +402,14 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             String nombres = tf_nombres.getText().trim();
             String apellidos = tf_apellidos.getText().trim();
 
-            // ✅ OBTENER MÉTODO DE PAGO DEL COMBOBOX (NO DE RADIOBUTTONS)
+            // OBTENER MÉTODO DE PAGO DEL COMBOBOX (NO DE RADIOBUTTONS)
             String metodoPago = (String) cb_metodoPago.getSelectedItem();
             if (metodoPago == null || metodoPago.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "❌ Seleccione un método de pago");
                 return;
             }
 
-            // ✅ OBTENER EMPLEADO DE LA SESIÓN
+            // OBTENER EMPLEADO DE LA SESIÓN
             String idEmpleado = obtenerIdEmpleadoDeSesion();
 
             // DEBUG
@@ -414,7 +419,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             System.out.println("  - DNI Cliente: " + dniCliente);
             System.out.println("  - Total: " + total);
 
-            // ✅ 1. REGISTRAR CLIENTE SI NO EXISTE
+            // 1. REGISTRAR CLIENTE SI NO EXISTE
             try {
                 ClienteDAO clienteDAO = new ClienteDAO();
 
@@ -431,7 +436,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 System.err.println("⚠️ Error al registrar cliente: " + e.getMessage());
             }
 
-            // ✅ 2. CREAR DETALLES DE VENTA
+            // 2. CREAR DETALLES DE VENTA
             List<DetalleVenta> detalles = new ArrayList<>();
             ProductoDAO productoDAO = new ProductoDAO();
 
@@ -453,23 +458,33 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 }
             }
 
-            // ✅ 3. CREAR OBJETO VENTA CON EMPLEADO REAL
+            // 3. CREAR OBJETO VENTA CON EMPLEADO REAL
             Venta venta = new Venta();
             venta.setIdEmpleado(idEmpleado);
             venta.setDniCliente(dniCliente);
-            venta.setMetodoPago(metodoPago); // ✅ Usar método del ComboBox
+            venta.setMetodoPago(metodoPago);
             venta.setDetalleVenta(detalles);
             venta.setSubtotal(subtotal);
             venta.setIgv(igv);
             venta.setTotal(total);
 
-            // ✅ 4. GUARDAR EN BD USANDO VentaDAO
+            // ✅ OBTENER Y ESTABLECER SUCURSAL (NUEVO)
+            try {
+                int idSucursal = obtenerSucursalEmpleado(idEmpleado);
+                venta.setIdSucursal(idSucursal);
+                System.out.println("Sucursal para venta: " + idSucursal);
+            } catch (Exception e) {
+                System.err.println("Error obteniendo sucursal: " + e.getMessage());
+                venta.setIdSucursal(1); // Sucursal por defecto
+            }
+
+            // 4. GUARDAR EN BD USANDO VentaDAO
             VentaDAO ventaDAO = new VentaDAO();
             int idVentaGenerada = ventaDAO.registrarVenta(venta);
 
             JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada);
 
-            // ✅ 5. PASAR A VISTA PREVIA
+            // 5. PASAR A VISTA PREVIA
             String observaciones = this.observaciones;
             jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta, dniCliente, observaciones);
             vista.setLocationRelativeTo(this);
@@ -681,6 +696,97 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
             System.out.println("🔍 Método seleccionado: " + metodoSeleccionado + " - Máquina habilitada: " + esDigital);
         }
+    }
+
+    private void autocompletarDatosCliente() {
+        String dni = tf_dni.getText().trim();
+
+        System.out.println("🔍 Buscando cliente con DNI: " + dni);
+
+        if (dni.isEmpty() || !dni.matches("\\d{8}")) {
+            System.out.println("❌ DNI inválido para búsqueda");
+            return;
+        }
+
+        try {
+            ClienteDAO clienteDAO = new ClienteDAO();
+            String[] datosCliente = clienteDAO.obtenerNombresApellidosPorDNI(dni);
+            clienteDAO.cerrarConexion();
+
+            if (datosCliente != null && !datosCliente[0].isEmpty()) {
+                tf_nombres.setText(datosCliente[0]);
+                tf_apellidos.setText(datosCliente[1]);
+                System.out.println("✅ Cliente encontrado: " + datosCliente[0] + " " + datosCliente[1]);
+
+                // Opcional: Mostrar mensaje de confirmación
+                // JOptionPane.showMessageDialog(this, "Cliente encontrado: " + datosCliente[0] + " " + datosCliente[1]);
+            } else {
+                // Cliente no existe - limpiar campos y poner foco en nombres
+                tf_nombres.setText("");
+                tf_apellidos.setText("");
+                tf_nombres.requestFocus();
+                System.out.println("❌ Cliente no encontrado con DNI: " + dni);
+
+                // Opcional: Preguntar si quiere crear nuevo cliente
+                // int respuesta = JOptionPane.showConfirmDialog(this, 
+                //     "Cliente no encontrado. ¿Desea registrar uno nuevo?", 
+                //     "Cliente Nuevo", JOptionPane.YES_NO_OPTION);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error autocompletando cliente: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void configurarAutocompletarCliente() {
+        // Evento cuando se presiona ENTER en el DNI
+        tf_dni.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                autocompletarDatosCliente();
+            }
+        });
+
+        // Evento cuando se pierde el foco (tab o click fuera)
+        tf_dni.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                // Pequeño delay para asegurar que el texto se haya actualizado
+                Timer timer = new Timer(100, e -> autocompletarDatosCliente());
+                timer.setRepeats(false);
+                timer.start();
+            }
+        });
+
+        // Evento cuando se cambia el texto (opcional, para búsqueda en tiempo real)
+        tf_dni.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                if (tf_dni.getText().length() == 8) {
+                    autocompletarDatosCliente();
+                }
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+            }
+        });
+    }
+
+    private int obtenerSucursalEmpleado(String idEmpleado) {
+        String sql = "SELECT id_sucursal FROM empleado WHERE id_empleado = ?";
+
+        try (Connection conn = new Conexion().establecerConexion(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, idEmpleado);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("id_sucursal");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo sucursal: " + e.getMessage());
+        }
+        return 1; // Sucursal por defecto
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

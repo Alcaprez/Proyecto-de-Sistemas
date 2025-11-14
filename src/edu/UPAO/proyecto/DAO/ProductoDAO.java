@@ -331,4 +331,21 @@ public class ProductoDAO {
         }
         return -1;
     }
+    // En ProductoDAO.java - AGREGAR ESTE MÉTODO
+
+    public int obtenerStockActual(int idProducto) {
+        String sql = "SELECT stock_actual FROM producto WHERE id_producto = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idProducto);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("stock_actual");
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error obteniendo stock actual: " + e.getMessage());
+        }
+        return 0;
+    }
 }

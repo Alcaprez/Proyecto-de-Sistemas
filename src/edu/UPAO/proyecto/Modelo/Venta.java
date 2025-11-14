@@ -16,6 +16,7 @@ public class Venta {
     private double subtotal;
     private double igv;
     private double total;
+    private int idSucursal;
 
     // Constructor vacío
     public Venta() {
@@ -50,7 +51,6 @@ public class Venta {
     }
 
     // ✅ ELIMINADO: getCajeroId() y setCajeroId() - ya no existen
-    
     public String getMetodoPago() {
         return metodoPago;
     }
@@ -93,7 +93,7 @@ public class Venta {
         StringBuilder sb = new StringBuilder();
         sb.append(getFechaFormateada()).append(";")
                 .append(idVenta).append(";")
-                .append(idEmpleado).append(";")  // ✅ CAMBIADO: cajeroId → idEmpleado
+                .append(idEmpleado).append(";") // ✅ CAMBIADO: cajeroId → idEmpleado
                 .append(metodoPago).append(";")
                 .append(String.format("%.2f", calcularTotal())).append(";");
 
@@ -107,6 +107,14 @@ public class Venta {
         return sb.toString();
     }
 
+    public int getIdSucursal() {
+        return idSucursal;
+    }
+
+    public void setIdSucursal(int idSucursal) {
+        this.idSucursal = idSucursal;
+    }
+
     // ✅ CORREGIDO: toString() - reemplazado cajeroId por idEmpleado
     @Override
     public String toString() {
@@ -114,7 +122,7 @@ public class Venta {
         sb.append("=== BOLETA DE VENTA ===\n")
                 .append("Venta ID: ").append(idVenta).append("\n")
                 .append("Fecha: ").append(getFechaFormateada()).append("\n")
-                .append("Empleado ID: ").append(idEmpleado).append("\n")  // ✅ CAMBIADO: cajeroId → idEmpleado
+                .append("Empleado ID: ").append(idEmpleado).append("\n") // ✅ CAMBIADO: cajeroId → idEmpleado
                 .append("Método de pago: ").append(metodoPago).append("\n\n")
                 .append("Detalle:\n");
 
@@ -144,7 +152,7 @@ public class Venta {
     public double getTotal() {
         return getSubtotal() + getIGV();
     }
-    
+
     // ✅ CORREGIDO: generarComprobante() - reemplazado cajeroId por idEmpleado
     public String generarComprobante() {
         StringBuilder sb = new StringBuilder();
@@ -152,21 +160,21 @@ public class Venta {
         sb.append("         COMPROBANTE DE PAGO\n");
         sb.append("=========================================\n");
         sb.append("N° Venta: ").append(idVenta).append("\n");
-        sb.append("Empleado ID: ").append(idEmpleado).append("\n")  // ✅ CAMBIADO: cajeroId → idEmpleado
-        .append("Fecha: ").append(getFechaFormateada()).append("\n");
+        sb.append("Empleado ID: ").append(idEmpleado).append("\n") // ✅ CAMBIADO: cajeroId → idEmpleado
+                .append("Fecha: ").append(getFechaFormateada()).append("\n");
         sb.append("Método Pago: ").append(metodoPago).append("\n");
         sb.append("-----------------------------------------\n");
 
         // Detalles de productos
         for (DetalleVenta detalle : detalleVenta) {
-            String nombreProducto = (detalle.getProducto() != null) ? 
-                detalle.getProducto().getNombre() : "Producto no disponible";
-                
+            String nombreProducto = (detalle.getProducto() != null)
+                    ? detalle.getProducto().getNombre() : "Producto no disponible";
+
             // Truncar nombres muy largos
             if (nombreProducto.length() > 20) {
                 nombreProducto = nombreProducto.substring(0, 17) + "...";
             }
-            
+
             sb.append(String.format("%-20s %2d x S/%-6.2f S/%-7.2f\n",
                     nombreProducto,
                     detalle.getCantidad(),
@@ -184,7 +192,7 @@ public class Venta {
 
         return sb.toString();
     }
-    
+
     public String getDniCliente() {
         return dniCliente;
     }
@@ -208,7 +216,7 @@ public class Venta {
     public void setTotal(double total) {
         this.total = total;
     }
-    
+
     public String getIdEmpleado() {
         return idEmpleado;
     }

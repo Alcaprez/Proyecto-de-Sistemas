@@ -20,12 +20,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
      */
     public PrincipalGerente() {
         initComponents();
-        
-
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH); 
-
         panel_Ventas panelPrincipal = new panel_Ventas();
         MostrarPanel(panelPrincipal);
+        this.setResizable(false);
     }
 
     private void MostrarPanel(JPanel p) {
@@ -34,6 +31,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
         content.add(p, BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
+        setLocationRelativeTo(null);
 
     }
 
@@ -57,13 +55,19 @@ public class PrincipalGerente extends javax.swing.JFrame {
         btn_6 = new javax.swing.JButton();
         btn_7 = new javax.swing.JButton();
         content = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
+        btn_salir = new javax.swing.JButton();
+        jLabel3 = new javax.swing.JLabel();
+        lblFrase = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setExtendedState(6);
+        setPreferredSize(new java.awt.Dimension(1380, 798));
 
         jPanel2.setBackground(new java.awt.Color(204, 204, 204));
 
-        jPanel1.setBackground(new java.awt.Color(0, 102, 204));
+        jPanel1.setBackground(new java.awt.Color(0, 153, 0));
 
         btn_2.setText("1");
         btn_2.addActionListener(new java.awt.event.ActionListener() {
@@ -114,18 +118,16 @@ public class PrincipalGerente extends javax.swing.JFrame {
                     .addComponent(btn_4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_6, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(btn_7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE))
                 .addContainerGap())
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addComponent(btn_principal, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
-                    .addContainerGap()))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(138, 138, 138)
+                .addGap(25, 25, 25)
+                .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_2, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -139,16 +141,31 @@ public class PrincipalGerente extends javax.swing.JFrame {
                 .addComponent(btn_6, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_7, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(234, Short.MAX_VALUE))
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addGap(88, 88, 88)
-                    .addComponent(btn_principal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(561, Short.MAX_VALUE)))
+                .addContainerGap(190, Short.MAX_VALUE))
         );
 
         content.setBackground(new java.awt.Color(255, 255, 255));
         content.setLayout(new java.awt.BorderLayout());
+
+        jPanel3.setBackground(new java.awt.Color(255, 153, 0));
+        jPanel3.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        jPanel3.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1062, 6, -1, 88));
+
+        btn_salir.setText("SALIR");
+        btn_salir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_salirActionPerformed(evt);
+            }
+        });
+        jPanel3.add(btn_salir, new org.netbeans.lib.awtextra.AbsoluteConstraints(1267, 6, 86, 37));
+
+        jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/miniLogo.png"))); // NOI18N
+        jPanel3.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 6, -1, -1));
+
+        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 36)); // NOI18N
+        lblFrase.setForeground(new java.awt.Color(193, 28, 28));
+        lblFrase.setText("Todo lo que necesitas al alcance");
+        jPanel3.add(lblFrase, new org.netbeans.lib.awtextra.AbsoluteConstraints(207, 16, 843, 70));
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -157,12 +174,17 @@ public class PrincipalGerente extends javax.swing.JFrame {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, 0)
-                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1080, Short.MAX_VALUE))
+                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1197, Short.MAX_VALUE))
+            .addComponent(jPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
@@ -170,12 +192,32 @@ public class PrincipalGerente extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btn_2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_2ActionPerformed
-              
+    private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
+        int confirmacion = JOptionPane.showConfirmDialog(
+            this,
+            "¿Está seguro que desea cerrar sesión?",
+            "Cerrar Sesión",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
 
-        panel_Rproductos panelRproductos = new panel_Rproductos();
-        MostrarPanel(panelRproductos);
-    }//GEN-LAST:event_btn_2ActionPerformed
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // ✅ Volver al login
+            LoginjFrame login = new LoginjFrame();
+            login.setVisible(true);
+
+            // ✅ Cerrar el panel de gerente
+            this.dispose();
+        }
+    }//GEN-LAST:event_btn_salirActionPerformed
+
+    private void btn_4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_4ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_4ActionPerformed
+
+    private void btn_3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_3ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_3ActionPerformed
 
     private void btn_principalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_principalActionPerformed
 
@@ -183,13 +225,11 @@ public class PrincipalGerente extends javax.swing.JFrame {
         MostrarPanel(panelPrincipal);
     }//GEN-LAST:event_btn_principalActionPerformed
 
-    private void btn_3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_3ActionPerformed
+    private void btn_2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_2ActionPerformed
 
-    private void btn_4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_4ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_4ActionPerformed
+        panel_Rproductos panelRproductos = new panel_Rproductos();
+        MostrarPanel(panelRproductos);
+    }//GEN-LAST:event_btn_2ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -238,8 +278,13 @@ public class PrincipalGerente extends javax.swing.JFrame {
     private javax.swing.JButton btn_6;
     private javax.swing.JButton btn_7;
     private javax.swing.JButton btn_principal;
+    private javax.swing.JButton btn_salir;
     private javax.swing.JPanel content;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JLabel lblFrase;
     // End of variables declaration//GEN-END:variables
 }
