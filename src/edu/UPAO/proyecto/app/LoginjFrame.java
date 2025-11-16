@@ -263,16 +263,16 @@ public class LoginjFrame extends javax.swing.JFrame {
                 case "GERENTE":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
                     // Abrir panel de gerente
-                    Panel_Gerente panelGerente = new Panel_Gerente();
-                    panelGerente.setVisible(true);
+                    PrincipalGerente principalGerente = new PrincipalGerente();
+                    principalGerente.setVisible(true);
                     break;
 
                 case "ADMINISTRADOR":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
                     // Abrir panel de administrador
-                    AdministradorPanel adminPanel = new AdministradorPanel();
-                    adminPanel.setLocationRelativeTo(null);
-                    adminPanel.setVisible(true);
+                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador();
+                    principalAdministrador.setLocationRelativeTo(null);
+                    principalAdministrador.setVisible(true);
                     break;
 
                 case "CAJERO":
@@ -363,15 +363,6 @@ public class LoginjFrame extends javax.swing.JFrame {
         Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
 
         if (usuarioAutenticado != null) {
-            // Verificar que el usuario pertenezca a la sucursal seleccionada
-            if (!usuarioAutenticado.getTienda().equals(sucursalSeleccionada)) {
-                JOptionPane.showMessageDialog(this,
-                        "El usuario no pertenece a la sucursal seleccionada.\n"
-                        + "Usuario: " + usuarioAutenticado.getTienda() + "\n"
-                        + "Seleccionada: " + sucursalSeleccionada,
-                        "Error de Sucursal", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
             abrirPanelSegunRol(usuarioAutenticado);

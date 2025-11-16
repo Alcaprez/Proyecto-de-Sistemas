@@ -138,19 +138,15 @@ public class Venta {
 
     // ✅ Calcular el subtotal (sin IGV)
     public double getSubtotal() {
-        return detalleVenta.stream()
-                .mapToDouble(DetalleVenta::getSubtotal)
-                .sum();
+        return this.subtotal; // Devuelve el valor establecido, no recalcula
     }
 
-    // ✅ Calcular IGV (18%)
     public double getIGV() {
-        return getSubtotal() * 0.18;
+        return this.igv; // Devuelve el valor establecido
     }
 
-    // ✅ Calcular total (subtotal + IGV)
     public double getTotal() {
-        return getSubtotal() + getIGV();
+        return this.total; // Devuelve el valor establecido
     }
 
     // ✅ CORREGIDO: generarComprobante() - reemplazado cajeroId por idEmpleado
@@ -160,7 +156,7 @@ public class Venta {
         sb.append("         COMPROBANTE DE PAGO\n");
         sb.append("=========================================\n");
         sb.append("N° Venta: ").append(idVenta).append("\n");
-        sb.append("Empleado ID: ").append(idEmpleado).append("\n") // ✅ CAMBIADO: cajeroId → idEmpleado
+        sb.append("Empleado ID: ").append(idEmpleado).append("\n")
                 .append("Fecha: ").append(getFechaFormateada()).append("\n");
         sb.append("Método Pago: ").append(metodoPago).append("\n");
         sb.append("-----------------------------------------\n");
@@ -183,9 +179,12 @@ public class Venta {
         }
 
         sb.append("-----------------------------------------\n");
-        sb.append(String.format("SUBTOTAL: S/%-25.2f\n", getSubtotal()));
-        sb.append(String.format("IGV (18%%): S/%-24.2f\n", getIGV()));
-        sb.append(String.format("TOTAL: S/%-27.2f\n", getTotal()));
+
+        // ✅ USAR LOS VALORES ESTABLECIDOS (CORREGIDOS) EN LUGAR DE RECALCULAR
+        sb.append(String.format("SUBTOTAL: S/%-25.2f\n", this.subtotal));  // Usar this.subtotal
+        sb.append(String.format("IGV (18%%): S/%-24.2f\n", this.igv));     // Usar this.igv  
+        sb.append(String.format("TOTAL: S/%-27.2f\n", this.total));        // Usar this.total
+
         sb.append("=========================================\n");
         sb.append("         ¡GRACIAS POR SU COMPRA!\n");
         sb.append("=========================================\n");

@@ -6,6 +6,7 @@ package edu.UPAO.proyecto.app;
 
 import java.awt.BorderLayout;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 /**
@@ -46,12 +47,13 @@ public class PrincipalGerente extends javax.swing.JFrame {
 
         jPanel2 = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
-        btn_2 = new javax.swing.JButton();
-        btn_33 = new javax.swing.JButton();
-        btn_3 = new javax.swing.JButton();
-        btn_4 = new javax.swing.JButton();
-        btn_5 = new javax.swing.JButton();
-        btn_6 = new javax.swing.JButton();
+        btn_venta = new javax.swing.JButton();
+        btn_almacenes = new javax.swing.JButton();
+        btn_compras = new javax.swing.JButton();
+        btn_personal = new javax.swing.JButton();
+        btn_cuenta = new javax.swing.JButton();
+        btn_tesoreria = new javax.swing.JButton();
+        btn_cerrarSesion = new javax.swing.JButton();
         content = new javax.swing.JPanel();
         jLayeredPane1 = new javax.swing.JLayeredPane();
         jPanel4 = new javax.swing.JPanel();
@@ -66,35 +68,52 @@ public class PrincipalGerente extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(0, 51, 29));
 
-        btn_2.setText("VENTAS");
-        btn_2.addActionListener(new java.awt.event.ActionListener() {
+        btn_venta.setText("VENTAS");
+        btn_venta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_2ActionPerformed(evt);
+                btn_ventaActionPerformed(evt);
             }
         });
 
-        btn_33.setText("ALMACENES");
-
-        btn_3.setText("COMPRAS");
-        btn_3.addActionListener(new java.awt.event.ActionListener() {
+        btn_almacenes.setText("ALMACENES");
+        btn_almacenes.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_3ActionPerformed(evt);
+                btn_almacenesActionPerformed(evt);
             }
         });
 
-        btn_4.setText("PERSONAL");
-        btn_4.addActionListener(new java.awt.event.ActionListener() {
+        btn_compras.setText("COMPRAS");
+        btn_compras.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_4ActionPerformed(evt);
+                btn_comprasActionPerformed(evt);
             }
         });
 
-        btn_5.setText("CUENTA");
-
-        btn_6.setText("TESORERIA");
-        btn_6.addActionListener(new java.awt.event.ActionListener() {
+        btn_personal.setText("PERSONAL");
+        btn_personal.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_6ActionPerformed(evt);
+                btn_personalActionPerformed(evt);
+            }
+        });
+
+        btn_cuenta.setText("CUENTA");
+        btn_cuenta.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_cuentaActionPerformed(evt);
+            }
+        });
+
+        btn_tesoreria.setText("TESORERIA");
+        btn_tesoreria.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_tesoreriaActionPerformed(evt);
+            }
+        });
+
+        btn_cerrarSesion.setText("Cerrar sesion");
+        btn_cerrarSesion.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_cerrarSesionActionPerformed(evt);
             }
         });
 
@@ -105,30 +124,36 @@ public class PrincipalGerente extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btn_2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
-                    .addComponent(btn_33, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_6, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE))
+                    .addComponent(btn_venta, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
+                    .addComponent(btn_almacenes, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_personal, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_tesoreria, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE))
                 .addContainerGap())
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(38, 38, 38)
+                .addComponent(btn_cerrarSesion, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(25, 25, 25)
-                .addComponent(btn_6, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_tesoreria, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_2, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_venta, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_3, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_compras, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_33, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_almacenes, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_4, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_personal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(btn_5, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(341, Short.MAX_VALUE))
+                .addComponent(btn_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btn_cerrarSesion)
+                .addGap(15, 15, 15))
         );
 
         content.setBackground(new java.awt.Color(255, 255, 255));
@@ -186,7 +211,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(0, 0, 0)
-                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 1197, Short.MAX_VALUE))
+                .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
             .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
@@ -197,7 +222,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
                 .addGap(0, 0, 0)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 609, Short.MAX_VALUE)))
         );
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);
@@ -205,24 +230,54 @@ public class PrincipalGerente extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btn_6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_6ActionPerformed
+    private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
         panel_Rentabilidad panel_Rentabilidad1 = new panel_Rentabilidad();
         MostrarPanel(panel_Rentabilidad1);
-    }//GEN-LAST:event_btn_6ActionPerformed
+    }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
-    private void btn_4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_4ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_4ActionPerformed
+    private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
+        panel_PersonalGerente panel_PersonalGerente1 = new panel_PersonalGerente();
+        MostrarPanel(panel_PersonalGerente1);
+    }//GEN-LAST:event_btn_personalActionPerformed
 
-    private void btn_3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_3ActionPerformed
+    private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
+        panel_ComprasGerente panel_ComprasGerente1 = new panel_ComprasGerente();
+        MostrarPanel(panel_ComprasGerente1);
+    }//GEN-LAST:event_btn_comprasActionPerformed
 
-    private void btn_2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_2ActionPerformed
+    private void btn_ventaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventaActionPerformed
+        panel_VentaGerente panel_VentaGerente1 = new panel_VentaGerente();
+        MostrarPanel(panel_VentaGerente1);
+    }//GEN-LAST:event_btn_ventaActionPerformed
 
-        panel_Rproductos panelRproductos = new panel_Rproductos();
-        MostrarPanel(panelRproductos);
-    }//GEN-LAST:event_btn_2ActionPerformed
+    private void btn_almacenesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_almacenesActionPerformed
+        panel_AlmacenesGerente panel_AlmacenesGerente1 = new panel_AlmacenesGerente();
+        MostrarPanel(panel_AlmacenesGerente1);
+    }//GEN-LAST:event_btn_almacenesActionPerformed
+
+    private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
+        panel_Cuenta panel_Cuenta1 = new panel_Cuenta();
+        MostrarPanel(panel_Cuenta1);
+    }//GEN-LAST:event_btn_cuentaActionPerformed
+
+    private void btn_cerrarSesionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cerrarSesionActionPerformed
+      int confirmacion = JOptionPane.showConfirmDialog(
+                this,
+                "¿Está seguro que desea cerrar sesión?",
+                "Cerrar Sesión",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // ✅ Volver al login
+            LoginjFrame login = new LoginjFrame();
+            login.setVisible(true);
+
+            // ✅ Cerrar el panel de gerente
+            this.dispose();
+        }
+    }//GEN-LAST:event_btn_cerrarSesionActionPerformed
 
     /**
      * @param args the command line arguments
@@ -263,12 +318,13 @@ public class PrincipalGerente extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btn_2;
-    private javax.swing.JButton btn_3;
-    private javax.swing.JButton btn_33;
-    private javax.swing.JButton btn_4;
-    private javax.swing.JButton btn_5;
-    private javax.swing.JButton btn_6;
+    private javax.swing.JButton btn_almacenes;
+    private javax.swing.JButton btn_cerrarSesion;
+    private javax.swing.JButton btn_compras;
+    private javax.swing.JButton btn_cuenta;
+    private javax.swing.JButton btn_personal;
+    private javax.swing.JButton btn_tesoreria;
+    private javax.swing.JButton btn_venta;
     private javax.swing.JPanel content;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLayeredPane jLayeredPane1;

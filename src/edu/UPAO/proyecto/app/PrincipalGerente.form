@@ -45,7 +45,7 @@
               <Group type="102" attributes="0">
                   <Component id="jPanel1" min="-2" max="-2" attributes="0"/>
                   <EmptySpace min="0" pref="0" max="-2" attributes="0"/>
-                  <Component id="content" pref="1197" max="32767" attributes="0"/>
+                  <Component id="content" max="32767" attributes="0"/>
               </Group>
               <Component id="jPanel4" alignment="0" max="32767" attributes="0"/>
           </Group>
@@ -58,7 +58,7 @@
                   <EmptySpace min="0" pref="0" max="-2" attributes="0"/>
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Component id="jPanel1" max="32767" attributes="0"/>
-                      <Component id="content" max="32767" attributes="0"/>
+                      <Component id="content" pref="609" max="32767" attributes="0"/>
                   </Group>
               </Group>
           </Group>
@@ -78,14 +78,19 @@
                   <Group type="102" attributes="0">
                       <EmptySpace max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="btn_2" alignment="1" pref="171" max="32767" attributes="0"/>
-                          <Component id="btn_33" alignment="0" max="32767" attributes="0"/>
-                          <Component id="btn_3" alignment="0" max="32767" attributes="0"/>
-                          <Component id="btn_4" alignment="0" max="32767" attributes="0"/>
-                          <Component id="btn_5" alignment="0" max="32767" attributes="0"/>
-                          <Component id="btn_6" alignment="0" pref="171" max="32767" attributes="0"/>
+                          <Component id="btn_venta" alignment="1" pref="171" max="32767" attributes="0"/>
+                          <Component id="btn_almacenes" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_compras" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_personal" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_cuenta" alignment="0" max="32767" attributes="0"/>
+                          <Component id="btn_tesoreria" alignment="0" pref="171" max="32767" attributes="0"/>
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
+                  </Group>
+                  <Group type="102" alignment="0" attributes="0">
+                      <EmptySpace min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_cerrarSesion" min="-2" pref="100" max="-2" attributes="0"/>
+                      <EmptySpace max="32767" attributes="0"/>
                   </Group>
               </Group>
             </DimensionLayout>
@@ -93,63 +98,79 @@
               <Group type="103" groupAlignment="0" attributes="0">
                   <Group type="102" alignment="0" attributes="0">
                       <EmptySpace min="-2" pref="25" max="-2" attributes="0"/>
-                      <Component id="btn_6" min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_tesoreria" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="btn_2" min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_venta" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="btn_3" min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_compras" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="btn_33" min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_almacenes" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="btn_4" min="-2" pref="38" max="-2" attributes="0"/>
+                      <Component id="btn_personal" min="-2" pref="38" max="-2" attributes="0"/>
                       <EmptySpace type="unrelated" max="-2" attributes="0"/>
-                      <Component id="btn_5" min="-2" pref="38" max="-2" attributes="0"/>
-                      <EmptySpace pref="341" max="32767" attributes="0"/>
+                      <Component id="btn_cuenta" min="-2" pref="38" max="-2" attributes="0"/>
+                      <EmptySpace max="32767" attributes="0"/>
+                      <Component id="btn_cerrarSesion" min="-2" max="-2" attributes="0"/>
+                      <EmptySpace min="-2" pref="15" max="-2" attributes="0"/>
                   </Group>
               </Group>
             </DimensionLayout>
           </Layout>
           <SubComponents>
-            <Component class="javax.swing.JButton" name="btn_2">
+            <Component class="javax.swing.JButton" name="btn_venta">
               <Properties>
                 <Property name="text" type="java.lang.String" value="VENTAS"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_2ActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_ventaActionPerformed"/>
               </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="btn_33">
+            <Component class="javax.swing.JButton" name="btn_almacenes">
               <Properties>
                 <Property name="text" type="java.lang.String" value="ALMACENES"/>
               </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_almacenesActionPerformed"/>
+              </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="btn_3">
+            <Component class="javax.swing.JButton" name="btn_compras">
               <Properties>
                 <Property name="text" type="java.lang.String" value="COMPRAS"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_3ActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_comprasActionPerformed"/>
               </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="btn_4">
+            <Component class="javax.swing.JButton" name="btn_personal">
               <Properties>
                 <Property name="text" type="java.lang.String" value="PERSONAL"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_4ActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_personalActionPerformed"/>
               </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="btn_5">
+            <Component class="javax.swing.JButton" name="btn_cuenta">
               <Properties>
                 <Property name="text" type="java.lang.String" value="CUENTA"/>
               </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_cuentaActionPerformed"/>
+              </Events>
             </Component>
-            <Component class="javax.swing.JButton" name="btn_6">
+            <Component class="javax.swing.JButton" name="btn_tesoreria">
               <Properties>
                 <Property name="text" type="java.lang.String" value="TESORERIA"/>
               </Properties>
               <Events>
-                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_6ActionPerformed"/>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_tesoreriaActionPerformed"/>
+              </Events>
+            </Component>
+            <Component class="javax.swing.JButton" name="btn_cerrarSesion">
+              <Properties>
+                <Property name="text" type="java.lang.String" value="Cerrar sesion"/>
+              </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_cerrarSesionActionPerformed"/>
               </Events>
             </Component>
           </SubComponents>

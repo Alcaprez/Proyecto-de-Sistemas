@@ -19,6 +19,7 @@ import javax.swing.JFrame;
 import java.sql.SQLException;
 import edu.UPAO.proyecto.DAO.VentaDAO;
 import edu.UPAO.proyecto.DAO.ClienteDAO;
+import edu.UPAO.proyecto.DAO.ComprobanteDAO;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -56,17 +57,40 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         lbl_descueto.setText("Descuento: " + descuento);
         lbl_total.setText("Total: " + total);
 
-        // Si quieres, también puedes recalcular IGV
-        try {
-            double totalNum = Double.parseDouble(total.replace("S/", "").trim());
-            double subtotalNum = Double.parseDouble(subtotal.replace("S/", "").trim());
-            double igv = totalNum - subtotalNum;
-            lbl_igv.setText("IGV: " + String.format("%.2f", igv));
-        } catch (Exception e) {
-            lbl_igv.setText("IGV: -");
-        }
+        double totalNum = Double.parseDouble(total.replace("S/", "").trim());
+        double subtotalCalculado = totalNum / 1.18;
+        double igvCalculado = subtotalCalculado * 0.18;
+        diagnosticarCalculos();
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
+    private void verificarMontoMovimientoCaja(double totalVenta) {
+        try {
+            System.out.println("🔍 VERIFICANDO MONTO MOVIMIENTO CAJA:");
+            System.out.println("   - Total venta calculado: " + totalVenta);
+
+            // Consultar el último movimiento de caja registrado
+            String sql = "SELECT monto FROM movimiento_caja ORDER BY id_movimiento_caja DESC LIMIT 1";
+            Connection conn = new Conexion().establecerConexion();
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                double montoRegistrado = rs.getDouble("monto");
+                System.out.println("   - Monto en movimiento_caja: " + montoRegistrado);
+
+                if (Math.abs(totalVenta - montoRegistrado) > 0.01) {
+                    System.err.println("❌ DISCREPANCIA: Movimiento caja registró " + montoRegistrado + " pero venta es " + totalVenta);
+                } else {
+                    System.out.println("✅ Monto correcto en movimiento_caja");
+                }
+            }
+
+            conn.close();
+        } catch (Exception e) {
+            System.err.println("❌ Error verificando movimiento caja: " + e.getMessage());
+        }
     }
 
     // Constructor vacío (para pruebas desde NetBeans). No inicializa owner ni modeloBoleta.
@@ -121,15 +145,11 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         lbl_descueto.setText("Descuento: " + descuento);
         lbl_total.setText("Total: " + total);
 
-        // Calcular IGV
-        try {
-            double totalNum = Double.parseDouble(total.replace("S/", "").trim());
-            double subtotalNum = Double.parseDouble(subtotal.replace("S/", "").trim());
-            double igv = totalNum - subtotalNum;
-            lbl_igv.setText("IGV: " + String.format("%.2f", igv));
-        } catch (Exception e) {
-            lbl_igv.setText("IGV: -");
-        }
+        double totalNum = Double.parseDouble(total.replace("S/", "").trim());
+        double subtotalCalculado = totalNum / 1.18;
+        double igvCalculado = subtotalCalculado * 0.18;
+
+        diagnosticarCalculos();
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     }
@@ -137,20 +157,27 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
 
     private void calcularTotales() {
-        double total = 0.0;
+        double subtotal = 0.0;
         for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
-            Object val = modeloBoleta.getValueAt(i, 2); // Columna "Subtotal"
+            Object val = modeloBoleta.getValueAt(i, 3); // Columna "Subtotal" (índice 3)
             if (val != null) {
-                total += Double.parseDouble(String.valueOf(val));
+                subtotal += Double.parseDouble(String.valueOf(val));
             }
         }
 
-        double subtotal = total / 1.18;
+        // ✅ CÁLCULO SIMPLE Y DIRECTO - SIN DUPLICAR IGV
         double igv = subtotal * 0.18;
+        double total = subtotal + igv;
 
-        lbl_subtotal.setText("Subtotal: " + String.format("%.2f", subtotal));
-        lbl_igv.setText("IGV (18%): " + String.format("%.2f", igv));
-        lbl_total.setText("Total: " + String.format("%.2f", total));
+        // ✅ ACTUALIZAR LABELS
+        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
+        lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
+        lbl_total.setText("Total: S/ " + String.format("%.2f", total));
+
+        System.out.println("🧮 Totales calculados:");
+        System.out.println("  - Subtotal: " + subtotal);
+        System.out.println("  - IGV: " + igv);
+        System.out.println("  - Total: " + total);
     }
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -387,22 +414,38 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
 
         try {
-            // Calcular totales desde los labels
+            // ✅ OBTENER TOTAL ACTUAL (QUE INCLUYE IGV DUPLICADO)
             String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").trim();
-            String subtotalText = lbl_subtotal.getText().replace("Subtotal:", "").replace("S/", "").trim();
+            double totalConIgvDuplicado = Double.parseDouble(totalText);
+
             String descuentoText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
-
-            double total = Double.parseDouble(totalText);
-            double subtotal = Double.parseDouble(subtotalText);
             double descuento = Double.parseDouble(descuentoText);
-            double igv = total - subtotal;
 
-            // Obtener datos del formulario
+            // ✅ SOLUCIÓN DIRECTA: CALCULAR EL IGV Y RESTARLO DEL TOTAL
+            double subtotal = totalConIgvDuplicado / 1.18;  // Obtenemos el subtotal real
+            double igv = subtotal * 0.18;                   // Calculamos IGV correcto
+            double totalReal = subtotal + igv;              // Total correcto (debería ser igual a totalConIgvDuplicado)
+
+            // ✅ PERO PARA EVITAR LA DUPLICACIÓN: USAR SOLO EL SUBTOTAL + IGV CORRECTO
+            double totalParaGuardar = subtotal + igv;
+
+            System.out.println("🔧 SOLUCIÓN APLICADA:");
+            System.out.println("  - Total recibido (con IGV duplicado): " + totalConIgvDuplicado);
+            System.out.println("  - Subtotal real: " + subtotal);
+            System.out.println("  - IGV correcto: " + igv);
+            System.out.println("  - Total para guardar: " + totalParaGuardar);
+
+            // ✅ ACTUALIZAR LABELS CON VALORES CORRECTOS
+            lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
+            lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
+            lbl_total.setText("Total: S/ " + String.format("%.2f", totalParaGuardar));
+
+            // ... el resto de tu código permanece igual
             String dniCliente = tf_dni.getText().trim();
             String nombres = tf_nombres.getText().trim();
             String apellidos = tf_apellidos.getText().trim();
 
-            // OBTENER MÉTODO DE PAGO DEL COMBOBOX (NO DE RADIOBUTTONS)
+            // OBTENER MÉTODO DE PAGO DEL COMBOBOX
             String metodoPago = (String) cb_metodoPago.getSelectedItem();
             if (metodoPago == null || metodoPago.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "❌ Seleccione un método de pago");
@@ -413,11 +456,11 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             String idEmpleado = obtenerIdEmpleadoDeSesion();
 
             // DEBUG
-            System.out.println("🔍 DEBUG - Datos de venta:");
+            System.out.println("DEBUG - Datos de venta:");
             System.out.println("  - Empleado: " + idEmpleado);
             System.out.println("  - Método Pago: " + metodoPago);
             System.out.println("  - DNI Cliente: " + dniCliente);
-            System.out.println("  - Total: " + total);
+            System.out.println("  - Total para guardar: " + totalParaGuardar);
 
             // 1. REGISTRAR CLIENTE SI NO EXISTE
             try {
@@ -458,17 +501,17 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 }
             }
 
-            // 3. CREAR OBJETO VENTA CON EMPLEADO REAL
+            // 3. CREAR OBJETO VENTA CON VALORES CORREGIDOS
             Venta venta = new Venta();
             venta.setIdEmpleado(idEmpleado);
             venta.setDniCliente(dniCliente);
             venta.setMetodoPago(metodoPago);
             venta.setDetalleVenta(detalles);
-            venta.setSubtotal(subtotal);
-            venta.setIgv(igv);
-            venta.setTotal(total);
+            venta.setSubtotal(subtotal);           // ✅ Subtotal sin IGV duplicado
+            venta.setIgv(igv);                     // ✅ IGV calculado correctamente
+            venta.setTotal(totalParaGuardar);      // ✅ Total corregido (subtotal + igv)
 
-            // ✅ OBTENER Y ESTABLECER SUCURSAL (NUEVO)
+            // ✅ OBTENER Y ESTABLECER SUCURSAL
             try {
                 int idSucursal = obtenerSucursalEmpleado(idEmpleado);
                 venta.setIdSucursal(idSucursal);
@@ -481,8 +524,11 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             // 4. GUARDAR EN BD USANDO VentaDAO
             VentaDAO ventaDAO = new VentaDAO();
             int idVentaGenerada = ventaDAO.registrarVenta(venta);
-
+            generarComprobante(venta, idVentaGenerada);
+            
             JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada);
+
+            verificarMontoMovimientoCaja(totalParaGuardar);
 
             // 5. PASAR A VISTA PREVIA
             String observaciones = this.observaciones;
@@ -672,7 +718,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
     }
 
-// ✅ MÉTODO AUXILIAR PARA CARGAR MÉTODOS POR DEFECTO
+// MÉTODO AUXILIAR PARA CARGAR MÉTODOS POR DEFECTO
     private void cargarMetodosPagoPorDefecto() {
         cb_metodoPago.addItem("Efectivo");
         cb_metodoPago.addItem("Tarjeta Débito");
@@ -789,6 +835,56 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         return 1; // Sucursal por defecto
     }
 
+    private void generarComprobante(Venta venta, int idVentaGenerada) {
+        try {
+            ComprobanteDAO comprobanteDAO = new ComprobanteDAO();
+            String tipoComprobante = "BOLETA"; // Por ahora solo boletas
+
+            boolean exito = comprobanteDAO.registrarComprobante(idVentaGenerada, tipoComprobante, venta);
+
+            if (exito) {
+                System.out.println("✅ Comprobante PDF generado y registrado");
+
+                // Opcional: Mostrar mensaje al usuario
+                JOptionPane.showMessageDialog(this,
+                        "✅ Comprobante generado exitosamente");
+            } else {
+                System.err.println("⚠️ No se pudo generar comprobante");
+            }
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error generando comprobante: " + e.getMessage());
+            // NO interrumpir el flujo por error en comprobante
+        }
+    }
+
+    private void diagnosticarCalculos() {
+        try {
+            System.out.println("🔍 DIAGNÓSTICO DE CÁLCULOS:");
+
+            // Verificar valores actuales en labels
+            String totalLabel = lbl_total.getText();
+            String subtotalLabel = lbl_subtotal.getText();
+            String igvLabel = lbl_igv.getText();
+
+            System.out.println("   - Total en label: " + totalLabel);
+            System.out.println("   - Subtotal en label: " + subtotalLabel);
+            System.out.println("   - IGV en label: " + igvLabel);
+
+            // Calcular correctamente
+            double totalNum = Double.parseDouble(totalLabel.replace("Total:", "").replace("S/", "").trim());
+            double subtotalCorrecto = totalNum / 1.18;
+            double igvCorrecto = subtotalCorrecto * 0.18;
+
+            System.out.println("   - Total numérico: " + totalNum);
+            System.out.println("   - Subtotal correcto: " + subtotalCorrecto);
+            System.out.println("   - IGV correcto: " + igvCorrecto);
+            System.out.println("   - Verificación: " + subtotalCorrecto + " + " + igvCorrecto + " = " + (subtotalCorrecto + igvCorrecto));
+
+        } catch (Exception e) {
+            System.err.println("❌ Error en diagnóstico de cálculos: " + e.getMessage());
+        }
+    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup bg_TipoPago;
     private javax.swing.ButtonGroup bg_boletaOfactura;

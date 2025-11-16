@@ -246,7 +246,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         lblFechaActual = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
-        jButton5 = new javax.swing.JButton();
 
         jButton1.setText("MARCAR SALIDA");
 
@@ -343,13 +342,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
         jLabel8.setText("FECHA:");
 
-        jButton5.setText("Limpiar registros");
-        jButton5.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton5ActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -372,14 +364,13 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                             .addComponent(btn_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 196, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                             .addComponent(btn_salida, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jButton5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(17, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(31, Short.MAX_VALUE)
+                .addContainerGap(25, Short.MAX_VALUE)
                 .addComponent(jLabel7)
                 .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -394,10 +385,8 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 178, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton5)
-                .addGap(8, 8, 8))
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 198, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -408,7 +397,9 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
 
         pack();
@@ -421,71 +412,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
     private void btn_salidaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salidaActionPerformed
         registrarAsistencia("SALIDA");
     }//GEN-LAST:event_btn_salidaActionPerformed
-
-    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        int confirmacion = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de que desea eliminar TODOS sus registros de asistencia?\nEsta acción no se puede deshacer.",
-                "Confirmar Eliminación",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE);
-
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            try {
-                File archivo = new File("registros_asistencia.txt");
-                File tempFile = new File("registros_temp.txt");
-
-                if (!archivo.exists()) {
-                    JOptionPane.showMessageDialog(this,
-                            "No hay registros para eliminar",
-                            "Información",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    return;
-                }
-
-                boolean encontrado = false;
-                try (BufferedReader reader = new BufferedReader(new FileReader(archivo)); BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-
-                    String linea;
-                    while ((linea = reader.readLine()) != null) {
-                        String[] partes = linea.split("\\|");
-                        if (partes.length == 4 && partes[0].equals(usuarioNombre)) {
-                            encontrado = true; // Este registro será eliminado (no lo escribimos)
-                        } else {
-                            writer.write(linea);
-                            writer.newLine();
-                        }
-                    }
-                }
-
-                if (encontrado) {
-                    // Reemplazar archivo original
-                    if (archivo.delete() && tempFile.renameTo(archivo)) {
-                        // Limpiar tabla y resetear estados
-                        modelo.setRowCount(0);
-                        yaRegistroEntradaHoy = false;
-                        yaRegistroSalidaHoy = false;
-                        actualizarEstadoBotones();
-
-                        JOptionPane.showMessageDialog(this,
-                                "✅ Sus registros han sido eliminados",
-                                "Registros Limpiados",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    }
-                } else {
-                    tempFile.delete(); // Eliminar archivo temporal
-                    JOptionPane.showMessageDialog(this,
-                            "No se encontraron registros para eliminar",
-                            "Información",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
-
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this,
-                        "Error al eliminar registros: " + e.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        }    }//GEN-LAST:event_jButton5ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -531,7 +457,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

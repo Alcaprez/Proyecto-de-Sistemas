@@ -111,6 +111,25 @@ public class VentaDAO {
 
             conn.commit();
 
+            try {
+                MovimientoCajaDAO movimientoDAO = new MovimientoCajaDAO();
+                boolean movimientoRegistrado = movimientoDAO.registrarMovimientoCajaVenta(
+                        venta.getTotal(), 
+                        idVentaGenerada,
+                        idSucursal,
+                        venta.getMetodoPago()
+                );
+
+                if (movimientoRegistrado) {
+                    System.out.println("✅ Movimiento de caja registrado para venta: " + idVentaGenerada);
+                } else {
+                    System.err.println("⚠️ No se pudo registrar movimiento de caja para venta: " + idVentaGenerada);
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error registrando movimiento de caja: " + e.getMessage());
+                // NO hacer rollback aquí, la venta ya se registró
+            }
+
             System.out.println("✅ Venta registrada exitosamente - ID: " + idVentaGenerada);
             return idVentaGenerada;
 

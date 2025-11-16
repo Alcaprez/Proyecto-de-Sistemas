@@ -12,7 +12,7 @@ public class Usuario {
     private String cargo;          // rol de empleado
     private String usuario;        // id_empleado (CHAR(8))
     private String contrasena;     // contraseña
-
+    private int idSucursal;
     private LocalTime horaEntradaProg;
     private LocalTime horaSalidaProg;
 
@@ -119,6 +119,14 @@ public class Usuario {
 
     public void setHoraSalidaProg(LocalTime horaSalidaProg) {
         this.horaSalidaProg = horaSalidaProg;
+    }
+
+    public int getIdSucursal() {
+        return idSucursal;
+    }
+
+    public void setIdSucursal(int idSucursal) {
+        this.idSucursal = idSucursal;
     }
 
     @Override
