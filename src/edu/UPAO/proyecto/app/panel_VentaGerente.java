@@ -29,7 +29,22 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         PROMOCIONES = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
+        Devoluciones = new javax.swing.JPanel();
+        jComboBox1 = new javax.swing.JComboBox<>();
+        ImporteTotalDevuelto = new javax.swing.JSplitPane();
+        importenumeroeditable = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        DevolucionesTotales = new javax.swing.JSplitPane();
+        devolucionesnumeroedit = new javax.swing.JLabel();
+        jLabel1 = new javax.swing.JLabel();
+        TasadeDevolucion = new javax.swing.JSplitPane();
+        jLabel6 = new javax.swing.JLabel();
+        numeroaeditartasa = new javax.swing.JLabel();
+        DevolucionesTitulo = new javax.swing.JLabel();
+        ImporteTitulo = new javax.swing.JLabel();
+        ImporteTitulo1 = new javax.swing.JLabel();
+        TendenciasdeDevoluciones = new javax.swing.JPanel();
+        DevolucionesporMotivos = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
@@ -58,18 +73,132 @@ public class panel_VentaGerente extends javax.swing.JPanel {
 
         PROMOCIONES.addTab("FIDELIZACION", jPanel2);
 
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1165, Short.MAX_VALUE)
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "TIENDA" }));
+
+        importenumeroeditable.setText("2215121");
+        ImporteTotalDevuelto.setRightComponent(importenumeroeditable);
+
+        jLabel4.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/logodevoluciones2.png"))); // NOI18N
+        jLabel4.setText("jLabel1");
+        jLabel4.setMaximumSize(new java.awt.Dimension(50, 16));
+        jLabel4.setMinimumSize(new java.awt.Dimension(50, 16));
+        jLabel4.setPreferredSize(new java.awt.Dimension(50, 40));
+        ImporteTotalDevuelto.setLeftComponent(jLabel4);
+
+        devolucionesnumeroedit.setText("2215121");
+        DevolucionesTotales.setRightComponent(devolucionesnumeroedit);
+
+        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/logodevolucion1.png"))); // NOI18N
+        jLabel1.setText("jLabel1");
+        jLabel1.setMaximumSize(new java.awt.Dimension(50, 16));
+        jLabel1.setMinimumSize(new java.awt.Dimension(50, 16));
+        jLabel1.setPreferredSize(new java.awt.Dimension(50, 40));
+        DevolucionesTotales.setLeftComponent(jLabel1);
+
+        jLabel6.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/logodevolucion3.png"))); // NOI18N
+        jLabel6.setText("jLabel1");
+        jLabel6.setMaximumSize(new java.awt.Dimension(50, 16));
+        jLabel6.setMinimumSize(new java.awt.Dimension(50, 16));
+        jLabel6.setPreferredSize(new java.awt.Dimension(50, 40));
+        TasadeDevolucion.setLeftComponent(jLabel6);
+
+        numeroaeditartasa.setText("2215121");
+        TasadeDevolucion.setRightComponent(numeroaeditartasa);
+
+        DevolucionesTitulo.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        DevolucionesTitulo.setText("Devoluciones Totales:");
+
+        ImporteTitulo.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        ImporteTitulo.setText("Importe Total Devuelto:");
+
+        ImporteTitulo1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        ImporteTitulo1.setText("Tasa de Devolución:");
+
+        TendenciasdeDevoluciones.setBackground(new java.awt.Color(204, 204, 204));
+
+        javax.swing.GroupLayout TendenciasdeDevolucionesLayout = new javax.swing.GroupLayout(TendenciasdeDevoluciones);
+        TendenciasdeDevoluciones.setLayout(TendenciasdeDevolucionesLayout);
+        TendenciasdeDevolucionesLayout.setHorizontalGroup(
+            TendenciasdeDevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 552, Short.MAX_VALUE)
         );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 619, Short.MAX_VALUE)
+        TendenciasdeDevolucionesLayout.setVerticalGroup(
+            TendenciasdeDevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 370, Short.MAX_VALUE)
         );
 
-        PROMOCIONES.addTab("DEVOLUCIONES", jPanel3);
+        DevolucionesporMotivos.setBackground(new java.awt.Color(204, 204, 204));
+
+        javax.swing.GroupLayout DevolucionesporMotivosLayout = new javax.swing.GroupLayout(DevolucionesporMotivos);
+        DevolucionesporMotivos.setLayout(DevolucionesporMotivosLayout);
+        DevolucionesporMotivosLayout.setHorizontalGroup(
+            DevolucionesporMotivosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 524, Short.MAX_VALUE)
+        );
+        DevolucionesporMotivosLayout.setVerticalGroup(
+            DevolucionesporMotivosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+
+        javax.swing.GroupLayout DevolucionesLayout = new javax.swing.GroupLayout(Devoluciones);
+        Devoluciones.setLayout(DevolucionesLayout);
+        DevolucionesLayout.setHorizontalGroup(
+            DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(DevolucionesLayout.createSequentialGroup()
+                .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(DevolucionesLayout.createSequentialGroup()
+                        .addGap(148, 148, 148)
+                        .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(DevolucionesLayout.createSequentialGroup()
+                                .addComponent(DevolucionesTotales, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(159, 159, 159)
+                                .addComponent(ImporteTotalDevuelto, javax.swing.GroupLayout.PREFERRED_SIZE, 176, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(160, 160, 160)
+                                .addComponent(TasadeDevolucion, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(DevolucionesLayout.createSequentialGroup()
+                                .addGap(31, 31, 31)
+                                .addComponent(DevolucionesTitulo)
+                                .addGap(200, 200, 200)
+                                .addComponent(ImporteTitulo)
+                                .addGap(180, 180, 180)
+                                .addComponent(ImporteTitulo1))))
+                    .addGroup(DevolucionesLayout.createSequentialGroup()
+                        .addGap(31, 31, 31)
+                        .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(DevolucionesLayout.createSequentialGroup()
+                                .addComponent(TendenciasdeDevoluciones, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(DevolucionesporMotivos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(40, Short.MAX_VALUE))
+        );
+        DevolucionesLayout.setVerticalGroup(
+            DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(DevolucionesLayout.createSequentialGroup()
+                .addGap(30, 30, 30)
+                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(28, 28, 28)
+                .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(DevolucionesLayout.createSequentialGroup()
+                        .addComponent(ImporteTitulo1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(TasadeDevolucion, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(DevolucionesLayout.createSequentialGroup()
+                        .addComponent(DevolucionesTitulo)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(DevolucionesTotales, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(DevolucionesLayout.createSequentialGroup()
+                        .addComponent(ImporteTitulo)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(ImporteTotalDevuelto, javax.swing.GroupLayout.PREFERRED_SIZE, 66, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(48, 48, 48)
+                .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(TendenciasdeDevoluciones, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(DevolucionesporMotivos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+
+        PROMOCIONES.addTab("DEVOLUCIONES", Devoluciones);
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -98,10 +227,25 @@ public class panel_VentaGerente extends javax.swing.JPanel {
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JPanel Devoluciones;
+    private javax.swing.JLabel DevolucionesTitulo;
+    private javax.swing.JSplitPane DevolucionesTotales;
+    private javax.swing.JPanel DevolucionesporMotivos;
+    private javax.swing.JLabel ImporteTitulo;
+    private javax.swing.JLabel ImporteTitulo1;
+    private javax.swing.JSplitPane ImporteTotalDevuelto;
     private javax.swing.JTabbedPane PROMOCIONES;
+    private javax.swing.JSplitPane TasadeDevolucion;
+    private javax.swing.JPanel TendenciasdeDevoluciones;
+    private javax.swing.JLabel devolucionesnumeroedit;
+    private javax.swing.JLabel importenumeroeditable;
+    private javax.swing.JComboBox<String> jComboBox1;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JLabel numeroaeditartasa;
     // End of variables declaration//GEN-END:variables
 }
