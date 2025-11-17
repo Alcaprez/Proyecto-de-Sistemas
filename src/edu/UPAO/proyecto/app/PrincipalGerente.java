@@ -68,6 +68,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
 
         jPanel1.setBackground(new java.awt.Color(0, 51, 29));
 
+        btn_venta.setBackground(new java.awt.Color(51, 122, 54));
+        btn_venta.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_venta.setForeground(new java.awt.Color(255, 255, 255));
         btn_venta.setText("VENTAS");
         btn_venta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -75,6 +78,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_almacenes.setBackground(new java.awt.Color(33, 107, 171));
+        btn_almacenes.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_almacenes.setForeground(new java.awt.Color(255, 255, 255));
         btn_almacenes.setText("ALMACENES");
         btn_almacenes.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -82,6 +88,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_compras.setBackground(new java.awt.Color(206, 84, 15));
+        btn_compras.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_compras.setForeground(new java.awt.Color(255, 255, 255));
         btn_compras.setText("COMPRAS");
         btn_compras.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -89,6 +98,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_personal.setBackground(new java.awt.Color(255, 153, 3));
+        btn_personal.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_personal.setForeground(new java.awt.Color(255, 255, 255));
         btn_personal.setText("PERSONAL");
         btn_personal.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -96,6 +108,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_cuenta.setBackground(new java.awt.Color(3, 53, 155));
+        btn_cuenta.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_cuenta.setForeground(new java.awt.Color(255, 255, 255));
         btn_cuenta.setText("CUENTA");
         btn_cuenta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -103,6 +118,9 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_tesoreria.setBackground(new java.awt.Color(192, 35, 28));
+        btn_tesoreria.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_tesoreria.setForeground(new java.awt.Color(255, 255, 255));
         btn_tesoreria.setText("TESORERIA");
         btn_tesoreria.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -110,7 +128,11 @@ public class PrincipalGerente extends javax.swing.JFrame {
             }
         });
 
+        btn_cerrarSesion.setBackground(new java.awt.Color(0, 51, 29));
+        btn_cerrarSesion.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btn_cerrarSesion.setForeground(new java.awt.Color(244, 224, 66));
         btn_cerrarSesion.setText("Cerrar sesion");
+        btn_cerrarSesion.setBorder(null);
         btn_cerrarSesion.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_cerrarSesionActionPerformed(evt);
@@ -133,7 +155,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
                 .addContainerGap())
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(38, 38, 38)
-                .addComponent(btn_cerrarSesion, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(btn_cerrarSesion)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
@@ -167,7 +189,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
         );
         jLayeredPane1Layout.setVerticalGroup(
             jLayeredPane1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 654, Short.MAX_VALUE)
+            .addGap(0, 609, Short.MAX_VALUE)
         );
 
         content.add(jLayeredPane1, java.awt.BorderLayout.CENTER);
@@ -222,7 +244,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
                 .addGap(0, 0, 0)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, 609, Short.MAX_VALUE)))
+                    .addComponent(content, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
 
         getContentPane().add(jPanel2, java.awt.BorderLayout.CENTER);

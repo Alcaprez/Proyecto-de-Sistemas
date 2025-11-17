@@ -50,6 +50,8 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         panelKpiAusencias = new javax.swing.JPanel();
         lblAusenciasTitulo = new javax.swing.JLabel();
         lblAusenciasValor = new javax.swing.JLabel();
+        jScrollPaneAsis = new javax.swing.JScrollPane();
+        tablaAsistencias = new javax.swing.JTable();
         NOMINA_EMPLEADOS = new javax.swing.JPanel();
 
         ASISTENCIAS.setLayout(new java.awt.BorderLayout());
@@ -58,7 +60,9 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         cbTienda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         cbTienda.setPreferredSize(new java.awt.Dimension(150, 30));
-        panelTop.add(cbTienda, new java.awt.GridBagConstraints());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 0;
+        panelTop.add(cbTienda, gridBagConstraints);
 
         btnFecha.setText("FECHA");
         btnFecha.setPreferredSize(new java.awt.Dimension(150, 30));
@@ -166,6 +170,21 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         panelCenter.add(panelKpis, java.awt.BorderLayout.EAST);
 
+        tablaAsistencias.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
+            },
+            new String [] {
+                "Nombre y Cargo", "Turno", "Entrada", "Salida", "Estado"
+            }
+        ));
+        jScrollPaneAsis.setViewportView(tablaAsistencias);
+
+        panelCenter.add(jScrollPaneAsis, java.awt.BorderLayout.CENTER);
+
         ASISTENCIAS.add(panelCenter, java.awt.BorderLayout.CENTER);
 
         tabControlPersonal.addTab("ASISTENCIAS", ASISTENCIAS);
@@ -203,6 +222,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JButton btnFecha;
     private javax.swing.JComboBox<String> cbFiltroEstado;
     private javax.swing.JComboBox<String> cbTienda;
+    private javax.swing.JScrollPane jScrollPaneAsis;
     private javax.swing.JLabel lblAusenciasTitulo;
     private javax.swing.JLabel lblAusenciasValor;
     private javax.swing.JLabel lblListaEmpleados;
@@ -220,6 +240,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JPanel panelKpis;
     private javax.swing.JPanel panelTop;
     private javax.swing.JTabbedPane tabControlPersonal;
+    private javax.swing.JTable tablaAsistencias;
     private javax.swing.JTextField txtBuscar;
     // End of variables declaration//GEN-END:variables
 }
