@@ -25,53 +25,201 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
-        jTabbedPane1 = new javax.swing.JTabbedPane();
-        jPanel1 = new javax.swing.JPanel();
-        jPanel2 = new javax.swing.JPanel();
+        tabControlPersonal = new javax.swing.JTabbedPane();
+        ASISTENCIAS = new javax.swing.JPanel();
+        panelTop = new javax.swing.JPanel();
+        cbTienda = new javax.swing.JComboBox<>();
+        btnFecha = new javax.swing.JButton();
+        btnExportar = new javax.swing.JButton();
+        lblListaEmpleados = new javax.swing.JLabel();
+        txtBuscar = new javax.swing.JTextField();
+        cbFiltroEstado = new javax.swing.JComboBox<>();
+        panelCenter = new javax.swing.JPanel();
+        panelKpis = new javax.swing.JPanel();
+        panelKpiTotal = new javax.swing.JPanel();
+        lblTotalEmpleadosTitulo = new javax.swing.JLabel();
+        lblTtotalEmpleadosValor = new javax.swing.JLabel();
+        panelKpiPresentes = new javax.swing.JPanel();
+        lblPresentesTitulo = new javax.swing.JLabel();
+        lblPresentesValor = new javax.swing.JLabel();
+        panelKpiTardanzas = new javax.swing.JPanel();
+        lblTardanzasTitulo = new javax.swing.JLabel();
+        lblTardanzasValor = new javax.swing.JLabel();
+        panelKpiAusencias = new javax.swing.JPanel();
+        lblAusenciasTitulo = new javax.swing.JLabel();
+        lblAusenciasValor = new javax.swing.JLabel();
+        NOMINA_EMPLEADOS = new javax.swing.JPanel();
 
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        ASISTENCIAS.setLayout(new java.awt.BorderLayout());
+
+        panelTop.setLayout(new java.awt.GridBagLayout());
+
+        cbTienda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cbTienda.setPreferredSize(new java.awt.Dimension(150, 30));
+        panelTop.add(cbTienda, new java.awt.GridBagConstraints());
+
+        btnFecha.setText("FECHA");
+        btnFecha.setPreferredSize(new java.awt.Dimension(150, 30));
+        panelTop.add(btnFecha, new java.awt.GridBagConstraints());
+
+        btnExportar.setText("EXPORTAR");
+        btnExportar.setPreferredSize(new java.awt.Dimension(150, 30));
+        panelTop.add(btnExportar, new java.awt.GridBagConstraints());
+
+        lblListaEmpleados.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblListaEmpleados.setText("Lista de Empleados");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        panelTop.add(lblListaEmpleados, gridBagConstraints);
+
+        txtBuscar.setText("Buscar por Nombre o ID...");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        panelTop.add(txtBuscar, gridBagConstraints);
+
+        cbFiltroEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ver Todos", "Presentes", "Tardanzas", "Ausentes" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        panelTop.add(cbFiltroEstado, gridBagConstraints);
+
+        ASISTENCIAS.add(panelTop, java.awt.BorderLayout.NORTH);
+
+        panelCenter.setBackground(new java.awt.Color(255, 255, 255));
+        panelCenter.setLayout(new java.awt.BorderLayout());
+
+        panelKpis.setPreferredSize(new java.awt.Dimension(200, 592));
+        panelKpis.setLayout(new javax.swing.BoxLayout(panelKpis, javax.swing.BoxLayout.Y_AXIS));
+
+        panelKpiTotal.setBackground(new java.awt.Color(0, 102, 204));
+        panelKpiTotal.setPreferredSize(new java.awt.Dimension(180, 80));
+        panelKpiTotal.setLayout(new java.awt.BorderLayout());
+
+        lblTotalEmpleadosTitulo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblTotalEmpleadosTitulo.setForeground(new java.awt.Color(255, 255, 255));
+        lblTotalEmpleadosTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTotalEmpleadosTitulo.setText("TOTAL DE EMPLEADOS");
+        panelKpiTotal.add(lblTotalEmpleadosTitulo, java.awt.BorderLayout.NORTH);
+
+        lblTtotalEmpleadosValor.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        lblTtotalEmpleadosValor.setForeground(new java.awt.Color(255, 255, 255));
+        lblTtotalEmpleadosValor.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTtotalEmpleadosValor.setText("jLabel2");
+        panelKpiTotal.add(lblTtotalEmpleadosValor, java.awt.BorderLayout.CENTER);
+
+        panelKpis.add(panelKpiTotal);
+
+        panelKpiPresentes.setBackground(new java.awt.Color(95, 173, 75));
+        panelKpiPresentes.setPreferredSize(new java.awt.Dimension(180, 80));
+        panelKpiPresentes.setLayout(new java.awt.BorderLayout());
+
+        lblPresentesTitulo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblPresentesTitulo.setForeground(new java.awt.Color(255, 255, 255));
+        lblPresentesTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblPresentesTitulo.setText("PRESENTES");
+        panelKpiPresentes.add(lblPresentesTitulo, java.awt.BorderLayout.NORTH);
+
+        lblPresentesValor.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        lblPresentesValor.setForeground(new java.awt.Color(255, 255, 255));
+        lblPresentesValor.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblPresentesValor.setText("jLabel3");
+        panelKpiPresentes.add(lblPresentesValor, java.awt.BorderLayout.CENTER);
+
+        panelKpis.add(panelKpiPresentes);
+
+        panelKpiTardanzas.setBackground(new java.awt.Color(247, 120, 48));
+        panelKpiTardanzas.setPreferredSize(new java.awt.Dimension(180, 80));
+        panelKpiTardanzas.setLayout(new java.awt.BorderLayout());
+
+        lblTardanzasTitulo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblTardanzasTitulo.setForeground(new java.awt.Color(255, 255, 255));
+        lblTardanzasTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTardanzasTitulo.setText("TARDANZAS");
+        panelKpiTardanzas.add(lblTardanzasTitulo, java.awt.BorderLayout.PAGE_START);
+
+        lblTardanzasValor.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        lblTardanzasValor.setForeground(new java.awt.Color(255, 255, 255));
+        lblTardanzasValor.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTardanzasValor.setText("jLabel2");
+        panelKpiTardanzas.add(lblTardanzasValor, java.awt.BorderLayout.CENTER);
+
+        panelKpis.add(panelKpiTardanzas);
+
+        panelKpiAusencias.setBackground(new java.awt.Color(195, 32, 22));
+        panelKpiAusencias.setPreferredSize(new java.awt.Dimension(180, 80));
+        panelKpiAusencias.setLayout(new java.awt.BorderLayout());
+
+        lblAusenciasTitulo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblAusenciasTitulo.setForeground(new java.awt.Color(255, 255, 255));
+        lblAusenciasTitulo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblAusenciasTitulo.setText("AUSENCIAS");
+        panelKpiAusencias.add(lblAusenciasTitulo, java.awt.BorderLayout.PAGE_START);
+
+        lblAusenciasValor.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
+        lblAusenciasValor.setForeground(new java.awt.Color(255, 255, 255));
+        lblAusenciasValor.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblAusenciasValor.setText("jLabel2");
+        panelKpiAusencias.add(lblAusenciasValor, java.awt.BorderLayout.CENTER);
+
+        panelKpis.add(panelKpiAusencias);
+
+        panelCenter.add(panelKpis, java.awt.BorderLayout.EAST);
+
+        ASISTENCIAS.add(panelCenter, java.awt.BorderLayout.CENTER);
+
+        tabControlPersonal.addTab("ASISTENCIAS", ASISTENCIAS);
+
+        javax.swing.GroupLayout NOMINA_EMPLEADOSLayout = new javax.swing.GroupLayout(NOMINA_EMPLEADOS);
+        NOMINA_EMPLEADOS.setLayout(NOMINA_EMPLEADOSLayout);
+        NOMINA_EMPLEADOSLayout.setHorizontalGroup(
+            NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 1228, Short.MAX_VALUE)
         );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        NOMINA_EMPLEADOSLayout.setVerticalGroup(
+            NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 664, Short.MAX_VALUE)
         );
 
-        jTabbedPane1.addTab("ASISTENCIAS", jPanel1);
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1228, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 664, Short.MAX_VALUE)
-        );
-
-        jTabbedPane1.addTab("NOMINA DE EMPLEADOS", jPanel2);
+        tabControlPersonal.addTab("NOMINA DE EMPLEADOS", NOMINA_EMPLEADOS);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+            .addComponent(tabControlPersonal)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+            .addComponent(tabControlPersonal)
         );
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
-    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JPanel ASISTENCIAS;
+    private javax.swing.JPanel NOMINA_EMPLEADOS;
+    private javax.swing.JButton btnExportar;
+    private javax.swing.JButton btnFecha;
+    private javax.swing.JComboBox<String> cbFiltroEstado;
+    private javax.swing.JComboBox<String> cbTienda;
+    private javax.swing.JLabel lblAusenciasTitulo;
+    private javax.swing.JLabel lblAusenciasValor;
+    private javax.swing.JLabel lblListaEmpleados;
+    private javax.swing.JLabel lblPresentesTitulo;
+    private javax.swing.JLabel lblPresentesValor;
+    private javax.swing.JLabel lblTardanzasTitulo;
+    private javax.swing.JLabel lblTardanzasValor;
+    private javax.swing.JLabel lblTotalEmpleadosTitulo;
+    private javax.swing.JLabel lblTtotalEmpleadosValor;
+    private javax.swing.JPanel panelCenter;
+    private javax.swing.JPanel panelKpiAusencias;
+    private javax.swing.JPanel panelKpiPresentes;
+    private javax.swing.JPanel panelKpiTardanzas;
+    private javax.swing.JPanel panelKpiTotal;
+    private javax.swing.JPanel panelKpis;
+    private javax.swing.JPanel panelTop;
+    private javax.swing.JTabbedPane tabControlPersonal;
+    private javax.swing.JTextField txtBuscar;
     // End of variables declaration//GEN-END:variables
 }
