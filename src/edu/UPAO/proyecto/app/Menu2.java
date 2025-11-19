@@ -19,31 +19,43 @@ public class Menu2 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Menu2.class.getName());
     private String idEmpleado;
+    private int idSucursal; // 
 
     public Menu2(String idEmpleado) {
         initComponents();
         btn_validar.addActionListener(e -> onValidarCupon());
         this.idEmpleado = idEmpleado;
-        System.out.println("✅ Menu2 - Empleado en sesión: " + this.idEmpleado);
+        this.idSucursal = obtenerSucursalEmpleado(idEmpleado);
+        System.out.println("Cajero - Empleado: " + this.idEmpleado + ", Sucursal: " + this.idSucursal);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setTitle("Sistema Kuyay - Menú Principal");
-        inicializarTablaProductos(); // ✅ Esto asegura el orden correcto
+
+        inicializarComponentes();
+        btn_inicio.doClick();
+    }
+
+    private void inicializarComponentes() {
+        inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
         txtCupon.setEnabled(false);
 
-        spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
-
-        SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1);
-        sp_item.setModel(spinnerModel);
-
-        btn_validar.addActionListener(e -> onValidarCupon());
-
+        // Configurar spinners
         spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         sp_item.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
 
-        ///////////////////////ACA SOLO PARA LA RUEDITA/////////////////////////
+        // Listeners
+        configurarListeners();
+
+        // Cargar productos iniciales
+        cargarProductosEnTabla();
+    }
+
+    private void configurarListeners() {
+        btn_validar.addActionListener(e -> onValidarCupon());
+
+        // Mouse wheel para spinners
         sp_item.addMouseWheelListener(e -> {
             int rot = e.getWheelRotation();
             int val = (int) sp_item.getValue();
@@ -56,74 +68,51 @@ public class Menu2 extends javax.swing.JFrame {
 
         tablaProductos.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                spCantidad.setValue(1); // 👈 Reinicia cantidad
+                spCantidad.setValue(1);
             }
         });
 
-        // Al inicializar tu formulario
+        // ✅ CORREGIDO: MouseWheelListener para cantidad
         spCantidad.addMouseWheelListener(e -> {
-            int notches = e.getWheelRotation(); // movimiento de la rueda
+            int notches = e.getWheelRotation();
             int valorActual = (int) spCantidad.getValue();
 
             int fila = tablaProductos.getSelectedRow();
             if (fila == -1) {
-                return; // no hay producto seleccionado
+                return;
             }
-            DefaultTableModel modeloProductos = new DefaultTableModel(
-                    new Object[]{"Código", "Nombre", "Precio", "Stock"}, 0
-            ) {
-                @Override
-                public boolean isCellEditable(int row, int column) {
-                    return false; // Hacer la tabla no editable
-                }
-            };
-            tablaProductos.setModel(modeloProductos);
 
-            // Asegurar que las columnas tengan el ancho adecuado
-            tablaProductos.getColumnModel().getColumn(0).setPreferredWidth(80);  // Código
-            tablaProductos.getColumnModel().getColumn(1).setPreferredWidth(200); // Nombre
-            tablaProductos.getColumnModel().getColumn(2).setPreferredWidth(60);  // Precio
-            tablaProductos.getColumnModel().getColumn(3).setPreferredWidth(50);  // Stock
-            String codigo = modeloProductos.getValueAt(fila, 0).toString();
-
+            String codigo = tablaProductos.getValueAt(fila, 0).toString();
             ProductoDAO productoDAO = new ProductoDAO();
-            Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+            // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+            Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
+
             if (producto == null) {
+                productoDAO.cerrarConexion();
                 return;
             }
 
             int stock = producto.getStock();
             int nuevoValor = valorActual;
 
-            if (notches < 0) {
-                // Rueda hacia arriba → aumentar
-                if (valorActual < stock) {
-                    nuevoValor++;
-                }
-            } else {
-                // Rueda hacia abajo → disminuir
-                if (valorActual > 1) {
-                    nuevoValor--;
-                }
+            if (notches < 0 && valorActual < stock) {
+                nuevoValor++;
+            } else if (notches > 0 && valorActual > 1) {
+                nuevoValor--;
             }
 
             spCantidad.setValue(nuevoValor);
+            productoDAO.cerrarConexion();
         });
 
-        // 🔄 Resetear spinner al seleccionar otro ítem en miniTabla
         miniTabla.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && miniTabla.getSelectedRow() != -1) {
-                sp_item.setValue(1); // tu spinner de actualizar carrito
+                sp_item.setValue(1);
             }
         });
-        ///////////////////////ACA SOLO PARA LA RUEDITA/////////////////////////
 
-        //////////OCULATMOS LA COLUMNA DE "CODIGO DE LA MINITABLA"//////////////
-        miniTabla.getColumnModel().getColumn(4).setMinWidth(0);
-        miniTabla.getColumnModel().getColumn(4).setMaxWidth(0);
-        miniTabla.getColumnModel().getColumn(4).setWidth(0);
-        //////////OCULATMOS LA COLUMNA DE "CODIGO DE LA MINITABLA"//////////////
-
+        // ✅ CORREGIDO: DocumentListener para búsqueda
         txtBuscarCodigo.getDocument().addDocumentListener(new DocumentListener() {
             private void filtrar() {
                 String texto = txtBuscarCodigo.getText();
@@ -157,7 +146,17 @@ public class Menu2 extends javax.swing.JFrame {
                 filtrar();
             }
         });
-        btn_inicio.doClick();
+
+        // Ocultar columna código en miniTabla
+        miniTabla.getColumnModel().getColumn(4).setMinWidth(0);
+        miniTabla.getColumnModel().getColumn(4).setMaxWidth(0);
+        miniTabla.getColumnModel().getColumn(4).setWidth(0);
+    }
+
+    private int obtenerSucursalEmpleado(String idEmpleado) {
+        // ⚠️ TEMPORAL: Implementar EmpleadoDAO después
+        System.out.println("🔍 Obteniendo sucursal para empleado: " + idEmpleado);
+        return 1; // Por ahora sucursal 1
     }
 
     public String getIdEmpleado() {
@@ -167,46 +166,27 @@ public class Menu2 extends javax.swing.JFrame {
     public void cargarProductosEnTabla() {
         try {
             ProductoDAO dao = new ProductoDAO();
-            List<Producto> productos = dao.listar();
-
-            System.out.println("🔍 DEBUG: Se encontraron " + productos.size() + " productos");
+            List<Producto> productos = dao.listarPorSucursal(this.idSucursal);
 
             DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
             modelo.setRowCount(0);
 
-            if (productos.isEmpty()) {
-                System.out.println("⚠️ ADVERTENCIA: No se encontraron productos en la BD");
-                JOptionPane.showMessageDialog(this,
-                        "No se encontraron productos en la base de datos.\nVerifica que haya productos cargados.",
-                        "Sin productos",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
             for (Producto p : productos) {
-                System.out.println("📦 Producto: " + p.getCodigo() + " - " + p.getNombre() + " - S/" + p.getPrecioVenta());
                 modelo.addRow(new Object[]{
-                    p.getCodigo(), // Columna 0: Código
-                    p.getNombre(), // Columna 1: Nombre  
-                    p.getPrecioVenta(), // Columna 2: Precio
-                    p.getStock() // Columna 3: Stock
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getPrecioVenta(),
+                    p.getStock()
                 });
             }
 
-            System.out.println("✅ Tabla actualizada con " + modelo.getRowCount() + " productos");
+            dao.cerrarConexion();
+            System.out.println("Productos cargados para sucursal: " + this.idSucursal);
 
         } catch (Exception e) {
-            System.err.println("❌ ERROR en cargarProductosEnTabla: " + e.getMessage());
+            System.err.println("ERROR en cargarProductosEnTabla: " + e.getMessage());
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar productos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }finally {
-        if (dao != null) {
-            dao.cerrarDAO(); // ✅ AQUÍ
         }
-    }
     }
 
     private void inicializarTablaProductos() {
@@ -849,9 +829,9 @@ public class Menu2 extends javax.swing.JFrame {
 
     private List<Producto> buscarProductosPorNombre(String texto) {
         ProductoDAO dao = new ProductoDAO();
-        // El DAO debería hacer la consulta SQL con LIKE
-        return dao.buscarPorNombre(texto); // SELECT * FROM producto WHERE nombre LIKE ?
-
+        List<Producto> productos = dao.buscarPorNombre(texto, this.idSucursal);
+        dao.cerrarConexion();
+        return productos;
     }
 
     public void vaciarCarrito() {
@@ -950,55 +930,38 @@ public class Menu2 extends javax.swing.JFrame {
 
     private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
         String texto = txtBuscarCodigo.getText().trim().toLowerCase();
-
         if (texto.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Ingrese un texto para buscar.");
             return;
         }
 
         ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar();
-        List<Producto> filtrados = new ArrayList<>();
+        List<Producto> productos = dao.buscarPorNombre(texto, this.idSucursal);
 
-        for (Producto p : productos) {
-            // 🔎 Coincidencias no necesariamente en orden exacto
-            String nombre = p.getNombre().toLowerCase();
-            if (contieneSalteado(nombre, texto)) {
-                filtrados.add(p);
-            }
-        }
-
-        // Mostrar resultados en tabla
         DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
         modelo.setRowCount(0);
-        for (Producto p : filtrados) {
+
+        for (Producto p : productos) {
             modelo.addRow(new Object[]{p.getCodigo(), p.getNombre(), p.getPrecioVenta(), p.getStock()});
+        }
+
+        dao.cerrarConexion();
+
+        if (productos.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No se encontraron productos con: '" + texto + "'");
         }
     }//GEN-LAST:event_btn_buscarActionPerformed
 
     private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton12ActionPerformed
-        ProductoController pc = new ProductoController();
 
         try {
-            // Usar cargarProductos en lugar de productosMasVendidos temporalmente
-            List<Producto> productos = pc.cargarProductos();
-
-            // Mostrar en tablaProductos (sin la columna de vendidos por ahora)
-            DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
-            modelo.setRowCount(0);
-
-            for (Producto p : productos) {
-                modelo.addRow(new Object[]{
-                    p.getNombre(),
-                    p.getPrecioVenta(),
-                    p.getStock()
-                // p.getVendidos() // ❌ Comentado temporalmente
-                });
-            }
-
-            JOptionPane.showMessageDialog(this, "Productos cargados (función de más vendidos temporalmente deshabilitada)");
+            // ✅ CORREGIDO: Usar nuestro método que sí considera sucursal
+            cargarProductosEnTabla();
+            JOptionPane.showMessageDialog(this,
+                    "Productos cargados para sucursal " + this.idSucursal);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar productos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar productos: " + e.getMessage());
             e.printStackTrace();
         }
     }//GEN-LAST:event_jButton12ActionPerformed
@@ -1066,30 +1029,32 @@ public class Menu2 extends javax.swing.JFrame {
         }
 
         DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
-
-        // ✅ Recuperar el código oculto (columna 0)
         String codigo = modelo.getValueAt(fila, 4).toString();
 
         ProductoDAO productoDAO = new ProductoDAO();
-        Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+        // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+        Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
 
         if (producto == null) {
             JOptionPane.showMessageDialog(this, "No se encontró el producto en la base de datos.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // ✅ Validar stock
         if (nuevaCantidad > producto.getStock()) {
-            JOptionPane.showMessageDialog(this, "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            JOptionPane.showMessageDialog(this,
+                    "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // ✅ Actualizar cantidad y subtotal en la tabla
-        modelo.setValueAt(nuevaCantidad, fila, 1); // cantidad
-        modelo.setValueAt(producto.getPrecioVenta(), fila, 2); // P/U
-        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3); // subtotal
+        modelo.setValueAt(nuevaCantidad, fila, 1);
+        modelo.setValueAt(producto.getPrecioVenta(), fila, 2);
+        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3);
 
         actualizarTotal();
+        productoDAO.cerrarConexion();
     }//GEN-LAST:event_btn_actualizarItemActionPerformed
 
     private void rb_cuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_cuponActionPerformed
@@ -1127,11 +1092,17 @@ public class Menu2 extends javax.swing.JFrame {
         // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
         String observaciones = txtObservaciones.getText().trim();
 
-        // ✅ PASAR id_empleado al crear jFrame_GenerarBoleta
-        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total, this.idEmpleado);
-
-        // ✅ PASAR OBSERVACIONES
-        boletaFrame.setObservaciones(observaciones);
+        // ✅ PASAR TODOS LOS PARÁMETROS INCLUYENDO OBSERVACIONES
+        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(
+                this,
+                carritoClonado,
+                subtotal,
+                descuento,
+                total,
+                this.idEmpleado,
+                this.idSucursal,
+                observaciones // ✅ NUEVO PARÁMETRO
+        );
 
         boletaFrame.setLocationRelativeTo(this);
         boletaFrame.setVisible(true);
@@ -1152,22 +1123,18 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_cancelarActionPerformed
 
     private void btn_SKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SKUActionPerformed
-        // Cambiar texto y bloquear botón mientras simula escaneo
         btn_SKU.setText("Escaneando...");
         btn_SKU.setEnabled(false);
 
-        // Crear Timer (ejecuta la acción tras 2000 ms)
         Timer t = new Timer(2000, e -> {
-            ProductoController pc = new ProductoController();
-            List<Producto> productos = pc.cargarProductos();
+            ProductoDAO productoDAO = new ProductoDAO();
+            List<Producto> productos = productoDAO.listarPorSucursal(this.idSucursal);
 
             if (productos.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No hay productos cargados.");
             } else {
                 Random rand = new Random();
                 Producto producto = productos.get(rand.nextInt(productos.size()));
-
-                // 🔹 Cantidad fija = 1 (como un escaneo real)
                 int cantidad = 1;
 
                 if (producto.getStock() <= 0) {
@@ -1175,34 +1142,28 @@ public class Menu2 extends javax.swing.JFrame {
                 } else {
                     DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
 
-                    // 🔹 Validar stock
                     if (cantidad > producto.getStock()) {
                         JOptionPane.showMessageDialog(this,
                                 "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
-                        return;
+                    } else {
+                        double precioUnitario = producto.getPrecioVenta();
+                        double subtotal = precioUnitario * cantidad;
+
+                        modeloCarrito.addRow(new Object[]{
+                            producto.getNombre(),
+                            cantidad,
+                            precioUnitario,
+                            subtotal,
+                            producto.getCodigo()
+                        });
+
+                        actualizarTotal();
+                        JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
                     }
-
-                    // 🔹 Calcular subtotal
-                    double precioUnitario = producto.getPrecioVenta();
-                    double subtotal = precioUnitario * cantidad;
-
-                    // 🚀 Agregar al carrito en el mismo orden que btn_agregar
-                    modeloCarrito.addRow(new Object[]{
-                        producto.getNombre(), // Columna 0: Nombre
-                        cantidad, // Columna 1: Cantidad
-                        precioUnitario, // Columna 2: P/U
-                        subtotal, // Columna 3: Subtotal
-                        producto.getCodigo() // Columna 4: Código (oculto)
-                    });
-
-                    // 🔹 Recalcular total
-                    actualizarTotal();
-
-                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
                 }
             }
 
-            // Restaurar el botón
+            productoDAO.cerrarConexion();
             btn_SKU.setText("ESCANEAR SKU");
             btn_SKU.setEnabled(true);
         });
@@ -1217,50 +1178,47 @@ public class Menu2 extends javax.swing.JFrame {
 
     private void btn_agregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarActionPerformed
         int filaSeleccionada = tablaProductos.getSelectedRow();
-
         if (filaSeleccionada == -1) {
             JOptionPane.showMessageDialog(this, "Selecciona un producto primero.");
             return;
         }
 
-        DefaultTableModel modeloProductos = (DefaultTableModel) tablaProductos.getModel();
-        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
-
         String codigo = tablaProductos.getValueAt(filaSeleccionada, 0).toString().trim();
-        System.out.println("Código seleccionado: " + codigo);
-
-        // 🔹 Usar DAO para obtener el objeto producto
         ProductoDAO productoDAO = new ProductoDAO();
-        Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+        // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+        Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
 
         if (producto == null) {
-            JOptionPane.showMessageDialog(this, "❌ No se encontró el producto en el DAO");
+            JOptionPane.showMessageDialog(this, "❌ No se encontró el producto");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // 🔹 Obtener la cantidad del spinner
         int cantidad = (int) spCantidad.getValue();
 
-        // 🔹 Validar stock
         if (cantidad > producto.getStock()) {
-            JOptionPane.showMessageDialog(this, "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            JOptionPane.showMessageDialog(this,
+                    "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // 🔹 Calcular subtotal
         double precioUnitario = producto.getPrecioVenta();
         double subtotal = precioUnitario * cantidad;
 
+        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
         modeloCarrito.addRow(new Object[]{
-            producto.getNombre(), // Columna 0: Nombre
-            cantidad, // Columna 1: Cantidad
-            precioUnitario, // Columna 2: P/U
-            subtotal, // Columna 3: Subtotal
-            producto.getCodigo() // Columna 4: Código (oculto)
+            producto.getNombre(),
+            cantidad,
+            precioUnitario,
+            subtotal,
+            producto.getCodigo()
         });
 
-        // 🔹 Recalcular totales
         actualizarTotal();
+        productoDAO.cerrarConexion();
+        System.out.println("✅ Producto agregado - Stock: " + producto.getStock());
     }//GEN-LAST:event_btn_agregarActionPerformed
 
     private void jButton1ComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jButton1ComponentMoved

@@ -9,10 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VentaService {
+
     private VentaDAO ventaDAO = new VentaDAO();
+    private InventarioSucursalDAO inventarioSucursalDAO = new InventarioSucursalDAO(); // ✅ NUEVO
 
     // Validar la venta antes de registrar
-    private List<String> validarVenta(List<DetalleVenta> detalles, String metodoPago) {
+    private List<String> validarVenta(List<DetalleVenta> detalles, String metodoPago, String idEmpleado, int idSucursal) {
         List<String> errores = new ArrayList<>();
 
         if (detalles == null || detalles.isEmpty()) {
@@ -34,9 +36,13 @@ public class VentaService {
                 errores.add("Precio unitario inválido para " + d.getProducto().getNombre());
             }
 
-            if (d.getCantidad() > d.getProducto().getStock()) {
-                errores.add("Stock insuficiente para " + d.getProducto().getNombre() +
-                        " (stock disponible: " + d.getProducto().getStock() + ").");
+            // ✅ VALIDACIÓN CORREGIDA: Stock por sucursal
+            int idProducto = d.getProducto().getId();
+            int stockDisponible = inventarioSucursalDAO.obtenerStock(idProducto, idSucursal);
+
+            if (d.getCantidad() > stockDisponible) {
+                errores.add("Stock insuficiente para " + d.getProducto().getNombre()
+                        + " (stock disponible en sucursal: " + stockDisponible + ").");
             }
         }
 
@@ -86,4 +92,3 @@ public class VentaService {
         return 0.0;
     }
 }
-

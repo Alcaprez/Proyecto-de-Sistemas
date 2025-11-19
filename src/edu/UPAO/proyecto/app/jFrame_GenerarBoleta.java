@@ -32,11 +32,19 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     private jFram_MaquinaDePAgo maquina;
     private String idEmpleado;                  // AGREGAR este campo
     private String observaciones = "";
+    private int idSucursal;
 
     // Constructor que recibe carrito + totales listos
-    public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado, String subtotal, String descuento, String total) {
+    public jFrame_GenerarBoleta(java.awt.Frame parent, DefaultTableModel carrito,
+            String subtotal, String descuento, String total,
+            String idEmpleado, int idSucursal, String observaciones) { // ✅ NUEVO PARÁMETRO
 
         initComponents();
+        this.idSucursal = idSucursal;
+        this.idEmpleado = idEmpleado;
+        this.modeloBoleta = carrito;
+        this.observaciones = observaciones; // ✅ ASIGNAR OBSERVACIONES DIRECTAMENTE
+
         configurarAutocompletarCliente();
 
         bg_boletaOfactura = new ButtonGroup();
@@ -45,9 +53,14 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
         btn_mostrarMaquina.setEnabled(false);
 
-        this.owner = owner;
-        this.modeloBoleta = carritoClonado;
-        this.idEmpleado = idEmpleado;
+        this.owner = (Menu2) parent;
+
+        // ✅ CARGAR MÉTODOS DE PAGO EN COMBOBOX
+        cargarMetodosPago();
+
+        // ✅ AGREGAR LISTENER PARA CONTROLAR BOTÓN DE MÁQUINA
+        cb_metodoPago.addActionListener(e -> controlarBotonMaquina());
+
         // Mostrar tabla
         jTable1.setModel(modeloBoleta);
         jTable1.setEnabled(false);
@@ -63,6 +76,10 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         diagnosticarCalculos();
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        System.out.println("✅ Boleta creada - Empleado: " + idEmpleado
+                + ", Sucursal: " + idSucursal
+                + ", Observaciones: " + observaciones);
     }
 
     private void verificarMontoMovimientoCaja(double totalVenta) {
@@ -414,53 +431,46 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
 
         try {
-            // ✅ OBTENER TOTAL ACTUAL (QUE INCLUYE IGV DUPLICADO)
+            // ✅ OBTENER TOTAL ACTUAL
             String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").trim();
             double totalConIgvDuplicado = Double.parseDouble(totalText);
 
             String descuentoText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
             double descuento = Double.parseDouble(descuentoText);
 
-            // ✅ SOLUCIÓN DIRECTA: CALCULAR EL IGV Y RESTARLO DEL TOTAL
-            double subtotal = totalConIgvDuplicado / 1.18;  // Obtenemos el subtotal real
-            double igv = subtotal * 0.18;                   // Calculamos IGV correcto
-            double totalReal = subtotal + igv;              // Total correcto (debería ser igual a totalConIgvDuplicado)
-
-            // ✅ PERO PARA EVITAR LA DUPLICACIÓN: USAR SOLO EL SUBTOTAL + IGV CORRECTO
-            double totalParaGuardar = subtotal + igv;
+            // ✅ CALCULAR CORRECTAMENTE
+            double subtotal = totalConIgvDuplicado / 1.18;
+            double igv = subtotal * 0.18;
+            double totalReal = subtotal + igv;
 
             System.out.println("🔧 SOLUCIÓN APLICADA:");
-            System.out.println("  - Total recibido (con IGV duplicado): " + totalConIgvDuplicado);
+            System.out.println("  - Total recibido: " + totalConIgvDuplicado);
             System.out.println("  - Subtotal real: " + subtotal);
             System.out.println("  - IGV correcto: " + igv);
-            System.out.println("  - Total para guardar: " + totalParaGuardar);
+            System.out.println("  - Total para guardar: " + totalReal);
 
-            // ✅ ACTUALIZAR LABELS CON VALORES CORRECTOS
+            // ✅ ACTUALIZAR LABELS
             lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
             lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
-            lbl_total.setText("Total: S/ " + String.format("%.2f", totalParaGuardar));
+            lbl_total.setText("Total: S/ " + String.format("%.2f", totalReal));
 
-            // ... el resto de tu código permanece igual
             String dniCliente = tf_dni.getText().trim();
             String nombres = tf_nombres.getText().trim();
             String apellidos = tf_apellidos.getText().trim();
 
-            // OBTENER MÉTODO DE PAGO DEL COMBOBOX
+            // OBTENER MÉTODO DE PAGO
             String metodoPago = (String) cb_metodoPago.getSelectedItem();
             if (metodoPago == null || metodoPago.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "❌ Seleccione un método de pago");
                 return;
             }
 
-            // OBTENER EMPLEADO DE LA SESIÓN
-            String idEmpleado = obtenerIdEmpleadoDeSesion();
-
             // DEBUG
             System.out.println("DEBUG - Datos de venta:");
-            System.out.println("  - Empleado: " + idEmpleado);
+            System.out.println("  - Empleado: " + this.idEmpleado);
             System.out.println("  - Método Pago: " + metodoPago);
             System.out.println("  - DNI Cliente: " + dniCliente);
-            System.out.println("  - Total para guardar: " + totalParaGuardar);
+            System.out.println("  - Total para guardar: " + totalReal);
 
             // 1. REGISTRAR CLIENTE SI NO EXISTE
             try {
@@ -479,7 +489,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 System.err.println("⚠️ Error al registrar cliente: " + e.getMessage());
             }
 
-            // 2. CREAR DETALLES DE VENTA
+            // 2. CREAR DETALLES DE VENTA - ✅ CORREGIDO: Usar sucursal
             List<DetalleVenta> detalles = new ArrayList<>();
             ProductoDAO productoDAO = new ProductoDAO();
 
@@ -490,45 +500,40 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
                 double subtotalItem = Double.parseDouble(modeloBoleta.getValueAt(i, 3).toString());
                 String codigoProducto = modeloBoleta.getValueAt(i, 4).toString();
 
-                Producto producto = productoDAO.buscarPorCodigo(codigoProducto);
+                // ✅ CORREGIDO: Usar método con sucursal
+                Producto producto = productoDAO.buscarPorCodigo(codigoProducto, this.idSucursal);
 
                 if (producto != null) {
                     DetalleVenta detalle = new DetalleVenta(producto, cantidad, precioUnitario);
                     detalles.add(detalle);
                 } else {
                     JOptionPane.showMessageDialog(this, "⚠️ Producto no encontrado: " + nombreProducto);
+                    productoDAO.cerrarConexion();
                     return;
                 }
             }
 
             // 3. CREAR OBJETO VENTA CON VALORES CORREGIDOS
             Venta venta = new Venta();
-            venta.setIdEmpleado(idEmpleado);
+            venta.setIdEmpleado(this.idEmpleado);
             venta.setDniCliente(dniCliente);
             venta.setMetodoPago(metodoPago);
             venta.setDetalleVenta(detalles);
-            venta.setSubtotal(subtotal);           // ✅ Subtotal sin IGV duplicado
-            venta.setIgv(igv);                     // ✅ IGV calculado correctamente
-            venta.setTotal(totalParaGuardar);      // ✅ Total corregido (subtotal + igv)
+            venta.setSubtotal(subtotal);
+            venta.setIgv(igv);
+            venta.setTotal(totalReal);
+            venta.setIdSucursal(this.idSucursal); // ✅ USAR SUCURSAL
 
-            // ✅ OBTENER Y ESTABLECER SUCURSAL
-            try {
-                int idSucursal = obtenerSucursalEmpleado(idEmpleado);
-                venta.setIdSucursal(idSucursal);
-                System.out.println("Sucursal para venta: " + idSucursal);
-            } catch (Exception e) {
-                System.err.println("Error obteniendo sucursal: " + e.getMessage());
-                venta.setIdSucursal(1); // Sucursal por defecto
-            }
+            System.out.println("Sucursal para venta: " + this.idSucursal);
 
             // 4. GUARDAR EN BD USANDO VentaDAO
             VentaDAO ventaDAO = new VentaDAO();
             int idVentaGenerada = ventaDAO.registrarVenta(venta);
             generarComprobante(venta, idVentaGenerada);
-            
+
             JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada);
 
-            verificarMontoMovimientoCaja(totalParaGuardar);
+            verificarMontoMovimientoCaja(totalReal);
 
             // 5. PASAR A VISTA PREVIA
             String observaciones = this.observaciones;
@@ -536,6 +541,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             vista.setLocationRelativeTo(this);
             vista.setVisible(true);
 
+            productoDAO.cerrarConexion();
             this.dispose();
 
         } catch (SQLException e) {
@@ -549,12 +555,10 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
     private void btn_mostrarMaquinaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_mostrarMaquinaActionPerformed
         if (maquina == null || !maquina.isDisplayable()) {
-            // Si no existe o ya fue cerrada, la creas
             maquina = new jFram_MaquinaDePAgo();
-            maquina.setLocationRelativeTo(this); // la centras respecto al JFrame actual
+            maquina.setLocationRelativeTo(this);
             maquina.setVisible(true);
         } else {
-            // Si ya existe, solo la traes al frente
             maquina.toFront();
             maquina.requestFocus();
         }
@@ -566,25 +570,23 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             return this.idEmpleado;
         }
 
-        // Fallback seguro
         System.err.println("⚠️ No se pudo obtener id_empleado de sesión");
         JOptionPane.showMessageDialog(this,
                 "⚠️ No se pudo obtener empleado de sesión. Contacte al administrador.");
-        return "12000001"; // Valor temporal POR EMERGENCIA - usa uno válido de tu BD
+        return "12000001";
     }
 
     public void setObservaciones(String observaciones) {
         this.observaciones = observaciones;
+        System.out.println("✅ Observaciones establecidas: " + observaciones);
     }
 
     private boolean validarCampos() {
-// Validar que hay productos en la boleta
         if (modeloBoleta.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "❌ No hay productos en la boleta");
             return false;
         }
 
-        // ✅ Validar DNI del cliente
         String dni = tf_dni.getText().trim();
         if (dni.isEmpty()) {
             JOptionPane.showMessageDialog(this, "❌ Ingrese DNI del cliente");
@@ -592,14 +594,12 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             return false;
         }
 
-        // ✅ Validar formato DNI (8 dígitos)
         if (!dni.matches("\\d{8}")) {
             JOptionPane.showMessageDialog(this, "❌ DNI debe tener 8 dígitos");
             tf_dni.requestFocus();
             return false;
         }
 
-        // ✅ Validar nombres
         String nombres = tf_nombres.getText().trim();
         if (nombres.isEmpty()) {
             JOptionPane.showMessageDialog(this, "❌ Ingrese los nombres del cliente");
@@ -607,7 +607,6 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             return false;
         }
 
-        // ✅ Validar apellidos
         String apellidos = tf_apellidos.getText().trim();
         if (apellidos.isEmpty()) {
             JOptionPane.showMessageDialog(this, "❌ Ingrese los apellidos del cliente");
@@ -615,14 +614,12 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             return false;
         }
 
-        // ✅ Validar método de pago seleccionado (COMBOBOX)
         if (cb_metodoPago.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "❌ Seleccione método de pago");
             cb_metodoPago.requestFocus();
             return false;
         }
 
-        // Validar que las cantidades sean positivas
         for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
             Object cantidadObj = modeloBoleta.getValueAt(i, 1);
             try {
@@ -638,6 +635,7 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
 
         return true;
+
     }
 
     public static void main(String args[]) {
@@ -678,7 +676,6 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         ResultSet rs = null;
 
         try {
-            // Conectar a la BD y obtener métodos de pago
             String sql = "SELECT id_metodo_pago, nombre FROM metodo_pago";
             conexion = new Conexion().establecerConexion();
             stmt = conexion.prepareStatement(sql);

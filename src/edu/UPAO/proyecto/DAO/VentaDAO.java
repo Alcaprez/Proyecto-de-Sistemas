@@ -25,7 +25,24 @@ public class VentaDAO {
         }
     }
 
+    private void actualizarInventarioSucursal(List<DetalleVenta> detalles, int idSucursal, Connection conn) throws SQLException {
+        String sql = "UPDATE inventario_sucursal SET stock_actual = stock_actual - ? WHERE id_producto = ? AND id_sucursal = ?";
 
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (DetalleVenta detalle : detalles) {
+                int idProducto = productoDAO.obtenerIdPorCodigo(detalle.getProducto().getCodigo());
+                stmt.setInt(1, detalle.getCantidad());
+                stmt.setInt(2, idProducto);
+                stmt.setInt(3, idSucursal);
+                stmt.addBatch();
+
+                System.out.println("🔁 Actualizando inventario_sucursal - Producto: " + idProducto
+                        + ", Sucursal: " + idSucursal + ", Cantidad: -" + detalle.getCantidad());
+            }
+            stmt.executeBatch();
+            System.out.println("✅ Inventario_sucursal actualizado");
+        }
+    }
 
     public int registrarVenta(Venta venta) throws SQLException {
         Connection conn = null;
@@ -42,8 +59,8 @@ public class VentaDAO {
             String idClienteReal = clienteDAO.obtenerIdClienteParaVenta(venta.getDniCliente());
             clienteDAO.cerrarConexion();
 
-            int idSucursal = obtenerSucursalEmpleado(venta.getIdEmpleado());
-            System.out.println("🏪 Venta registrada en sucursal: " + idSucursal);
+            int idSucursal = venta.getIdSucursal();
+            System.out.println("🏪 Registrando venta en sucursal: " + idSucursal);
 
             // 2. OBTENER ID_MÉTODO_PAGO Y ID_CAJA
             int idMetodoPago = obtenerIdMetodoPago(venta.getMetodoPago());
@@ -62,14 +79,14 @@ public class VentaDAO {
             stmtVenta.setInt(7, idSucursal); // ✅ NUEVO PARÁMETRO
 
             int filasAfectadas = stmtVenta.executeUpdate();
-
+            int idVentaGenerada = obtenerIdGenerado(stmtVenta);
             if (filasAfectadas == 0) {
                 throw new SQLException("Error al insertar venta, ninguna fila afectada.");
             }
 
             // ✅ 4. OBTENER ID GENERADO DE LA VENTA
             generatedKeys = stmtVenta.getGeneratedKeys();
-            int idVentaGenerada = 0;
+            idVentaGenerada = 0;
             if (generatedKeys.next()) {
                 idVentaGenerada = generatedKeys.getInt(1);
             }
@@ -104,13 +121,13 @@ public class VentaDAO {
             stmtDetalle.executeBatch();
 
             // ✅ 7. ACTUALIZAR STOCK DE PRODUCTOS
-            actualizarStockProductos(venta.getDetalleVenta(), conn);
+            actualizarInventarioSucursal(venta.getDetalleVenta(), idSucursal, conn);
 
             // ✅ 8. REGISTRAR MOVIMIENTOS DE INVENTARIO (NUEVA FUNCIONALIDAD)
-            registrarMovimientosInventario(venta.getDetalleVenta(), stockAnteriorPorProducto, idVentaGenerada, conn);
+            registrarMovimientosInventario(venta.getDetalleVenta(), idSucursal, idVentaGenerada, conn);
 
             conn.commit();
-
+            return idVentaGenerada;
             try {
                 MovimientoCajaDAO movimientoDAO = new MovimientoCajaDAO();
                 boolean movimientoRegistrado = movimientoDAO.registrarMovimientoCajaVenta(
@@ -167,18 +184,15 @@ public class VentaDAO {
         }
     }
 
-    private void registrarMovimientosInventario(List<DetalleVenta> detalles,
-            Map<Integer, Integer> stockAnteriorPorProducto,
-            int idVentaGenerada,
-            Connection conn) throws SQLException {
-
-        // ✅ USAR LA MISMA CONEXIÓN DE LA TRANSACCIÓN
-        String sql = "INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private void registrarMovimientosInventario(List<DetalleVenta> detalles, int idSucursal, int idVenta, Connection conn) throws SQLException {
+        String sql = "INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto, id_sucursal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            InventarioSucursalDAO invSucursalDAO = new InventarioSucursalDAO();
+
             for (DetalleVenta detalle : detalles) {
                 int idProducto = productoDAO.obtenerIdPorCodigo(detalle.getProducto().getCodigo());
-                int stockAnterior = stockAnteriorPorProducto.get(idProducto);
+                int stockAnterior = invSucursalDAO.obtenerStock(idProducto, idSucursal);
                 int stockNuevo = stockAnterior - detalle.getCantidad();
 
                 stmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
@@ -188,17 +202,11 @@ public class VentaDAO {
                 stmt.setInt(5, stockNuevo);
                 stmt.setString(6, "ACTIVO");
                 stmt.setInt(7, idProducto);
+                stmt.setInt(8, idSucursal); // ✅ NUEVO PARÁMETRO
                 stmt.addBatch();
-
-                System.out.println("📦 Registrando movimiento - Producto: " + idProducto
-                        + ", Stock: " + stockAnterior + " → " + stockNuevo);
             }
             stmt.executeBatch();
-            System.out.println("✅ Movimientos de inventario registrados en transacción");
-
-        } catch (SQLException e) {
-            System.err.println("❌ Error registrando movimientos inventario: " + e.getMessage());
-            throw e; // ✅ IMPORTANTE: Propagar el error para hacer rollback
+            invSucursalDAO.cerrarConexion();
         }
     }
 
@@ -320,7 +328,6 @@ public class VentaDAO {
         }
     }
 
-    // MÉTODO COMPATIBILIDAD
     public List<Venta> listar() {
         return new ArrayList<>();
     }
