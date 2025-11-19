@@ -53,6 +53,40 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         jScrollPaneAsis = new javax.swing.JScrollPane();
         tablaAsistencias = new javax.swing.JTable();
         NOMINA_EMPLEADOS = new javax.swing.JPanel();
+        REGISTRAR_PERSONAL = new javax.swing.JPanel();
+        panelForm = new javax.swing.JPanel();
+        lblNombres = new javax.swing.JLabel();
+        txtNombres = new javax.swing.JTextField();
+        lblApellidos = new javax.swing.JLabel();
+        txtApellidos = new javax.swing.JTextField();
+        lblDni = new javax.swing.JLabel();
+        txtDni = new javax.swing.JTextField();
+        lblTelefono = new javax.swing.JLabel();
+        txtTelefono = new javax.swing.JTextField();
+        lblCorreo = new javax.swing.JLabel();
+        txtCorreo = new javax.swing.JTextField();
+        lblIdEmpleado = new javax.swing.JLabel();
+        txtIdEmpleado = new javax.swing.JTextField();
+        lblTienda = new javax.swing.JLabel();
+        cbTiendaP = new javax.swing.JComboBox<>();
+        lblCargo = new javax.swing.JLabel();
+        cbCargo = new javax.swing.JComboBox<>();
+        lblEstado = new javax.swing.JLabel();
+        cbEstado = new javax.swing.JComboBox<>();
+        lblSueldo = new javax.swing.JLabel();
+        txtSueldo = new javax.swing.JTextField();
+        btnLimpiar = new javax.swing.JButton();
+        btnActualizar = new javax.swing.JButton();
+        btnAgregar = new javax.swing.JButton();
+        panelLista = new javax.swing.JPanel();
+        panelListaTop = new javax.swing.JPanel();
+        lblListaEmpleadosP = new javax.swing.JLabel();
+        jTextField1 = new javax.swing.JTextField();
+        jComboBox1 = new javax.swing.JComboBox<>();
+        jComboBox2 = new javax.swing.JComboBox<>();
+        jButton1 = new javax.swing.JButton();
+        scrollEmpleados = new javax.swing.JScrollPane();
+        tablaEmpleados = new javax.swing.JTable();
 
         ASISTENCIAS.setLayout(new java.awt.BorderLayout());
 
@@ -197,10 +231,182 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         );
         NOMINA_EMPLEADOSLayout.setVerticalGroup(
             NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 664, Short.MAX_VALUE)
+            .addGap(0, 649, Short.MAX_VALUE)
         );
 
         tabControlPersonal.addTab("NOMINA DE EMPLEADOS", NOMINA_EMPLEADOS);
+
+        REGISTRAR_PERSONAL.setLayout(new java.awt.BorderLayout());
+
+        panelForm.setBackground(new java.awt.Color(255, 255, 255));
+        panelForm.setLayout(new java.awt.GridBagLayout());
+
+        lblNombres.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblNombres.setForeground(new java.awt.Color(0, 0, 0));
+        lblNombres.setText("NOMBRES:");
+        panelForm.add(lblNombres, new java.awt.GridBagConstraints());
+        panelForm.add(txtNombres, new java.awt.GridBagConstraints());
+
+        lblApellidos.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblApellidos.setForeground(new java.awt.Color(0, 0, 0));
+        lblApellidos.setText("APELLIDOS:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        panelForm.add(lblApellidos, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 1;
+        panelForm.add(txtApellidos, gridBagConstraints);
+
+        lblDni.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblDni.setForeground(new java.awt.Color(0, 0, 0));
+        lblDni.setText("DNI:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 2;
+        panelForm.add(lblDni, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        panelForm.add(txtDni, gridBagConstraints);
+
+        lblTelefono.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblTelefono.setForeground(new java.awt.Color(0, 0, 0));
+        lblTelefono.setText("TELEFONO:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 3;
+        panelForm.add(lblTelefono, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 3;
+        panelForm.add(txtTelefono, gridBagConstraints);
+
+        lblCorreo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblCorreo.setForeground(new java.awt.Color(0, 0, 0));
+        lblCorreo.setText("CORREO:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridy = 4;
+        panelForm.add(lblCorreo, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 4;
+        panelForm.add(txtCorreo, gridBagConstraints);
+
+        lblIdEmpleado.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblIdEmpleado.setForeground(new java.awt.Color(0, 0, 0));
+        lblIdEmpleado.setText("ID:");
+        panelForm.add(lblIdEmpleado, new java.awt.GridBagConstraints());
+
+        txtIdEmpleado.setEditable(false);
+        panelForm.add(txtIdEmpleado, new java.awt.GridBagConstraints());
+
+        lblTienda.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblTienda.setForeground(new java.awt.Color(0, 0, 0));
+        lblTienda.setText("TIENDA:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        panelForm.add(lblTienda, gridBagConstraints);
+
+        cbTiendaP.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        panelForm.add(cbTiendaP, gridBagConstraints);
+
+        lblCargo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblCargo.setForeground(new java.awt.Color(0, 0, 0));
+        lblCargo.setText("CARGO:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        panelForm.add(lblCargo, gridBagConstraints);
+
+        cbCargo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CAJERO", "ADMINISTRADOR" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        panelForm.add(cbCargo, gridBagConstraints);
+
+        lblEstado.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblEstado.setForeground(new java.awt.Color(0, 0, 0));
+        lblEstado.setText("ESTADO:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        panelForm.add(lblEstado, gridBagConstraints);
+
+        cbEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "ACTIVO", "INACTIVO", " " }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        panelForm.add(cbEstado, gridBagConstraints);
+
+        lblSueldo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblSueldo.setForeground(new java.awt.Color(0, 0, 0));
+        lblSueldo.setText("SUELDO:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        panelForm.add(lblSueldo, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        panelForm.add(txtSueldo, gridBagConstraints);
+
+        btnLimpiar.setText("LIMPIAR");
+        panelForm.add(btnLimpiar, new java.awt.GridBagConstraints());
+
+        btnActualizar.setText("ACTUALIZAR");
+        panelForm.add(btnActualizar, new java.awt.GridBagConstraints());
+
+        btnAgregar.setText("AGREGAR");
+        panelForm.add(btnAgregar, new java.awt.GridBagConstraints());
+
+        REGISTRAR_PERSONAL.add(panelForm, java.awt.BorderLayout.PAGE_START);
+
+        panelLista.setLayout(new java.awt.BorderLayout());
+
+        panelListaTop.setLayout(new java.awt.GridBagLayout());
+
+        lblListaEmpleadosP.setText("Lista de Empleados");
+        panelListaTop.add(lblListaEmpleadosP, new java.awt.GridBagConstraints());
+
+        jTextField1.setText("Buscar Por Nombre o ID...");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        panelListaTop.add(jTextField1, gridBagConstraints);
+
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ver Todos", "Activos", "Inactivos", " " }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
+        panelListaTop.add(jComboBox1, gridBagConstraints);
+
+        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 1;
+        panelListaTop.add(jComboBox2, gridBagConstraints);
+
+        jButton1.setText("EXPORTAR");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 1;
+        panelListaTop.add(jButton1, gridBagConstraints);
+
+        panelLista.add(panelListaTop, java.awt.BorderLayout.PAGE_START);
+
+        tablaEmpleados.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null}
+            },
+            new String [] {
+                "ID", "Nombres", "Apellidos", "DNI", "Telefono", "Correo", "Tienda", "Cargo", "Sueldo", "Estado"
+            }
+        ));
+        scrollEmpleados.setViewportView(tablaEmpleados);
+
+        panelLista.add(scrollEmpleados, java.awt.BorderLayout.CENTER);
+
+        REGISTRAR_PERSONAL.add(panelLista, java.awt.BorderLayout.CENTER);
+
+        tabControlPersonal.addTab("REGISTRAR_PERSONAL", REGISTRAR_PERSONAL);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -210,7 +416,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(tabControlPersonal)
+            .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 684, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -218,29 +424,63 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel ASISTENCIAS;
     private javax.swing.JPanel NOMINA_EMPLEADOS;
+    private javax.swing.JPanel REGISTRAR_PERSONAL;
+    private javax.swing.JButton btnActualizar;
+    private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnExportar;
     private javax.swing.JButton btnFecha;
+    private javax.swing.JButton btnLimpiar;
+    private javax.swing.JComboBox<String> cbCargo;
+    private javax.swing.JComboBox<String> cbEstado;
     private javax.swing.JComboBox<String> cbFiltroEstado;
     private javax.swing.JComboBox<String> cbTienda;
+    private javax.swing.JComboBox<String> cbTiendaP;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JComboBox<String> jComboBox1;
+    private javax.swing.JComboBox<String> jComboBox2;
     private javax.swing.JScrollPane jScrollPaneAsis;
+    private javax.swing.JTextField jTextField1;
+    private javax.swing.JLabel lblApellidos;
     private javax.swing.JLabel lblAusenciasTitulo;
     private javax.swing.JLabel lblAusenciasValor;
+    private javax.swing.JLabel lblCargo;
+    private javax.swing.JLabel lblCorreo;
+    private javax.swing.JLabel lblDni;
+    private javax.swing.JLabel lblEstado;
+    private javax.swing.JLabel lblIdEmpleado;
     private javax.swing.JLabel lblListaEmpleados;
+    private javax.swing.JLabel lblListaEmpleadosP;
+    private javax.swing.JLabel lblNombres;
     private javax.swing.JLabel lblPresentesTitulo;
     private javax.swing.JLabel lblPresentesValor;
+    private javax.swing.JLabel lblSueldo;
     private javax.swing.JLabel lblTardanzasTitulo;
     private javax.swing.JLabel lblTardanzasValor;
+    private javax.swing.JLabel lblTelefono;
+    private javax.swing.JLabel lblTienda;
     private javax.swing.JLabel lblTotalEmpleadosTitulo;
     private javax.swing.JLabel lblTtotalEmpleadosValor;
     private javax.swing.JPanel panelCenter;
+    private javax.swing.JPanel panelForm;
     private javax.swing.JPanel panelKpiAusencias;
     private javax.swing.JPanel panelKpiPresentes;
     private javax.swing.JPanel panelKpiTardanzas;
     private javax.swing.JPanel panelKpiTotal;
     private javax.swing.JPanel panelKpis;
+    private javax.swing.JPanel panelLista;
+    private javax.swing.JPanel panelListaTop;
     private javax.swing.JPanel panelTop;
+    private javax.swing.JScrollPane scrollEmpleados;
     private javax.swing.JTabbedPane tabControlPersonal;
     private javax.swing.JTable tablaAsistencias;
+    private javax.swing.JTable tablaEmpleados;
+    private javax.swing.JTextField txtApellidos;
     private javax.swing.JTextField txtBuscar;
+    private javax.swing.JTextField txtCorreo;
+    private javax.swing.JTextField txtDni;
+    private javax.swing.JTextField txtIdEmpleado;
+    private javax.swing.JTextField txtNombres;
+    private javax.swing.JTextField txtSueldo;
+    private javax.swing.JTextField txtTelefono;
     // End of variables declaration//GEN-END:variables
 }
