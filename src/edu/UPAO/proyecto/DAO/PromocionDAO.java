@@ -27,6 +27,8 @@ public class PromocionDAO {
         }
         return out;
     }
+    
+    
 
     public void guardar(Promocion p) {
         Cupon c = toCupon(p);

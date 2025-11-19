@@ -13,10 +13,12 @@ public class SucursalDAO {
     public SucursalDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("Error conectando SucursalDAO: " + e.getMessage());
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
     }
+        
 
     public List<String> obtenerSucursalesActivas() {
         List<String> sucursales = new ArrayList<>();

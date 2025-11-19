@@ -16,8 +16,9 @@ public class ProductoDAO {
     public ProductoDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("Error al conectar con BD: " + e.getMessage());
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
     }
 
@@ -42,6 +43,8 @@ public class ProductoDAO {
         }
         return productos;
     }
+
+
 
     // ✅ MÉTODO BUSCAR POR ID CORREGIDO
     public Producto buscarPorId(int id) {

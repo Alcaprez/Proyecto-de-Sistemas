@@ -1,35 +1,25 @@
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.ProductoDAO;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+
 import java.util.List;
 import java.util.Random;
-import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
 import edu.UPAO.proyecto.ProductoController;
 import edu.UPAO.proyecto.PromocionController;
 import edu.UPAO.proyecto.Modelo.Producto;
-import java.io.File;
 import java.util.ArrayList;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import edu.UPAO.proyecto.Modelo.VentaItem;
-import edu.UPAO.proyecto.app.panel_Rproductos;
 
 public class Menu2 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Menu2.class.getName());
     private String idEmpleado;
 
-    /**
-     * Creates new form Menu2
-     */
     public Menu2(String idEmpleado) {
         initComponents();
         btn_validar.addActionListener(e -> onValidarCupon());
@@ -40,7 +30,6 @@ public class Menu2 extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         setTitle("Sistema Kuyay - Menú Principal");
         inicializarTablaProductos(); // ✅ Esto asegura el orden correcto
-        cargarProductosEnTabla();
         txtObservaciones.setEnabled(false);
         txtCupon.setEnabled(false);
 
@@ -76,7 +65,6 @@ public class Menu2 extends javax.swing.JFrame {
             int notches = e.getWheelRotation(); // movimiento de la rueda
             int valorActual = (int) spCantidad.getValue();
 
-            // ✅ Recuperar la fila seleccionada en la tabla de productos
             int fila = tablaProductos.getSelectedRow();
             if (fila == -1) {
                 return; // no hay producto seleccionado
@@ -214,7 +202,11 @@ public class Menu2 extends javax.swing.JFrame {
                     "Error al cargar productos: " + e.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
+        }finally {
+        if (dao != null) {
+            dao.cerrarDAO(); // ✅ AQUÍ
         }
+    }
     }
 
     private void inicializarTablaProductos() {
@@ -223,7 +215,6 @@ public class Menu2 extends javax.swing.JFrame {
         );
         tablaProductos.setModel(modelo);
     }
-// ====== MÉTODO REUTILIZABLE ======
 
     private void onValidarCupon() {
         try {
@@ -858,20 +849,9 @@ public class Menu2 extends javax.swing.JFrame {
 
     private List<Producto> buscarProductosPorNombre(String texto) {
         ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar(); // o como cargues tus productos
-        List<Producto> filtrados = new ArrayList<>();
+        // El DAO debería hacer la consulta SQL con LIKE
+        return dao.buscarPorNombre(texto); // SELECT * FROM producto WHERE nombre LIKE ?
 
-        if (texto == null || texto.trim().isEmpty()) {
-            return productos; // si no escribe nada, mostramos todos
-        }
-
-        String query = texto.trim().toLowerCase();
-        for (Producto p : productos) {
-            if (p.getNombre() != null && p.getNombre().toLowerCase().contains(query)) {
-                filtrados.add(p);
-            }
-        }
-        return filtrados;
     }
 
     public void vaciarCarrito() {
@@ -886,7 +866,7 @@ public class Menu2 extends javax.swing.JFrame {
         txtCupon.setText("");
     }
 
-// 🚀 Recalcula subtotal, descuento y total
+    // 🚀 Recalcula subtotal, descuento y total
     public void actualizarTotal() {
         DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
         double subtotal = 0.0;
@@ -1232,25 +1212,7 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_SKUActionPerformed
 
     private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
-        int fila = tablaProductos.getSelectedRow();
-        if (fila != -1) {
-            String nombre = tablaProductos.getValueAt(fila, 0).toString();
-            String codigo = tablaProductos.getValueAt(fila, 3).toString();
 
-            String reporte = JOptionPane.showInputDialog(this, "Ingrese el reporte del producto " + nombre + ":");
-
-            if (reporte != null && !reporte.trim().isEmpty()) {
-                try (BufferedWriter bw = new BufferedWriter(new FileWriter("reportes.txt", true))) {
-                    bw.write("Producto: " + nombre + " (" + codigo + ") - Reporte: " + reporte);
-                    bw.newLine();
-                    JOptionPane.showMessageDialog(this, "Reporte guardado correctamente.");
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(this, "Error al guardar el reporte.");
-                }
-            }
-        } else {
-            JOptionPane.showMessageDialog(this, "Seleccione un producto para reportar.");
-        }
     }//GEN-LAST:event_jButton11ActionPerformed
 
     private void btn_agregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarActionPerformed
