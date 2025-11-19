@@ -13,15 +13,18 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }
 
     private void MostrarPanel(JPanel p) {
-
-        p.setSize(content.getWidth(), content.getHeight());
-        p.setLocation(0, 0);
-        
-        content.removeAll();
-        content.add(p, java.awt.BorderLayout.CENTER);
-        content.revalidate();
-        content.repaint();
-
+// Configurar el panel nuevo
+    p.setOpaque(true);
+    
+    // Limpiar el contenedor
+    content.removeAll();
+    
+    // Agregar y estirar automáticamente
+    content.add(p, java.awt.BorderLayout.CENTER);
+    
+    // Refrescar visualización
+    content.revalidate();
+    content.repaint();
     }
 
     
@@ -223,7 +226,12 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
-        
+      // 1. Creamos la instancia de tu panel de pedidos
+    // (Asegúrate de que 'FormularioPedidos' sea el nombre exacto de tu archivo Java del panel anterior)
+    COMPRAS_Admin panelCompras = new COMPRAS_Admin(); 
+    
+    // 2. Llamamos a tu función para mostrarlo en el área blanca
+    MostrarPanel(panelCompras);     
     }//GEN-LAST:event_btn_comprasActionPerformed
 
     private void btn_ventaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventaActionPerformed
