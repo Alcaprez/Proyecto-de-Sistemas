@@ -18,10 +18,12 @@ public class UsuarioDAO {
     public UsuarioDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("Error conectando UsuarioDAO: " + e.getMessage());
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
     }
+
 
     public boolean probarConexion() {
         try {

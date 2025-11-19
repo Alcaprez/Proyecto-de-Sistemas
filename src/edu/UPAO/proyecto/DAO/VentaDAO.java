@@ -19,14 +19,14 @@ public class VentaDAO {
     public VentaDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
-            this.productoDAO = new ProductoDAO();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("❌ Error al conectar VentaDAO: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
     }
 
-    // MÉTODO PRINCIPAL MEJORADO - CON INTEGRACIÓN COMPLETA
+
+
     public int registrarVenta(Venta venta) throws SQLException {
         Connection conn = null;
         PreparedStatement stmtVenta = null;
@@ -114,7 +114,7 @@ public class VentaDAO {
             try {
                 MovimientoCajaDAO movimientoDAO = new MovimientoCajaDAO();
                 boolean movimientoRegistrado = movimientoDAO.registrarMovimientoCajaVenta(
-                        venta.getTotal(), 
+                        venta.getTotal(),
                         idVentaGenerada,
                         idSucursal,
                         venta.getMetodoPago()
@@ -140,7 +140,6 @@ public class VentaDAO {
             }
             throw e;
         } finally {
-            // Cerrar recursos
             if (generatedKeys != null) {
                 generatedKeys.close();
             }
@@ -149,9 +148,6 @@ public class VentaDAO {
             }
             if (stmtVenta != null) {
                 stmtVenta.close();
-            }
-            if (conn != null) {
-                conn.setAutoCommit(true);
             }
         }
     }

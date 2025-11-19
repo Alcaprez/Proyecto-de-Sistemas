@@ -9,15 +9,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CompraDAO {
+
     private Connection conexion;
     private ProductoDAO productoDAO;
 
     public CompraDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
-            this.productoDAO = new ProductoDAO();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("❌ Error conectando CompraDAO: " + e.getMessage());
+            System.err.println("Error conectando : " + e.getMessage());
         }
     }
 
@@ -91,10 +92,18 @@ public class CompraDAO {
             throw e;
         } finally {
             // Cerrar recursos
-            if (generatedKeys != null) generatedKeys.close();
-            if (stmtDetalle != null) stmtDetalle.close();
-            if (stmtCompra != null) stmtCompra.close();
-            if (conn != null) conn.setAutoCommit(true);
+            if (generatedKeys != null) {
+                generatedKeys.close();
+            }
+            if (stmtDetalle != null) {
+                stmtDetalle.close();
+            }
+            if (stmtCompra != null) {
+                stmtCompra.close();
+            }
+            if (conn != null) {
+                conn.setAutoCommit(true);
+            }
         }
     }
 
@@ -175,7 +184,7 @@ public class CompraDAO {
     // ✅ MÉTODOS PARA RENTABILIDAD
     public double obtenerTotalCompras(java.util.Date fechaInicio, java.util.Date fechaFin, Integer idSucursal) {
         String sql = "SELECT COALESCE(SUM(total), 0) as total_compras FROM compra WHERE DATE(fecha_hora) BETWEEN DATE(?) AND DATE(?)";
-        
+
         if (idSucursal != null) {
             sql += " AND id_sucursal = ?";
         }
@@ -200,20 +209,20 @@ public class CompraDAO {
     public List<Object[]> obtenerMovimientosCompras(java.util.Date fechaInicio, java.util.Date fechaFin, String sucursal) {
         List<Object[]> movimientos = new ArrayList<>();
 
-        String sql = "SELECT DATE(c.fecha_hora) as fecha, s.nombre_sucursal, " +
-                     "GROUP_CONCAT(p.nombre SEPARATOR ', ') as productos, " +
-                     "SUM(dc.cantidad) as cantidad, " +
-                     "0 as ingreso, " +
-                     "SUM(dc.subtotal) as costo, " +
-                     "SUM(dc.subtotal) * -1 as ganancia " +
-                     "FROM compra c " +
-                     "INNER JOIN detalle_compra dc ON c.id_compra = dc.id_compra " +
-                     "INNER JOIN producto p ON dc.id_producto = p.id_producto " +
-                     "INNER JOIN sucursal s ON c.id_sucursal = s.id_sucursal " +
-                     "WHERE DATE(c.fecha_hora) BETWEEN DATE(?) AND DATE(?) " +
-                     "AND (? = 'TODAS' OR s.nombre_sucursal = ?) " +
-                     "GROUP BY c.id_compra, DATE(c.fecha_hora), s.nombre_sucursal " +
-                     "ORDER BY c.fecha_hora DESC";
+        String sql = "SELECT DATE(c.fecha_hora) as fecha, s.nombre_sucursal, "
+                + "GROUP_CONCAT(p.nombre SEPARATOR ', ') as productos, "
+                + "SUM(dc.cantidad) as cantidad, "
+                + "0 as ingreso, "
+                + "SUM(dc.subtotal) as costo, "
+                + "SUM(dc.subtotal) * -1 as ganancia "
+                + "FROM compra c "
+                + "INNER JOIN detalle_compra dc ON c.id_compra = dc.id_compra "
+                + "INNER JOIN producto p ON dc.id_producto = p.id_producto "
+                + "INNER JOIN sucursal s ON c.id_sucursal = s.id_sucursal "
+                + "WHERE DATE(c.fecha_hora) BETWEEN DATE(?) AND DATE(?) "
+                + "AND (? = 'TODAS' OR s.nombre_sucursal = ?) "
+                + "GROUP BY c.id_compra, DATE(c.fecha_hora), s.nombre_sucursal "
+                + "ORDER BY c.fecha_hora DESC";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setDate(1, new java.sql.Date(fechaInicio.getTime()));
@@ -241,8 +250,12 @@ public class CompraDAO {
     }
 
     private String limitarTexto(String texto, int maxLength) {
-        if (texto == null) return "";
-        if (texto.length() <= maxLength) return texto;
+        if (texto == null) {
+            return "";
+        }
+        if (texto.length() <= maxLength) {
+            return texto;
+        }
         return texto.substring(0, maxLength - 3) + "...";
     }
 }
