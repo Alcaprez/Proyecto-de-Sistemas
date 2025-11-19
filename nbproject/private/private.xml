@@ -3,6 +3,7 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/Compra.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/VentasController.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/MovimientoInventario.java</file>
@@ -85,6 +86,11 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/Panel_Gerente.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Util/GraficosManager.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_ComprasGerente.java</file>
+=======
+            <file>file:/C:/Users/ryang/Documents/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/PrincipalAdministrador.java</file>
+            <file>file:/C:/Users/ryang/Documents/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/ALMACEN.java</file>
+            <file>file:/C:/Users/ryang/Documents/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/CONTROL_PERSONAL.java</file>
+>>>>>>> 7d7662bb6637a09aec9433d2535960a15c0840d1
         </group>
     </open-files>
 </project-private>
