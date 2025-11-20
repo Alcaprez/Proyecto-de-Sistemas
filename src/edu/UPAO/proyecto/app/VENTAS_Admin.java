@@ -1,75 +1,80 @@
 package edu.UPAO.proyecto.app;
+
 import java.sql.*; // Asegúrate de tener estos imports arriba
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
+
 public class VENTAS_Admin extends javax.swing.JPanel {
+
     public VENTAS_Admin() {
         initComponents();
         buscarDevoluciones();
     }
-private void buscarDevoluciones() {
-    // 1. Tus credenciales de Railway (tal cual me las diste)
-    String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
-    String usuario = "root";
-    String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
 
-    // 2. Limpiamos la tabla antes de buscar
-    DefaultTableModel modelo = (DefaultTableModel) tblDevoluciones.getModel();
-    modelo.setRowCount(0);
+    private void buscarDevoluciones() {
+        // 1. Tus credenciales de Railway (tal cual me las diste)
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
-    // 3. Construimos la consulta SQL con los JOINS necesarios
-    // Explicación: Unimos Devolucion -> Detalle -> Venta -> Cliente -> Persona
-    String sql = "SELECT " +
-                 "  d.id_devolucion, " +
-                 "  dd.id_producto, " +
-                 "  d.fecha_hora, " +
-                 "  CONCAT(p.nombres, ' ', p.apellidos) AS nombre_cliente, " +
-                 "  dd.subtotal, " +
-                 "  d.motivo " +
-                 "FROM devolucion d " +
-                 "INNER JOIN detalle_devolucion dd ON d.id_devolucion = dd.id_devolucion " +
-                 "INNER JOIN venta v ON d.id_venta = v.id_venta " +
-                 "INNER JOIN cliente c ON v.id_cliente = c.id_cliente " +
-                 "INNER JOIN persona p ON c.dni = p.dni " +
-                 "WHERE 1=1 ";
+        // 2. Limpiamos la tabla antes de buscar
+        DefaultTableModel modelo = (DefaultTableModel) tblDevoluciones.getModel();
+        modelo.setRowCount(0);
 
-    // 4. Filtro por TEXTO (ID Producto)
-    // Usamos tu variable txtIdProducto (o como hayas llamado a la caja negra larga)
-    String texto = txtIdProducto.getText().trim(); 
-    
-    if (!texto.isEmpty() && !texto.equals("Coloque el  id del producto")) {
-        sql += " AND dd.id_producto LIKE '%" + texto + "%'";
-    }
+        // 3. Construimos la consulta SQL con los JOINS necesarios
+        // Explicación: Unimos Devolucion -> Detalle -> Venta -> Cliente -> Persona
+        String sql = "SELECT "
+                + "  d.id_devolucion, "
+                + "  dd.id_producto, "
+                + "  d.fecha_hora, "
+                + "  CONCAT(p.nombres, ' ', p.apellidos) AS nombre_cliente, "
+                + "  dd.subtotal, "
+                + "  d.motivo "
+                + "FROM devolucion d "
+                + "INNER JOIN detalle_devolucion dd ON d.id_devolucion = dd.id_devolucion "
+                + "INNER JOIN venta v ON d.id_venta = v.id_venta "
+                + "INNER JOIN cliente c ON v.id_cliente = c.id_cliente "
+                + "INNER JOIN persona p ON c.dni = p.dni "
+                + "WHERE 1=1 ";
 
-    // Ordenamos por fecha más reciente
-    sql += " ORDER BY d.fecha_hora DESC";
+        // 4. Filtro por TEXTO (ID Producto)
+        // Usamos tu variable txtIdProducto (o como hayas llamado a la caja negra larga)
+        String texto = txtIdProducto.getText().trim();
 
-    try {
-        Connection con = DriverManager.getConnection(url, usuario, password);
-        PreparedStatement ps = con.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery();
-
-        while (rs.next()) {
-            Object[] fila = new Object[6];
-            fila[0] = rs.getInt("id_devolucion");
-            fila[1] = rs.getInt("id_producto");     
-            fila[2] = rs.getTimestamp("fecha_hora");  
-            fila[3] = rs.getString("nombre_cliente");
-            fila[4] = rs.getBigDecimal("subtotal");   
-            fila[5] = rs.getString("motivo");          
-            
-            modelo.addRow(fila);
+        if (!texto.isEmpty() && !texto.equals("Coloque el  id del producto")) {
+            sql += " AND dd.id_producto LIKE '%" + texto + "%'";
         }
-        
-        con.close();
-        // Si tienes un método para pintar colores como en tu ejemplo, llámalo aquí:
-        // pintarColoresTabla(); 
 
-    } catch (SQLException e) {
-        System.out.println("Error buscando devoluciones: " + e);
-        JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
+        // Ordenamos por fecha más reciente
+        sql += " ORDER BY d.fecha_hora DESC";
+
+        try {
+            Connection con = DriverManager.getConnection(url, usuario, password);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Object[] fila = new Object[6];
+                fila[0] = rs.getInt("id_devolucion");
+                fila[1] = rs.getInt("id_producto");
+                fila[2] = rs.getTimestamp("fecha_hora");
+                fila[3] = rs.getString("nombre_cliente");
+                fila[4] = rs.getBigDecimal("subtotal");
+                fila[5] = rs.getString("motivo");
+
+                modelo.addRow(fila);
+            }
+
+            con.close();
+            // Si tienes un método para pintar colores como en tu ejemplo, llámalo aquí:
+            // pintarColoresTabla(); 
+
+        } catch (SQLException e) {
+            System.out.println("Error buscando devoluciones: " + e);
+            JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
+        }
     }
-}
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -139,7 +144,16 @@ private void buscarDevoluciones() {
         jLabel1.setBackground(new java.awt.Color(0, 0, 0));
         jLabel1.setText("PRODUCTOS DEVUELTOS");
 
+        txtIdProducto.setForeground(new java.awt.Color(153, 153, 153));
         txtIdProducto.setText("Coloque el  id del producto");
+        txtIdProducto.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                txtIdProductoFocusGained(evt);
+            }
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                txtIdProductoFocusLost(evt);
+            }
+        });
 
         btnBuscar.setText("Buscar");
         btnBuscar.addActionListener(new java.awt.event.ActionListener() {
@@ -198,8 +212,24 @@ private void buscarDevoluciones() {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-    buscarDevoluciones();
+        buscarDevoluciones();
     }//GEN-LAST:event_btnBuscarActionPerformed
+
+    private void txtIdProductoFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtIdProductoFocusGained
+        // OJO: Asegúrate de que este texto sea EXACTAMENTE igual al de tu diseño (con los espacios exactos)
+        if (txtIdProducto.getText().equals("Coloque el  id del producto")) {
+            txtIdProducto.setText(""); // Borra el texto
+            txtIdProducto.setForeground(new java.awt.Color(0, 0, 0)); // Cambia a color NEGRO para escribir
+        }
+    }//GEN-LAST:event_txtIdProductoFocusGained
+
+    private void txtIdProductoFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtIdProductoFocusLost
+        // Si al salir la caja quedó vacía, volvemos a poner el texto fantasma
+        if (txtIdProducto.getText().isEmpty()) {
+            txtIdProducto.setText("Coloque el  id del producto");
+            txtIdProducto.setForeground(new java.awt.Color(153, 153, 153)); // Vuelve a color GRIS
+        }
+    }//GEN-LAST:event_txtIdProductoFocusLost
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
