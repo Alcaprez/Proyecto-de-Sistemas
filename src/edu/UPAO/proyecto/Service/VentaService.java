@@ -1,5 +1,6 @@
 package edu.UPAO.proyecto.Service;
 
+import edu.UPAO.proyecto.DAO.InventarioSucursalDAO;
 import edu.UPAO.proyecto.DAO.VentaDAO;
 import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.Venta;

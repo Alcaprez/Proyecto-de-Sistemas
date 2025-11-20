@@ -6,20 +6,18 @@ import edu.UPAO.proyecto.DAO.VentaDAO;
 import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
 import edu.UPAO.proyecto.app.Menu2;
-import edu.UPAO.proyecto.ProductoController;
 import edu.UPAO.proyecto.Modelo.Producto;
 import java.util.List;
 import javax.swing.ButtonGroup;
 import javax.swing.JOptionPane;
-import edu.UPAO.proyecto.VentasController;
 import edu.UPAO.proyecto.Modelo.DetalleVenta;
 import edu.UPAO.proyecto.Modelo.Venta;
-import edu.UPAO.proyecto.Modelo.VentaItem;
 import javax.swing.JFrame;
 import java.sql.SQLException;
 import edu.UPAO.proyecto.DAO.VentaDAO;
 import edu.UPAO.proyecto.DAO.ClienteDAO;
 import edu.UPAO.proyecto.DAO.ComprobanteDAO;
+import edu.UPAO.proyecto.util.GeneradorPDF;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -80,6 +78,40 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         System.out.println("✅ Boleta creada - Empleado: " + idEmpleado
                 + ", Sucursal: " + idSucursal
                 + ", Observaciones: " + observaciones);
+    }
+
+    private void generarComprobanteYVistaPrevia(Venta venta, int idVenta, String dniCliente, String observaciones) {
+        try {
+            // 1. GENERAR Y REGISTRAR COMPROBANTE EN BD
+            ComprobanteDAO comprobanteDAO = new ComprobanteDAO();
+            String tipoComprobante = "BOLETA";
+            boolean comprobanteRegistrado = comprobanteDAO.registrarComprobante(idVenta, tipoComprobante, venta);
+
+            if (!comprobanteRegistrado) {
+                System.err.println("⚠️ No se pudo registrar el comprobante en la BD");
+            }
+
+            // 2. Generar el PDF
+            String numeroComprobante = String.format("%08d", idVenta);
+            String rutaPDF = GeneradorPDF.generarBoleta(venta, numeroComprobante);
+
+            if (rutaPDF == null) {
+                throw new Exception("No se pudo generar el PDF");
+            }
+
+            // 3. Mostrar vista previa CON LA RUTA DEL PDF
+            jFrame_VistaPrevia vistaPrevia = new jFrame_VistaPrevia(venta, dniCliente, observaciones, rutaPDF);
+            vistaPrevia.setVisible(true);
+
+            System.out.println("✅ Comprobante generado - ID Venta: " + idVenta + ", PDF: " + rutaPDF);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error al generar comprobante: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                    "Error al generar comprobante: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void verificarMontoMovimientoCaja(double totalVenta) {
@@ -529,18 +561,13 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
             // 4. GUARDAR EN BD USANDO VentaDAO
             VentaDAO ventaDAO = new VentaDAO();
             int idVentaGenerada = ventaDAO.registrarVenta(venta);
-            generarComprobante(venta, idVentaGenerada);
+
+            generarComprobanteYVistaPrevia(venta, idVentaGenerada, dniCliente, observaciones);
 
             JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada);
 
             verificarMontoMovimientoCaja(totalReal);
-
-            // 5. PASAR A VISTA PREVIA
-            String observaciones = this.observaciones;
-            jFrame_VistaPrevia vista = new jFrame_VistaPrevia(venta, dniCliente, observaciones);
-            vista.setLocationRelativeTo(this);
-            vista.setVisible(true);
-
+            
             productoDAO.cerrarConexion();
             this.dispose();
 
