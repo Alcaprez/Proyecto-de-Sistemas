@@ -22,7 +22,30 @@ public class ProductoDAO {
         }
     }
 
+    public int obtenerStockActual(int idProducto, int idSucursal) {
+        String sql = "SELECT COALESCE(stock_actual, 0) as stock_actual "
+                + "FROM inventario_sucursal "
+                + "WHERE id_producto = ? AND id_sucursal = ?";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idProducto);
+            stmt.setInt(2, idSucursal);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("stock_actual");
+            } else {
+                // Si no existe registro, crearlo con stock 0
+                crearRegistroInventarioSucursal(idProducto, idSucursal, 0);
+                return 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error obteniendo stock actual: " + e.getMessage());
+            return 0;
+        }
+    }
 // Listar productos por sucursal con creación automática
+
     public List<Producto> listarPorSucursal(int idSucursal) {
         List<Producto> productos = new ArrayList<>();
         String sql = "SELECT p.id_producto, p.nombre, p.stock_minimo, "

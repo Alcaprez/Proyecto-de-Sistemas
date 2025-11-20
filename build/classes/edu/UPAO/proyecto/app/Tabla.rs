@@ -1,3 +1,0 @@
-proyectosistemasempresariales.vista.Tabla$2
-proyectosistemasempresariales.vista.Tabla$1
-proyectosistemasempresariales.vista.Tabla

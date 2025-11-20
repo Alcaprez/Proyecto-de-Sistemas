@@ -3,6 +3,7 @@ package edu.UPAO.proyecto.Modelo;
 import java.time.LocalTime;
 
 public class HorarioEmpleado {
+
     private String idEmpleado;
     private String nombreEmpleado;
     private LocalTime horaEntrada;
@@ -18,15 +19,37 @@ public class HorarioEmpleado {
     }
 
     // Getters y Setters
-    public String getIdEmpleado() { return idEmpleado; }
-    public String getNombreEmpleado() { return nombreEmpleado; }
-    public LocalTime getHoraEntrada() { return horaEntrada; }
-    public LocalTime getHoraSalida() { return horaSalida; }
-    public int getMinutosTolerancia() { return minutosTolerancia; }
+    public String getIdEmpleado() {
+        return idEmpleado;
+    }
 
-    public void setHoraEntrada(LocalTime horaEntrada) { this.horaEntrada = horaEntrada; }
-    public void setHoraSalida(LocalTime horaSalida) { this.horaSalida = horaSalida; }
-    public void setMinutosTolerancia(int minutosTolerancia) { this.minutosTolerancia = minutosTolerancia; }
+    public String getNombreEmpleado() {
+        return nombreEmpleado;
+    }
+
+    public LocalTime getHoraEntrada() {
+        return horaEntrada;
+    }
+
+    public LocalTime getHoraSalida() {
+        return horaSalida;
+    }
+
+    public int getMinutosTolerancia() {
+        return minutosTolerancia;
+    }
+
+    public void setHoraEntrada(LocalTime horaEntrada) {
+        this.horaEntrada = horaEntrada;
+    }
+
+    public void setHoraSalida(LocalTime horaSalida) {
+        this.horaSalida = horaSalida;
+    }
+
+    public void setMinutosTolerancia(int minutosTolerancia) {
+        this.minutosTolerancia = minutosTolerancia;
+    }
 
     public String toCSV() {
         return idEmpleado + ";" + nombreEmpleado + ";" + horaEntrada + ";" + horaSalida + ";" + minutosTolerancia;
@@ -37,11 +60,11 @@ public class HorarioEmpleado {
             String[] partes = csvLine.split(";");
             if (partes.length == 5) {
                 return new HorarioEmpleado(
-                    partes[0], // idEmpleado
-                    partes[1], // nombreEmpleado
-                    LocalTime.parse(partes[2]), // horaEntrada
-                    LocalTime.parse(partes[3]), // horaSalida
-                    Integer.parseInt(partes[4]) // minutosTolerancia
+                        partes[0], // idEmpleado
+                        partes[1], // nombreEmpleado
+                        LocalTime.parse(partes[2]), // horaEntrada
+                        LocalTime.parse(partes[3]), // horaSalida
+                        Integer.parseInt(partes[4]) // minutosTolerancia
                 );
             }
         } catch (Exception e) {

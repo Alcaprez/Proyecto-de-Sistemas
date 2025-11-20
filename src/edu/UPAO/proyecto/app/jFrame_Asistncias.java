@@ -1,13 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.Modelo.RegistroAsistencia;
+import edu.UPAO.proyecto.Service.AsistenciaService;
 import java.io.*;
-import edu.UPAO.proyecto.Util.AsistenciaTxtRepo;
+import java.awt.Color;
 import java.time.LocalDate;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.swing.*;
@@ -21,110 +18,105 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
     private DefaultTableModel modelo;
     private String usuarioNombre;
-    private boolean yaRegistroEntradaHoy = false;
-    private boolean yaRegistroSalidaHoy = false;
-    private final AsistenciaTxtRepo repo = new AsistenciaTxtRepo("registros_asistencia.txt");
+    private String idEmpleado;
+    private final AsistenciaService asistenciaService = new AsistenciaService();
     private LocalDate fechaHoy = LocalDate.now();
+    // Variables para animación
+    // Formatters
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * Creates new form jFrame_Asistncias
-     *
-     *
-     *
-     */
-    // Constructor sin parámetros (para el main)
     public jFrame_Asistncias() {
-        this("Usuario Demo"); // Valores por defecto para testing
+        this("12000001", "Usuario Demo");
     }
 
+// CONSTRUCTOR TEMPORAL - SOLUCIÓN INMEDIATA
     public jFrame_Asistncias(String usuarioNombre) {
+        this("12000001", usuarioNombre); // ID por defecto
+    }
+
+    public jFrame_Asistncias(String idEmpleado, String usuarioNombre) {
+        this.idEmpleado = idEmpleado;
+        this.usuarioNombre = usuarioNombre;
+
+        // ⚠️ QUITA ESTA LÍNEA: setOpacity(0.0f);
         initComponents();
         setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null); // CENTRAR VENTANA
 
-        this.usuarioNombre = usuarioNombre;
-
         // Configurar tabla
-        modelo = new DefaultTableModel(new Object[]{"Usuario", "Tipo", "Fecha", "Hora"}, 0);
+        modelo = new DefaultTableModel(new Object[]{"Usuario", "Tipo", "Fecha", "Hora", "Estado"}, 0);
         jTable3.setModel(modelo);
 
-        // Mostrar nombre en título
         jLabel7.setText("Registro - " + usuarioNombre);
-
-        // Cargar registros existentes
         cargarRegistros();
-
-        // Verificar estado ACTUAL desde el archivo (no usar variables temporales)
-        verificarEstadoActual();
-
-        // Actualizar hora actual
+        actualizarEstadoBotones();
         actualizarHoraActual();
 
-        // Configurar estado de los botones basado en el archivo
-        actualizarEstadoBotones();
+        //configurarAnimacion();
+        //mostrarConAnimacion();
     }
 
     private void verificarEstadoActual() {
-        // Este método ya no usa variables booleanas, verifica directamente del archivo
-        // No necesitamos almacenar el estado en variables, lo verificamos en tiempo real
-    }
 
-    private void verificarRegistrosHoy() {
-        String fechaHoy = java.time.LocalDate.now().toString();
-
-        File archivo = new File("registros_asistencia.txt");
-        if (!archivo.exists()) {
-            return;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
-            String linea;
-            while ((linea = reader.readLine()) != null) {
-                String[] partes = linea.split("\\|");
-                if (partes.length == 4 && partes[0].equals(usuarioNombre) && partes[2].equals(fechaHoy)) {
-                    if (partes[1].equals("ENTRADA")) {
-                        yaRegistroEntradaHoy = true;
-                    } else if (partes[1].equals("SALIDA")) {
-                        yaRegistroSalidaHoy = true;
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error al verificar registros: " + e.getMessage());
-        }
     }
 
     private void actualizarEstadoBotones() {
-        // Verificar directamente del archivo cuál es el estado actual
-        boolean tieneEntradaHoy = tieneRegistroHoy("ENTRADA");
-        boolean tieneSalidaHoy = tieneRegistroHoy("SALIDA");
-        fechaHoy = LocalDate.now();
-        var map = repo.leerPorFecha(fechaHoy);
-        var r = map.get(usuarioNombre == null ? "" : usuarioNombre.toLowerCase());
+        String estado = asistenciaService.obtenerEstadoActual(idEmpleado);
 
-        boolean tieneEntrada = (r != null && r.entrada != null);
-        boolean tieneSalida = (r != null && r.salida != null);
-        if (tieneEntradaHoy && !tieneSalidaHoy) {
-            // Ya registró entrada pero no salida - ESPERANDO SALIDA
-            btn_entrada.setEnabled(false);
-            btn_entrada.setText("✓ ENTRADA REGISTRADA");
-            btn_salida.setEnabled(true);
-            btn_salida.setText("MARCAR SALIDA");
+        switch (estado) {
+            case "PENDIENTE_ENTRADA":
+                btn_entrada.setEnabled(true);
+                btn_entrada.setText("MARCAR ENTRADA");
+                btn_entrada.setBackground(new java.awt.Color(76, 175, 80));
+                btn_salida.setEnabled(false);
+                btn_salida.setText("SALIDA (Espere entrada)");
+                btn_salida.setBackground(new java.awt.Color(200, 200, 200));
+                break;
 
-        } else if (tieneEntradaHoy && tieneSalidaHoy) {
-            // Ya completó el ciclo de hoy - FINALIZADO
-            btn_entrada.setEnabled(false);
-            btn_entrada.setText("✓ ENTRADA REGISTRADA");
-            btn_salida.setEnabled(false);
-            btn_salida.setText("✓ SALIDA REGISTRADA");
+            case "ENTRADA_REGISTRADA":
+                btn_entrada.setEnabled(false);
+                btn_entrada.setText("✓ ENTRADA REGISTRADA");
+                btn_entrada.setBackground(new java.awt.Color(46, 125, 50));
+                btn_salida.setEnabled(true);
+                btn_salida.setText("MARCAR SALIDA");
+                btn_salida.setBackground(new java.awt.Color(244, 67, 54));
+                break;
 
-        } else {
-            // No ha registrado entrada hoy - INICIO DEL DÍA
-            btn_entrada.setEnabled(true);
-            btn_entrada.setText("MARCAR ENTRADA");
-            btn_salida.setEnabled(false);
-            btn_salida.setText("SALIDA (Espere entrada)");
+            case "SALIDA_REGISTRADA":
+                btn_entrada.setEnabled(false);
+                btn_entrada.setText("✓ ENTRADA REGISTRADA");
+                btn_entrada.setBackground(new java.awt.Color(46, 125, 50));
+                btn_salida.setEnabled(false);
+                btn_salida.setText("✓ SALIDA REGISTRADA");
+                btn_salida.setBackground(new java.awt.Color(183, 28, 28));
+                break;
         }
+    }
+
+    private void actualizarMensajeEstado(String estado) {
+        String mensaje = "";
+        Color color = Color.BLACK;
+
+        switch (estado) {
+            case "PENDIENTE_ENTRADA":
+                mensaje = "⏳ Esperando registro de entrada";
+                color = Color.ORANGE;
+                break;
+            case "ENTRADA_REGISTRADA":
+                mensaje = "✅ Entrada registrada - Puede registrar salida";
+                color = Color.BLUE;
+                break;
+            case "SALIDA_REGISTRADA":
+                mensaje = "✅ Jornada completada - Ventana se cerrará automáticamente";
+                color = new Color(0, 100, 0); // Verde oscuro
+                break;
+        }
+
+        // Si tienes un label para mensajes, actualízalo aquí
+        // lblMensajeEstado.setText(mensaje);
+        // lblMensajeEstado.setForeground(color);
     }
 
     private boolean tieneRegistroHoy(String tipo) {
@@ -154,31 +146,54 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
     private void registrarAsistencia(String tipo) {
         try {
-            LocalDateTime ahora = LocalDateTime.now();
-            String fecha = ahora.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String hora = ahora.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+            RegistroAsistencia registro = null;
 
-            // Guardar en archivo
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter("registros_asistencia.txt", true))) {
-                writer.write(usuarioNombre + "|" + tipo + "|" + fecha + "|" + hora);
-                writer.newLine();
+            if (tipo.equals("ENTRADA")) {
+                registro = asistenciaService.registrarEntrada(idEmpleado, usuarioNombre);
+            } else if (tipo.equals("SALIDA")) {
+                registro = asistenciaService.registrarSalida(idEmpleado, usuarioNombre);
             }
 
-            // Agregar a la tabla
-            modelo.addRow(new Object[]{usuarioNombre, tipo, fecha, hora});
+            if (registro != null) {
+                // Agregar a la tabla
+                String fecha = registro.getFechaHora().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                String hora = registro.getFechaHora().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+                modelo.addRow(new Object[]{
+                    usuarioNombre,
+                    tipo,
+                    fecha,
+                    hora,
+                    registro.getEstado()
+                });
 
+                // Mostrar mensaje de confirmación
+                String mensaje = String.format(
+                        "✅ %s registrada exitosamente\n🕒 Hora: %s\n📊 Estado: %s",
+                        tipo, hora, registro.getEstado()
+                );
+
+                JOptionPane.showMessageDialog(this,
+                        mensaje,
+                        tipo + " Registrada",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                // Actualizar estado de los botones
+                actualizarEstadoBotones();
+
+                // Scroll to the last row
+                if (modelo.getRowCount() > 0) {
+                    jTable3.scrollRectToVisible(jTable3.getCellRect(modelo.getRowCount() - 1, 0, true));
+                }
+            }
+
+        } catch (IllegalStateException ex) {
             JOptionPane.showMessageDialog(this,
-                    "✅ " + tipo + " registrada exitosamente\n"
-                    + "🕒 Hora: " + hora,
-                    tipo + " Registrada",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-            // Actualizar estado de los botones BASADO EN EL ARCHIVO
-            actualizarEstadoBotones();
-
-        } catch (IOException e) {
+                    ex.getMessage(),
+                    "Advertencia",
+                    JOptionPane.WARNING_MESSAGE);
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                    "❌ Error al guardar: " + e.getMessage(),
+                    "❌ Error al registrar " + tipo + ": " + ex.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
@@ -186,32 +201,49 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
     private void cargarRegistros() {
         modelo.setRowCount(0);
-
-        File archivo = new File("registros_asistencia.txt");
-        if (!archivo.exists()) {
-            return;
-        }
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(archivo))) {
-            String linea;
-            while ((linea = reader.readLine()) != null) {
-                String[] partes = linea.split("\\|");
-                if (partes.length == 4 && partes[0].equals(usuarioNombre)) {
-                    modelo.addRow(new Object[]{partes[0], partes[1], partes[2], partes[3]});
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error al cargar registros: " + e.getMessage());
-        }
+        System.out.println("Cargando registros para: " + usuarioNombre);
     }
 
     private void actualizarHoraActual() {
         Timer timer = new Timer(1000, e -> {
             LocalDateTime ahora = LocalDateTime.now();
-            lblHoraActual.setText(ahora.format(DateTimeFormatter.ofPattern("HH:mm:ss")));
-            lblFechaActual.setText(ahora.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            lblHoraActual.setText(ahora.format(timeFormatter));
+            lblFechaActual.setText(ahora.format(dateFormatter));
         });
         timer.start();
+    }
+
+    public void autoCompletarSiEsNecesario() {
+        String estado = asistenciaService.obtenerEstadoActual(idEmpleado);
+
+        if (estado.equals("ENTRADA_REGISTRADA")) {
+            // El empleado registró entrada pero no salida
+            int respuesta = JOptionPane.showConfirmDialog(this,
+                    "⚠️  Tiene entrada registrada pero no salida.\n¿Desea registrar salida automáticamente?",
+                    "Registro de Salida Pendiente",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (respuesta == JOptionPane.YES_OPTION) {
+                try {
+                    RegistroAsistencia registro = asistenciaService.registrarSalida(idEmpleado, usuarioNombre);
+                    JOptionPane.showMessageDialog(this,
+                            "✅ Salida automática registrada a las: "
+                            + registro.getFechaHora().format(timeFormatter),
+                            "Salida Registrada",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    System.err.println("Error al auto-completar salida: " + ex.getMessage());
+                }
+            }
+        }
+    }
+
+    public static void mostrarRegistroAsistencia(String idEmpleado, String nombreEmpleado) {
+        SwingUtilities.invokeLater(() -> {
+            jFrame_Asistncias registro = new jFrame_Asistncias(idEmpleado, nombreEmpleado);
+            registro.setVisible(true); // ✅ El setVisible debe estar AQUÍ, no en el constructor
+        });
     }
 
     /**
@@ -236,8 +268,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         jTable2 = new javax.swing.JTable();
         jLabel5 = new javax.swing.JLabel();
         jPanel1 = new javax.swing.JPanel();
-        btn_entrada = new javax.swing.JButton();
-        btn_salida = new javax.swing.JButton();
         jLabel6 = new javax.swing.JLabel();
         jScrollPane3 = new javax.swing.JScrollPane();
         jTable3 = new javax.swing.JTable();
@@ -246,6 +276,8 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         lblFechaActual = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
+        btn_entrada = new javax.swing.JButton();
+        btn_salida = new javax.swing.JButton();
 
         jButton1.setText("MARCAR SALIDA");
 
@@ -291,20 +323,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
-        btn_entrada.setText("MARCAR ENTRADA");
-        btn_entrada.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_entradaActionPerformed(evt);
-            }
-        });
-
-        btn_salida.setText("MARCAR SALIDA");
-        btn_salida.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_salidaActionPerformed(evt);
-            }
-        });
-
         jLabel6.setText("Ultimos registros:");
 
         jTable3.setModel(new javax.swing.table.DefaultTableModel(
@@ -342,6 +360,20 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
         jLabel8.setText("FECHA:");
 
+        btn_entrada.setText("MARCAR ENTRADA");
+        btn_entrada.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_entradaActionPerformed(evt);
+            }
+        });
+
+        btn_salida.setText("MARCAR SALIDA");
+        btn_salida.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_salidaActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -359,10 +391,10 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                         .addComponent(jLabel8)
                         .addGap(18, 18, 18)
                         .addComponent(lblFechaActual))
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
                             .addComponent(btn_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 196, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                             .addComponent(btn_salida, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(17, Short.MAX_VALUE))
@@ -370,7 +402,7 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(25, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jLabel7)
                 .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
@@ -378,15 +410,15 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                     .addComponent(lblFechaActual)
                     .addComponent(jLabel1)
                     .addComponent(jLabel8))
-                .addGap(39, 39, 39)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btn_salida, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 198, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18))
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_salida, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(96, 96, 96))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -397,9 +429,7 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+            .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 323, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
 
         pack();
@@ -417,11 +447,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -429,16 +454,9 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(jFrame_Asistncias.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(jFrame_Asistncias.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(jFrame_Asistncias.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(jFrame_Asistncias.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
         //</editor-fold>
 
         /* Create and display the form */
