@@ -6,6 +6,7 @@ import edu.UPAO.proyecto.LoginController;
 import edu.UPAO.proyecto.Modelo.Usuario;
 import java.util.List;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  *

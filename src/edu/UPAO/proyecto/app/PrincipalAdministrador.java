@@ -235,7 +235,8 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_comprasActionPerformed
 
     private void btn_ventaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventaActionPerformed
-        
+        VENTAS_Admin panelventas = new VENTAS_Admin();
+        MostrarPanel(panelventas);
     }//GEN-LAST:event_btn_ventaActionPerformed
 
     private void btn_almacenesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_almacenesActionPerformed
