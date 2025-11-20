@@ -19,6 +19,7 @@ public class VentaDAO {
     public VentaDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            this.productoDAO = new ProductoDAO();
             System.out.println("Conectado");
         } catch (Exception e) {
             System.err.println("Error conectando DAO: " + e.getMessage());
@@ -48,68 +49,54 @@ public class VentaDAO {
         Connection conn = null;
         PreparedStatement stmtVenta = null;
         PreparedStatement stmtDetalle = null;
-        ResultSet generatedKeys = null;
 
         try {
             conn = this.conexion;
             conn.setAutoCommit(false);
 
-            // 1. OBTENER ID_CLIENTE REAL
+            // ✅ CONFIGURAR TIMEOUT MÁS CORTO
+            conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor(), 10000); // 10 segundos
+
+            // 1. DATOS RÁPIDOS
             ClienteDAO clienteDAO = new ClienteDAO();
             String idClienteReal = clienteDAO.obtenerIdClienteParaVenta(venta.getDniCliente());
             clienteDAO.cerrarConexion();
 
             int idSucursal = venta.getIdSucursal();
-            System.out.println("🏪 Registrando venta en sucursal: " + idSucursal);
-
-            // 2. OBTENER ID_MÉTODO_PAGO Y ID_CAJA
             int idMetodoPago = obtenerIdMetodoPago(venta.getMetodoPago());
             int idCaja = obtenerIdCajaActiva();
 
-            // 3. INSERTAR EN TABLA VENTA
+            // 2. INSERTAR VENTA
             String sqlVenta = "INSERT INTO venta (fecha_hora, total, id_cliente, id_empleado, id_metodo_pago, id_caja, id_sucursal) VALUES (?, ?, ?, ?, ?, ?, ?)";
             stmtVenta = conn.prepareStatement(sqlVenta, Statement.RETURN_GENERATED_KEYS);
 
-            stmtVenta.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+            // ✅ USAR TIMESTAMP CON CALENDAR DE LIMA
+            java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("America/Lima"));
+            stmtVenta.setTimestamp(1, new Timestamp(System.currentTimeMillis()), cal);
             stmtVenta.setDouble(2, venta.getTotal());
             stmtVenta.setString(3, idClienteReal);
             stmtVenta.setString(4, venta.getIdEmpleado());
             stmtVenta.setInt(5, idMetodoPago);
             stmtVenta.setInt(6, idCaja);
-            stmtVenta.setInt(7, idSucursal); // ✅ NUEVO PARÁMETRO
+            stmtVenta.setInt(7, idSucursal);
 
             int filasAfectadas = stmtVenta.executeUpdate();
-            int idVentaGenerada = obtenerIdGenerado(stmtVenta);
             if (filasAfectadas == 0) {
                 throw new SQLException("Error al insertar venta, ninguna fila afectada.");
             }
 
-            // ✅ 4. OBTENER ID GENERADO DE LA VENTA
-            generatedKeys = stmtVenta.getGeneratedKeys();
-            idVentaGenerada = 0;
-            if (generatedKeys.next()) {
-                idVentaGenerada = generatedKeys.getInt(1);
-            }
+            int idVentaGenerada = obtenerIdGenerado(stmtVenta);
 
-            // ✅ 5. INSERTAR DETALLES DE VENTA
+            // 3. INSERTAR DETALLES (BATCH OPTIMIZADO)
             String sqlDetalle = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
             stmtDetalle = conn.prepareStatement(sqlDetalle);
 
-            // ✅ 6. PREPARAR DATOS PARA MOVIMIENTOS DE INVENTARIO
-            Map<Integer, Integer> stockAnteriorPorProducto = new HashMap<>();
-
             for (DetalleVenta detalle : venta.getDetalleVenta()) {
                 int idProducto = productoDAO.obtenerIdPorCodigo(detalle.getProducto().getCodigo());
-
                 if (idProducto == -1) {
-                    throw new SQLException("Producto no encontrado con código: " + detalle.getProducto().getCodigo());
+                    throw new SQLException("Producto no encontrado: " + detalle.getProducto().getCodigo());
                 }
 
-                // ✅ OBTENER STOCK ANTERIOR PARA MOVIMIENTO INVENTARIO
-                int stockAnterior = productoDAO.obtenerStockActual(idProducto);
-                stockAnteriorPorProducto.put(idProducto, stockAnterior);
-
-                // Insertar detalle de venta
                 stmtDetalle.setInt(1, idVentaGenerada);
                 stmtDetalle.setInt(2, idProducto);
                 stmtDetalle.setInt(3, detalle.getCantidad());
@@ -117,55 +104,62 @@ public class VentaDAO {
                 stmtDetalle.setDouble(5, detalle.getSubtotal());
                 stmtDetalle.addBatch();
             }
-
             stmtDetalle.executeBatch();
 
-            // ✅ 7. ACTUALIZAR STOCK DE PRODUCTOS
+            // 4. ACTUALIZAR STOCK (BATCH)
             actualizarInventarioSucursal(venta.getDetalleVenta(), idSucursal, conn);
 
-            // ✅ 8. REGISTRAR MOVIMIENTOS DE INVENTARIO (NUEVA FUNCIONALIDAD)
-            registrarMovimientosInventario(venta.getDetalleVenta(), idSucursal, idVentaGenerada, conn);
+            // ✅ 5. MOVIMIENTO CAJA EN LA MISMA TRANSACCIÓN (EVITA LOCKS)
+            registrarMovimientoCajaDirecto(conn, idCaja, idVentaGenerada, venta.getTotal(), idSucursal, venta.getMetodoPago());
 
             conn.commit();
-            return idVentaGenerada;
-            try {
-                MovimientoCajaDAO movimientoDAO = new MovimientoCajaDAO();
-                boolean movimientoRegistrado = movimientoDAO.registrarMovimientoCajaVenta(
-                        venta.getTotal(),
-                        idVentaGenerada,
-                        idSucursal,
-                        venta.getMetodoPago()
-                );
-
-                if (movimientoRegistrado) {
-                    System.out.println("✅ Movimiento de caja registrado para venta: " + idVentaGenerada);
-                } else {
-                    System.err.println("⚠️ No se pudo registrar movimiento de caja para venta: " + idVentaGenerada);
-                }
-            } catch (Exception e) {
-                System.err.println("❌ Error registrando movimiento de caja: " + e.getMessage());
-                // NO hacer rollback aquí, la venta ya se registró
-            }
-
             System.out.println("✅ Venta registrada exitosamente - ID: " + idVentaGenerada);
             return idVentaGenerada;
 
         } catch (SQLException e) {
             if (conn != null) {
-                conn.rollback();
-                System.err.println("❌ Rollback realizado por error: " + e.getMessage());
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("❌ Error en rollback: " + ex.getMessage());
+                }
             }
             throw e;
         } finally {
-            if (generatedKeys != null) {
-                generatedKeys.close();
-            }
-            if (stmtDetalle != null) {
+            // ✅ CERRAR RECURSOS INMEDIATAMENTE
+            if (stmtDetalle != null) try {
                 stmtDetalle.close();
+            } catch (SQLException e) {
             }
-            if (stmtVenta != null) {
+            if (stmtVenta != null) try {
                 stmtVenta.close();
+            } catch (SQLException e) {
             }
+            if (conn != null) try {
+                conn.setAutoCommit(true);
+            } catch (SQLException e) {
+            }
+        }
+    }
+
+// ✅ MÉTODO PARA REGISTRAR MOVIMIENTO CAJA DIRECTAMENTE
+    private void registrarMovimientoCajaDirecto(Connection conn, int idCaja, int idVenta, double monto, int idSucursal, String metodoPago) throws SQLException {
+        String sql = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_caja, id_venta, id_sucursal, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("America/Lima"));
+
+            stmt.setString(1, "VENTA");
+            stmt.setDouble(2, monto); // ✅ USAR EL MONTO CORRECTO DE LA VENTA
+            stmt.setTimestamp(3, new Timestamp(System.currentTimeMillis()), cal);
+            stmt.setString(4, "Venta ID: " + idVenta + " - " + metodoPago);
+            stmt.setInt(5, idCaja);
+            stmt.setInt(6, idVenta);
+            stmt.setInt(7, idSucursal);
+            stmt.setString(8, "ACTIVO");
+
+            stmt.executeUpdate();
+            System.out.println("✅ Movimiento caja registrado - Monto: " + monto);
         }
     }
 
@@ -324,6 +318,16 @@ public class VentaDAO {
                 } else {
                     throw new SQLException("No se pudo obtener el ID de la caja creada");
                 }
+            }
+        }
+    }
+
+    private int obtenerIdGenerado(PreparedStatement stmt) throws SQLException {
+        try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+            if (generatedKeys.next()) {
+                return generatedKeys.getInt(1);
+            } else {
+                throw new SQLException("No se pudo obtener el ID de la venta generada.");
             }
         }
     }

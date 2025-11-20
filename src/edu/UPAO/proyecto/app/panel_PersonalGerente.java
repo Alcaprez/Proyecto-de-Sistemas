@@ -170,13 +170,13 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         btnAgregar = new javax.swing.JButton();
         panelLista = new javax.swing.JPanel();
         panelListaTop = new javax.swing.JPanel();
-        lblListaEmpleadosP = new javax.swing.JLabel();
+        scrollEmpleados = new javax.swing.JScrollPane();
+        tablaEmpleados = new javax.swing.JTable();
         jTextField1 = new javax.swing.JTextField();
         jComboBox1 = new javax.swing.JComboBox<>();
         jComboBox2 = new javax.swing.JComboBox<>();
         jButton1 = new javax.swing.JButton();
-        scrollEmpleados = new javax.swing.JScrollPane();
-        tablaEmpleados = new javax.swing.JTable();
+        lblListaEmpleadosP = new javax.swing.JLabel();
 
         ASISTENCIAS.setLayout(new java.awt.BorderLayout());
 
@@ -317,11 +317,11 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         NOMINA_EMPLEADOS.setLayout(NOMINA_EMPLEADOSLayout);
         NOMINA_EMPLEADOSLayout.setHorizontalGroup(
             NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1228, Short.MAX_VALUE)
+            .addGap(0, 1212, Short.MAX_VALUE)
         );
         NOMINA_EMPLEADOSLayout.setVerticalGroup(
             NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 649, Short.MAX_VALUE)
+            .addGap(0, 658, Short.MAX_VALUE)
         );
 
         tabControlPersonal.addTab("NOMINA DE EMPLEADOS", NOMINA_EMPLEADOS);
@@ -329,117 +329,64 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         REGISTRAR_PERSONAL.setLayout(new java.awt.BorderLayout());
 
         panelForm.setBackground(new java.awt.Color(255, 255, 255));
-        panelForm.setLayout(new java.awt.GridBagLayout());
+        panelForm.setPreferredSize(new java.awt.Dimension(874, 150));
 
         lblNombres.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblNombres.setForeground(new java.awt.Color(0, 0, 0));
         lblNombres.setText("NOMBRES:");
-        panelForm.add(lblNombres, new java.awt.GridBagConstraints());
-        panelForm.add(txtNombres, new java.awt.GridBagConstraints());
 
         lblApellidos.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblApellidos.setForeground(new java.awt.Color(0, 0, 0));
         lblApellidos.setText("APELLIDOS:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        panelForm.add(lblApellidos, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
-        panelForm.add(txtApellidos, gridBagConstraints);
 
         lblDni.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblDni.setForeground(new java.awt.Color(0, 0, 0));
         lblDni.setText("DNI:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 2;
-        panelForm.add(lblDni, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        panelForm.add(txtDni, gridBagConstraints);
 
         lblTelefono.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTelefono.setForeground(new java.awt.Color(0, 0, 0));
         lblTelefono.setText("TELEFONO:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 3;
-        panelForm.add(lblTelefono, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
-        panelForm.add(txtTelefono, gridBagConstraints);
 
         lblCorreo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblCorreo.setForeground(new java.awt.Color(0, 0, 0));
         lblCorreo.setText("CORREO:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 4;
-        panelForm.add(lblCorreo, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
-        panelForm.add(txtCorreo, gridBagConstraints);
 
         lblIdEmpleado.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblIdEmpleado.setForeground(new java.awt.Color(0, 0, 0));
         lblIdEmpleado.setText("ID:");
-        panelForm.add(lblIdEmpleado, new java.awt.GridBagConstraints());
 
         txtIdEmpleado.setEditable(false);
-        panelForm.add(txtIdEmpleado, new java.awt.GridBagConstraints());
+        txtIdEmpleado.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtIdEmpleadoActionPerformed(evt);
+            }
+        });
 
         lblTienda.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTienda.setForeground(new java.awt.Color(0, 0, 0));
         lblTienda.setText("TIENDA:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        panelForm.add(lblTienda, gridBagConstraints);
 
         cbTiendaP.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        panelForm.add(cbTiendaP, gridBagConstraints);
 
         lblCargo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblCargo.setForeground(new java.awt.Color(0, 0, 0));
         lblCargo.setText("CARGO:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        panelForm.add(lblCargo, gridBagConstraints);
 
         cbCargo.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "CAJERO", "ADMINISTRADOR" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        panelForm.add(cbCargo, gridBagConstraints);
 
         lblEstado.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblEstado.setForeground(new java.awt.Color(0, 0, 0));
         lblEstado.setText("ESTADO:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        panelForm.add(lblEstado, gridBagConstraints);
 
         cbEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "ACTIVO", "INACTIVO", " " }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        panelForm.add(cbEstado, gridBagConstraints);
 
         lblSueldo.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblSueldo.setForeground(new java.awt.Color(0, 0, 0));
         lblSueldo.setText("SUELDO:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        panelForm.add(lblSueldo, gridBagConstraints);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        panelForm.add(txtSueldo, gridBagConstraints);
 
         btnLimpiar.setText("LIMPIAR");
-        panelForm.add(btnLimpiar, new java.awt.GridBagConstraints());
 
         btnActualizar.setText("ACTUALIZAR");
-        panelForm.add(btnActualizar, new java.awt.GridBagConstraints());
 
         btnAgregar.setText("AGREGAR");
         btnAgregar.addActionListener(new java.awt.event.ActionListener() {
@@ -447,42 +394,125 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 btnAgregarActionPerformed(evt);
             }
         });
-        panelForm.add(btnAgregar, new java.awt.GridBagConstraints());
+
+        javax.swing.GroupLayout panelFormLayout = new javax.swing.GroupLayout(panelForm);
+        panelForm.setLayout(panelFormLayout);
+        panelFormLayout.setHorizontalGroup(
+            panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelFormLayout.createSequentialGroup()
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(panelFormLayout.createSequentialGroup()
+                        .addGap(249, 249, 249)
+                        .addComponent(lblCorreo)
+                        .addGap(12, 12, 12))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblApellidos, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(lblNombres, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(lblDni, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(lblTelefono, javax.swing.GroupLayout.Alignment.TRAILING))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(panelFormLayout.createSequentialGroup()
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addComponent(lblTienda)
+                                .addGap(18, 18, 18)
+                                .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(panelFormLayout.createSequentialGroup()
+                                        .addGap(18, 18, 18)
+                                        .addComponent(lblEstado))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(lblCargo, javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addComponent(lblSueldo, javax.swing.GroupLayout.Alignment.TRAILING))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(cbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(cbCargo, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                    .addGroup(panelFormLayout.createSequentialGroup()
+                        .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(50, 50, 50)
+                        .addComponent(lblIdEmpleado)
+                        .addGap(18, 18, 18)
+                        .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(335, 335, 335)
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(btnLimpiar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnActualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnAgregar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)))
+        );
+        panelFormLayout.setVerticalGroup(
+            panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelFormLayout.createSequentialGroup()
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(panelFormLayout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(btnLimpiar)
+                        .addGap(6, 6, 6)
+                        .addComponent(btnActualizar)
+                        .addGap(6, 6, 6)
+                        .addComponent(btnAgregar))
+                    .addGroup(panelFormLayout.createSequentialGroup()
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblApellidos)))
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGap(3, 3, 3)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(lblIdEmpleado)
+                                    .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblNombres))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(lblTienda)
+                                    .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(lblCorreo)
+                                .addComponent(lblSueldo))
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addGroup(panelFormLayout.createSequentialGroup()
+                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                            .addComponent(cbCargo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(lblCargo))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(cbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelFormLayout.createSequentialGroup()
+                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                            .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(lblDni))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                            .addComponent(lblEstado)
+                                            .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(lblTelefono))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap())
+        );
 
         REGISTRAR_PERSONAL.add(panelForm, java.awt.BorderLayout.PAGE_START);
 
-        panelLista.setLayout(new java.awt.BorderLayout());
-
         panelListaTop.setLayout(new java.awt.GridBagLayout());
-
-        lblListaEmpleadosP.setText("Lista de Empleados");
-        panelListaTop.add(lblListaEmpleadosP, new java.awt.GridBagConstraints());
-
-        jTextField1.setText("Buscar Por Nombre o ID...");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        panelListaTop.add(jTextField1, gridBagConstraints);
-
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ver Todos", "Activos", "Inactivos", " " }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        panelListaTop.add(jComboBox1, gridBagConstraints);
-
-        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 1;
-        panelListaTop.add(jComboBox2, gridBagConstraints);
-
-        jButton1.setText("EXPORTAR");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 1;
-        panelListaTop.add(jButton1, gridBagConstraints);
-
-        panelLista.add(panelListaTop, java.awt.BorderLayout.PAGE_START);
 
         tablaEmpleados.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -497,7 +527,58 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         ));
         scrollEmpleados.setViewportView(tablaEmpleados);
 
-        panelLista.add(scrollEmpleados, java.awt.BorderLayout.CENTER);
+        jTextField1.setText("Buscar Por Nombre o ID...");
+
+        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ver Todos", "Activos", "Inactivos", " " }));
+
+        jComboBox2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jButton1.setText("EXPORTAR");
+
+        lblListaEmpleadosP.setText("Lista de Empleados");
+
+        javax.swing.GroupLayout panelListaLayout = new javax.swing.GroupLayout(panelLista);
+        panelLista.setLayout(panelListaLayout);
+        panelListaLayout.setHorizontalGroup(
+            panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelListaLayout.createSequentialGroup()
+                .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(panelListaLayout.createSequentialGroup()
+                        .addGap(1163, 1163, 1163)
+                        .addComponent(panelListaTop, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(panelListaLayout.createSequentialGroup()
+                        .addGap(20, 20, 20)
+                        .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(panelListaLayout.createSequentialGroup()
+                                .addGap(23, 23, 23)
+                                .addComponent(lblListaEmpleadosP))
+                            .addGroup(panelListaLayout.createSequentialGroup()
+                                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jButton1))
+                            .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1157, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addGap(35, 35, 35))
+        );
+        panelListaLayout.setVerticalGroup(
+            panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(panelListaLayout.createSequentialGroup()
+                .addComponent(panelListaTop, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblListaEmpleadosP)
+                .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(panelListaLayout.createSequentialGroup()
+                        .addGap(1, 1, 1)
+                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(panelListaLayout.createSequentialGroup()
+                        .addGap(1, 1, 1)
+                        .addComponent(jButton1)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
+        );
 
         REGISTRAR_PERSONAL.add(panelLista, java.awt.BorderLayout.CENTER);
 
@@ -516,7 +597,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
-          String nombres = txtNombres.getText().trim();
+        String nombres = txtNombres.getText().trim();
         String apellidos = txtApellidos.getText().trim();
         String dni = txtDni.getText().trim();
         String telefono = txtTelefono.getText().trim();
@@ -529,9 +610,9 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this,
-                    "Completa al menos Nombres, Apellidos y DNI",
-                    "Datos incompletos",
-                    javax.swing.JOptionPane.WARNING_MESSAGE);
+                "Completa al menos Nombres, Apellidos y DNI",
+                "Datos incompletos",
+                javax.swing.JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -541,72 +622,75 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             cn.setAutoCommit(false);
 
             // 1) PERSONA (si no existe, la creamos)
-            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
-                    + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
-                    + "ON DUPLICATE KEY UPDATE "
-                    + "nombres = VALUES(nombres), "
-                    + "apellidos = VALUES(apellidos), "
-                    + "telefono = VALUES(telefono), "
-                    + "correo = VALUES(correo)";
-            try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
-                ps.setString(1, dni);
-                ps.setString(2, nombres);
-                ps.setString(3, apellidos);
-                ps.setString(4, telefono);
-                ps.setString(5, correo);
-                ps.executeUpdate();
-            }
+        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
+        + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
+        + "ON DUPLICATE KEY UPDATE "
+        + "nombres = VALUES(nombres), "
+        + "apellidos = VALUES(apellidos), "
+        + "telefono = VALUES(telefono), "
+        + "correo = VALUES(correo)";
+        try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
+            ps.setString(1, dni);
+            ps.setString(2, nombres);
+            ps.setString(3, apellidos);
+            ps.setString(4, telefono);
+            ps.setString(5, correo);
+            ps.executeUpdate();
+        }
 
-            // =================================================
-// LEER SUELDO DEL TXT
-// =================================================
-            String sueldoTexto = txtSueldo.getText().trim();
-            double sueldo = (sueldoTexto.isEmpty())
-                    ? 0.0
-                    : Double.parseDouble(sueldoTexto);
+        // =================================================
+        // LEER SUELDO DEL TXT
+        // =================================================
+        String sueldoTexto = txtSueldo.getText().trim();
+        double sueldo = (sueldoTexto.isEmpty())
+        ? 0.0
+        : Double.parseDouble(sueldoTexto);
 
-// =================================================
-// INSERT EMPLEADO
-// =================================================
-            String sqlEmpleado = "INSERT INTO empleado "
-                    + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // =================================================
+        // INSERT EMPLEADO
+        // =================================================
+        String sqlEmpleado = "INSERT INTO empleado "
+        + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
+        + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-            try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
-                ps.setString(1, idEmpleadoNuevo);
-                ps.setString(2, dni);
-                ps.setInt(3, idSucursal);
-                ps.setString(4, rol);
-                ps.setString(5, estado);
-                ps.setDouble(6, sueldo);       // ← YA NO MARCA ERROR
-                ps.setString(7, "MAÑANA");
-                ps.executeUpdate();
-            }
+        try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
+            ps.setString(1, idEmpleadoNuevo);
+            ps.setString(2, dni);
+            ps.setInt(3, idSucursal);
+            ps.setString(4, rol);
+            ps.setString(5, estado);
+            ps.setDouble(6, sueldo);       // ← YA NO MARCA ERROR
+            ps.setString(7, "MAÑANA");
+            ps.executeUpdate();
+        }
 
-            cn.commit();
+        cn.commit();
 
-            // Mostrar ID generado en el formulario
-            txtIdEmpleado.setText(idEmpleadoNuevo);
+        // Mostrar ID generado en el formulario
+        txtIdEmpleado.setText(idEmpleadoNuevo);
 
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Empleado registrado correctamente",
-                    "Éxito",
-                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Empleado registrado correctamente",
+            "Éxito",
+            javax.swing.JOptionPane.INFORMATION_MESSAGE);
 
-            // recargar tabla
-            cargarEmpleadosEnTabla();
+        // recargar tabla
+        cargarEmpleadosEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this,
-                    "Error al registrar empleado. Revisa la consola.",
-                    "Error",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                "Error al registrar empleado. Revisa la consola.",
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
         }
         String sueldoTxt = txtSueldo.getText().trim();
         double sueldo = sueldoTxt.isEmpty() ? 0.0 : Double.parseDouble(sueldoTxt);
-
     }//GEN-LAST:event_btnAgregarActionPerformed
+
+    private void txtIdEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtIdEmpleadoActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtIdEmpleadoActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

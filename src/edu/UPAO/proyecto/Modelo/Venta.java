@@ -16,7 +16,12 @@ public class Venta {
     private double subtotal;
     private double igv;
     private double total;
+
     private int idSucursal;
+    private String idCliente;      // CHAR(8)
+    private int idMetodoPago;      // INT
+    private int idCaja;            // INT
+    private Integer idCupon;       // INT (puede ser null)
 
     // Constructor vacío
     public Venta() {
@@ -222,5 +227,37 @@ public class Venta {
 
     public void setIdEmpleado(String idEmpleado) {
         this.idEmpleado = idEmpleado;
+    }
+
+    public String getIdCliente() {
+        return idCliente;
+    }
+
+    public void setIdCliente(String idCliente) {
+        this.idCliente = idCliente;
+    }
+
+    public int getIdMetodoPago() {
+        return idMetodoPago;
+    }
+
+    public void setIdMetodoPago(int idMetodoPago) {
+        this.idMetodoPago = idMetodoPago;
+    }
+
+    public int getIdCaja() {
+        return idCaja;
+    }
+
+    public void setIdCaja(int idCaja) {
+        this.idCaja = idCaja;
+    }
+
+    public Integer getIdCupon() {
+        return idCupon;
+    }
+
+    public void setIdCupon(Integer idCupon) {
+        this.idCupon = idCupon;
     }
 }
