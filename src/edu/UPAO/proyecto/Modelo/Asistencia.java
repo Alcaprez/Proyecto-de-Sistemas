@@ -5,7 +5,7 @@ import java.time.LocalTime;
 
 public class Asistencia {
     private LocalDate fecha;
-    private String usuario;          // username (Usuario.getUsuario())
+    private String usuario;          // id_empleado
     private LocalTime horaEntrada;   // real
     private LocalTime horaSalida;    // real
 

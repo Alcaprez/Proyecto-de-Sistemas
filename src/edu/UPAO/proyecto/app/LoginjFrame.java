@@ -229,7 +229,6 @@ public class LoginjFrame extends javax.swing.JFrame {
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
 
-
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
@@ -352,6 +351,13 @@ public class LoginjFrame extends javax.swing.JFrame {
             tf_contraseña.setText("");
             tf_identificacion.requestFocus();
         }
+    }
+
+    private void mostrarRegistroAsistencia(String idEmpleado, String nombreEmpleado) {
+        SwingUtilities.invokeLater(() -> {
+            RegistroEntrada registro = new RegistroEntrada(idEmpleado, nombreEmpleado);
+            registro.mostrarVentana();
+        });
     }
 
     /**
