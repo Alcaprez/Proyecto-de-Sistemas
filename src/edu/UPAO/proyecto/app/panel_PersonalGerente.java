@@ -1,9 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
-package edu.UPAO.proyecto.app;
 
+package edu.UPAO.proyecto.app;
+import javax.swing.table.TableRowSorter;
+import javax.swing.RowFilter;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
 import java.sql.Connection;
@@ -11,51 +11,81 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import BaseDatos.Conexion;
+import edu.UPAO.proyecto.DAO.EmpleadoDAO;
+import edu.UPAO.proyecto.DAO.SucursalDAO;
+import edu.UPAO.proyecto.Modelo.Empleado;
+import java.util.ArrayList;
+import java.util.List;
+import edu.UPAO.proyecto.Modelo.Sucursal;
 
 public class panel_PersonalGerente extends javax.swing.JPanel {
 
-    /**
-     * Creates new form panel_ComprasGerente
-     */
+ 
     public panel_PersonalGerente() {
         initComponents();
-    }
- private void cargarEmpleadosEnTabla() {
-    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
-    modelo.setRowCount(0);
-
-    String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, p.dni, " +
-                 "       p.telefono, p.correo, s.nombre AS tienda, " +
-                 "       e.rol, e.estado, e.sueldo " +
-                 "FROM empleado e " +
-                 "JOIN persona p  ON e.dni = p.dni " +
-                 "JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                 "WHERE e.rol <> 'GERENTE' " +
-                 "ORDER BY p.apellidos, p.nombres";
-
-    try (Connection cn = new Conexion().establecerConexion();
-         PreparedStatement ps = cn.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
-
-        while (rs.next()) {
-            modelo.addRow(new Object[]{
-                rs.getString("id_empleado"),
-                rs.getString("nombres"),
-                rs.getString("apellidos"),
-                rs.getString("dni"),
-                rs.getString("telefono"),
-                rs.getString("correo"),
-                rs.getString("tienda"),
-                rs.getString("rol"),
-                rs.getDouble("sueldo"),   // si quieres mostrarlo
-                rs.getString("estado")
-            });
+        cargarEmpleadosEnTabla();
+        activarBusqueda();
+        // Dentro del constructor panel_PersonalGerente()
+txtDni.addKeyListener(new java.awt.event.KeyAdapter() {
+    public void keyPressed(java.awt.event.KeyEvent evt) {
+        // Si presiona ENTER (Código 10)
+        if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+            String dni = txtDni.getText().trim();
+            if (!dni.isEmpty()) {
+                EmpleadoDAO dao = new EmpleadoDAO();
+                // Buscamos si la persona existe
+                Empleado persona = dao.buscarPersonaPorDni(dni);
+                
+                if (persona != null) {
+                    // ¡EXISTE! Llenamos los campos automáticamente
+                    txtNombres.setText(persona.getNombres());
+                    txtApellidos.setText(persona.getApellidos());
+                    txtTelefono.setText(persona.getTelefono());
+                    txtCorreo.setText(persona.getCorreo());
+                    
+                    javax.swing.JOptionPane.showMessageDialog(null, 
+                        "Persona encontrada. Complete el Cargo y Sueldo para registrarlo como Empleado.");
+                    
+                    // Opcional: Bloquear nombre y apellido para no editarlos por error
+                    // txtNombres.setEditable(false);
+                    // txtApellidos.setEditable(false);
+                } else {
+                     javax.swing.JOptionPane.showMessageDialog(null, "Persona nueva. Ingrese los datos manualmente.");
+                }
+            }
         }
-    } catch (SQLException e) {
-        e.printStackTrace();
+    }
+});
     }
 
-    tablaEmpleados.setRowHeight(24);
+private void cargarEmpleadosEnTabla() {
+    // 1. Configurar el modelo de la tabla
+    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+    modelo.setRowCount(0); // Limpiar tabla antes de cargar
+
+    // 2. Llamar al DAO
+    EmpleadoDAO dao = new EmpleadoDAO();
+    List<Empleado> lista = dao.listarEmpleadosDetallado();
+    
+    // 3. Llenar la tabla con el orden CORRECTO que tienes en tu diseño
+    for (Empleado e : lista) {
+        Object[] fila = new Object[10]; 
+
+        fila[0] = e.getIdEmpleado();      
+        fila[1] = e.getNombres();        
+        fila[2] = e.getApellidos();      
+        fila[3] = e.getDni();             
+        
+        fila[4] = e.getTelefono();        
+        fila[5] = e.getCorreo();         
+        fila[6] = e.getNombreSucursal();  
+        fila[7] = e.getCargo();           
+        fila[8] = e.getSueldo();          
+        fila[9] = e.getEstado();
+        modelo.addRow(fila);
+    }
+    
+    tablaEmpleados.setModel(modelo);
 }
 
 
@@ -96,7 +126,70 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             return String.format("%08d", base);
         }
     }
+private void cargarCombosSucursales() {
+    SucursalDAO sucursalDAO = new SucursalDAO();
+    List<Sucursal> listaSucursales = sucursalDAO.listar(); // Asegúrate que tu DAO tenga este método
+    
+    // Limpiamos y cargamos el combo del FORMULARIO
+    cbTiendaP.removeAllItems();
+    
+    // Limpiamos y cargamos el combo del FILTRO (jComboBox2)
+    jComboBox2.removeAllItems();
+    jComboBox2.addItem("Todas las Sucursales"); // Opción extra para el filtro
+    
+    for (Sucursal s : listaSucursales) {
+        String nombre = s.getNombre(); // O s.getNombreSucursal() según tu modelo
+        cbTiendaP.addItem(nombre);
+        jComboBox2.addItem(nombre);
+    }
+}
 
+private void activarFiltrosAvanzados() {
+    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
+    tablaEmpleados.setRowSorter(sorter);
+
+    // Lógica que se ejecuta cada vez que tocas algo
+    Runnable filtrar = () -> {
+        List<RowFilter<Object, Object>> filtros = new ArrayList<>();
+
+        // 1. Filtro por TEXTO (jTextField1) - Busca en Nombre (col 1) o DNI (col 3)
+        String texto = jTextField1.getText().trim();
+        if (!texto.isEmpty()) {
+            filtros.add(RowFilter.regexFilter("(?i)" + texto));
+        }
+
+        // 2. Filtro por ESTADO (jComboBox1) - Columna 9
+        String estadoSeleccionado = (String) jComboBox1.getSelectedItem();
+        if (estadoSeleccionado != null && !estadoSeleccionado.equals("Ver Todos") && !estadoSeleccionado.trim().isEmpty()) {
+            // "Activos" -> "ACTIVO" (Ajusta según cómo lo guardes en BD)
+            String estadoBusqueda = estadoSeleccionado.toUpperCase().startsWith("ACT") ? "ACTIVO" : "INACTIVO";
+            filtros.add(RowFilter.regexFilter(estadoBusqueda, 9)); 
+        }
+
+        // 3. Filtro por SUCURSAL (jComboBox2) - Columna 6
+        String tiendaSeleccionada = (String) jComboBox2.getSelectedItem();
+        if (tiendaSeleccionada != null && !tiendaSeleccionada.equals("Todas las Sucursales")) {
+            filtros.add(RowFilter.regexFilter(tiendaSeleccionada, 6)); 
+        }
+
+        // Aplicar todos los filtros juntos
+        if (filtros.isEmpty()) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(RowFilter.andFilter(filtros));
+        }
+    };
+
+    // Agregar los "Escuchadores" (Listeners) a los componentes
+    jTextField1.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyReleased(KeyEvent e) { filtrar.run(); }
+    });
+
+    jComboBox1.addActionListener(e -> filtrar.run());
+    jComboBox2.addActionListener(e -> filtrar.run());
+}
     private int obtenerIdSucursalPorNombre(String nombreSucursal) {
         String sql = "SELECT id_sucursal FROM sucursal WHERE nombre = ?";
         try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
@@ -112,7 +205,28 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         }
         return 1; // fallback: sucursal 1
     }
-    @SuppressWarnings("unchecked")
+    
+    private void activarBusqueda() {
+    // Creamos el clasificador de filas basado en el modelo de la tabla
+    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
+    tablaEmpleados.setRowSorter(sorter);
+
+    // Añadimos el evento al campo de texto txtBuscar
+    txtBuscar.addKeyListener(new KeyAdapter() {
+        @Override
+        public void keyReleased(KeyEvent e) {
+            String texto = txtBuscar.getText();
+            if (texto.trim().length() == 0) {
+                sorter.setRowFilter(null); // Si está vacío, muestra todo
+            } else {
+                // Filtra sin importar mayúsculas/minúsculas ("(?i)")
+                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto));
+            }
+        }
+    });
+}
+     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
