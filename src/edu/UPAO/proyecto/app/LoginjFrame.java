@@ -229,27 +229,6 @@ public class LoginjFrame extends javax.swing.JFrame {
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
 
-    private String obtenerTipoUsuario(String usuario) {
-        if (!usuario.matches("\\d{8}")) {
-            return "INVÁLIDO";
-        }
-
-        int id = Integer.parseInt(usuario);
-        int prefix = id / 1000000;
-
-        switch (prefix) {
-            case 10:
-                return "GERENTE";
-            case 11:
-                return "ADMINISTRADOR";
-            case 12:
-                return "CAJERO";
-            case 13:
-                return "PROVEEDOR";
-            default:
-                return "CLIENTE";
-        }
-    }
 
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();

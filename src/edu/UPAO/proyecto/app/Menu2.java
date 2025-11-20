@@ -1,5 +1,6 @@
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.ProductoDAO;
 
 import java.util.List;
@@ -154,9 +155,15 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private int obtenerSucursalEmpleado(String idEmpleado) {
-        // ⚠️ TEMPORAL: Implementar EmpleadoDAO después
-        System.out.println("🔍 Obteniendo sucursal para empleado: " + idEmpleado);
-        return 1; // Por ahora sucursal 1
+        try {
+            EmpleadoDAO empleadoDAO = new EmpleadoDAO();
+            int sucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
+            empleadoDAO.cerrarConexion();
+            return sucursal;
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo sucursal: " + e.getMessage());
+            return 1; // Por defecto
+        }
     }
 
     public String getIdEmpleado() {
