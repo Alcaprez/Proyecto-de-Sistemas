@@ -187,7 +187,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         jScrollPane2 = new javax.swing.JScrollPane();
         tblPedidos = new javax.swing.JTable();
         jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
+        btnRecepcion = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
@@ -212,7 +212,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4", "Title 5", "Title 6"
+                "Codigo", "Proveedor", "Fecha Pedido", "Fecha Comprometida", "Estado", "Detalle"
             }
         ));
         tblPedidos.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -231,12 +231,12 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             }
         });
 
-        jButton2.setBackground(new java.awt.Color(255, 153, 0));
-        jButton2.setForeground(new java.awt.Color(255, 255, 255));
-        jButton2.setText("+     Recepcion");
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        btnRecepcion.setBackground(new java.awt.Color(255, 153, 0));
+        btnRecepcion.setForeground(new java.awt.Color(255, 255, 255));
+        btnRecepcion.setText("+     Recepcion");
+        btnRecepcion.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                btnRecepcionActionPerformed(evt);
             }
         });
 
@@ -274,7 +274,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jButton1)
                 .addGap(88, 88, 88)
-                .addComponent(jButton2)
+                .addComponent(btnRecepcion)
                 .addGap(20, 20, 20))
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(19, 19, 19)
@@ -303,7 +303,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 .addGap(53, 53, 53)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton1)
-                    .addComponent(jButton2)
+                    .addComponent(btnRecepcion)
                     .addComponent(jLabel1)
                     .addComponent(jLabel2)
                     .addComponent(jLabel3))
@@ -358,12 +358,119 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO add your handling code here:
+     // 1. Creamos la ventana del formulario (null porque no tenemos Frame padre directo, true para que sea Modal)
+        DialogoNuevoPedido ventana = new DialogoNuevoPedido(null, true);
+        
+        // 2. La hacemos visible (El programa se "pausa" aquí hasta que cierres la ventana)
+        ventana.setVisible(true);
+        
+        // 3. ¡TRUCO! Al cerrarse la ventana, recargamos la tabla para ver el nuevo pedido
+        mostrarDatos();
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton2ActionPerformed
+    private void btnRecepcionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepcionActionPerformed
+      int fila = tblPedidos.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Primero seleccione un pedido de la tabla.");
+            return;
+        }
+
+        // 2. OBTENER DATOS DE LA FILA
+        String codigoPedido = tblPedidos.getValueAt(fila, 0).toString();
+        String estadoActual = tblPedidos.getValueAt(fila, 4).toString();
+
+        // 3. VALIDAR QUE NO ESTÉ YA RECIBIDO
+        if (estadoActual.equals("Recibido")) {
+            JOptionPane.showMessageDialog(this, "¡Este pedido ya fue recibido anteriormente!");
+            return;
+        }
+
+        // 4. CONFIRMACIÓN
+        int confirm = JOptionPane.showConfirmDialog(this, 
+                "¿Confirmar recepción del pedido " + codigoPedido + "?\nEsto aumentará el stock en el inventario.",
+                "Confirmar Entrada", 
+                JOptionPane.YES_NO_OPTION);
+        
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        // --- INICIO DE TRANSACCIÓN ---
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // <--- ¡PON TU CLAVE!
+
+        Connection con = null;
+
+        try {
+            con = DriverManager.getConnection(url, usuario, password);
+            con.setAutoCommit(false); // Importante: Si falla el stock, no cambiamos el estado
+
+            // A. CAMBIAR ESTADO A 'Recibido'
+            String sqlEstado = "UPDATE pedido SET estado = 'Recibido' WHERE codigo = ?";
+            PreparedStatement psEst = con.prepareStatement(sqlEstado);
+            psEst.setString(1, codigoPedido);
+            psEst.executeUpdate();
+
+            // B. OBTENER LOS PRODUCTOS DE ESE PEDIDO
+            // Necesitamos saber el id_pedido interno primero
+            String sqlGetId = "SELECT id_pedido FROM pedido WHERE codigo = ?";
+            PreparedStatement psId = con.prepareStatement(sqlGetId);
+            psId.setString(1, codigoPedido);
+            ResultSet rsId = psId.executeQuery();
+            
+            if (rsId.next()) {
+                int idPedidoInt = rsId.getInt("id_pedido");
+
+                // Traemos los productos y cantidades de ese pedido
+                String sqlItems = "SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ?";
+                PreparedStatement psItems = con.prepareStatement(sqlItems);
+                psItems.setInt(1, idPedidoInt);
+                ResultSet rsItems = psItems.executeQuery();
+
+                // C. ACTUALIZAR INVENTARIO POR CADA PRODUCTO
+                // Usaremos la Sucursal 1 por defecto
+                int idSucursal = 1; 
+                String sqlUpdateStock = "UPDATE inventario_sucursal SET stock_actual = stock_actual + ? WHERE id_producto = ? AND id_sucursal = ?";
+                PreparedStatement psStock = con.prepareStatement(sqlUpdateStock);
+
+                // Preparamos también un INSERT por si el producto es NUEVO en esa sucursal y no existe en el inventario aún
+                String sqlInsertStock = "INSERT INTO inventario_sucursal (id_producto, id_sucursal, stock_actual, fecha_caducidad) VALUES (?, ?, ?, CURDATE() + INTERVAL 365 DAY)";
+                PreparedStatement psInsertStock = con.prepareStatement(sqlInsertStock);
+
+                while (rsItems.next()) {
+                    int idProd = rsItems.getInt("id_producto");
+                    int cant = rsItems.getInt("cantidad");
+
+                    // 1. Intentamos actualizar (Sumar)
+                    psStock.setInt(1, cant);
+                    psStock.setInt(2, idProd);
+                    psStock.setInt(3, idSucursal);
+                    int filasAfectadas = psStock.executeUpdate();
+
+                    // 2. Si no se actualizó nada (filasAfectadas == 0), es porque no existía -> LO CREAMOS
+                    if (filasAfectadas == 0) {
+                        psInsertStock.setInt(1, idProd);
+                        psInsertStock.setInt(2, idSucursal);
+                        psInsertStock.setInt(3, cant);
+                        psInsertStock.executeUpdate();
+                    }
+                }
+            }
+
+            // D. CONFIRMAR TODO
+            con.commit();
+            JOptionPane.showMessageDialog(this, "Pedido recepcionado correctamente.\nStock actualizado.");
+            
+            // E. REFRESCAR TABLA (Para ver el botón verde)
+            mostrarDatos();
+
+        } catch (Exception e) {
+            try { if (con != null) con.rollback(); } catch (SQLException ex) {}
+            JOptionPane.showMessageDialog(this, "Error en recepción: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try { if (con != null) con.close(); } catch (SQLException ex) {}
+        }
+    }//GEN-LAST:event_btnRecepcionActionPerformed
 
     private void cboProveedorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cboProveedorActionPerformed
         // TODO add your handling code here:
@@ -391,10 +498,10 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     }//GEN-LAST:event_tblPedidosMouseClicked
    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnRecepcion;
     private javax.swing.JComboBox<String> cboEstado;
     private javax.swing.JComboBox<String> cboProveedor;
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
