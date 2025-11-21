@@ -1,4 +1,3 @@
-
 package edu.UPAO.proyecto.app;
 
 import javax.swing.JOptionPane;
@@ -6,28 +5,44 @@ import javax.swing.JPanel;
 
 public class PrincipalAdministrador extends javax.swing.JFrame {
 
-    
+    private String idEmpleado;
+    private String nombreUsuario;
+
     public PrincipalAdministrador() {
         initComponents();
-        
+
+    }
+
+    public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
+        // Inicializar componentes visuales primero
+        initComponents();
+
+        // Guardar los datos recibidos
+        this.idEmpleado = idEmpleado;
+        this.nombreUsuario = nombreUsuario;
+
+        // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
+        this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
+
+        // Si tienes un label de bienvenida (ej. jLabelUsuario), úsalo aquí:
+        // jLabelUsuario.setText(nombreUsuario);
     }
 
     private void MostrarPanel(JPanel p) {
 // Configurar el panel nuevo
-    p.setOpaque(true);
-    
-    // Limpiar el contenedor
-    content.removeAll();
-    
-    // Agregar y estirar automáticamente
-    content.add(p, java.awt.BorderLayout.CENTER);
-    
-    // Refrescar visualización
-    content.revalidate();
-    content.repaint();
+        p.setOpaque(true);
+
+        // Limpiar el contenedor
+        content.removeAll();
+
+        // Agregar y estirar automáticamente
+        content.add(p, java.awt.BorderLayout.CENTER);
+
+        // Refrescar visualización
+        content.revalidate();
+        content.repaint();
     }
 
-    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -41,6 +56,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         btn_cuenta = new javax.swing.JButton();
         btn_tesoreria = new javax.swing.JButton();
         btn_cerrarSesion = new javax.swing.JButton();
+        btnMarcarAsistencia = new javax.swing.JButton();
         content = new javax.swing.JPanel();
         jLayeredPane1 = new javax.swing.JLayeredPane();
         jPanel4 = new javax.swing.JPanel();
@@ -103,24 +119,34 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
             }
         });
 
+        btnMarcarAsistencia.setText("Mis asistencias");
+        btnMarcarAsistencia.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnMarcarAsistenciaActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btn_venta, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
-                    .addComponent(btn_almacenes, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_personal, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_tesoreria, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(38, 38, 38)
+                        .addComponent(btn_cerrarSesion, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(btn_venta, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
+                            .addComponent(btn_almacenes, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btn_compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btn_personal, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btn_tesoreria, javax.swing.GroupLayout.DEFAULT_SIZE, 171, Short.MAX_VALUE)
+                            .addComponent(btnMarcarAsistencia, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap())
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(38, 38, 38)
-                .addComponent(btn_cerrarSesion, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -137,6 +163,8 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
                 .addComponent(btn_personal, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(btn_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(btnMarcarAsistencia)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(btn_cerrarSesion)
                 .addGap(15, 15, 15))
@@ -217,21 +245,21 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
-        
+
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
     private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
-    CONTROL_PERSONAL panelControl_Personal = new CONTROL_PERSONAL();
-    MostrarPanel(panelControl_Personal);
+        CONTROL_PERSONAL panelControl_Personal = new CONTROL_PERSONAL();
+        MostrarPanel(panelControl_Personal);
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
-      // 1. Creamos la instancia de tu panel de pedidos
-    // (Asegúrate de que 'FormularioPedidos' sea el nombre exacto de tu archivo Java del panel anterior)
-    COMPRAS_Admin panelCompras = new COMPRAS_Admin(); 
-    
-    // 2. Llamamos a tu función para mostrarlo en el área blanca
-    MostrarPanel(panelCompras);     
+        // 1. Creamos la instancia de tu panel de pedidos
+        // (Asegúrate de que 'FormularioPedidos' sea el nombre exacto de tu archivo Java del panel anterior)
+        COMPRAS_Admin panelCompras = new COMPRAS_Admin();
+
+        // 2. Llamamos a tu función para mostrarlo en el área blanca
+        MostrarPanel(panelCompras);
     }//GEN-LAST:event_btn_comprasActionPerformed
 
     private void btn_ventaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventaActionPerformed
@@ -245,19 +273,34 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_almacenesActionPerformed
 
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
-        
+
     }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_cerrarSesionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cerrarSesionActionPerformed
-         int opcion = javax.swing.JOptionPane.showConfirmDialog(
-            this, 
-            "¿Está seguro que desea cerrar sesión?", 
-            "Confirmar cierre de sesión", 
-            javax.swing.JOptionPane.YES_NO_OPTION
-        );
+// Cierra la ventana actual
+        this.dispose();
+
+        // Abre el login de nuevo
+        LoginjFrame login = new LoginjFrame();
+        login.setVisible(true);
     }//GEN-LAST:event_btn_cerrarSesionActionPerformed
 
-    
+    private void btnMarcarAsistenciaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnMarcarAsistenciaActionPerformed
+        String idAdmin = this.idEmpleado; // O la variable donde guardes el ID
+        String nombreAdmin = this.nombreUsuario; // O la variable donde guardes el Nombre
+
+        // 2. Validar que no sean nulos (por seguridad)
+        if (idAdmin == null || idAdmin.isEmpty()) {
+            // Fallback por si es una prueba rápida
+            idAdmin = "ADMIN001";
+            nombreAdmin = "Administrador";
+        }
+
+        // 3. Abrir la ventanita de asistencia usando tu método estático existente
+        //
+        jFrame_Asistncias.mostrarRegistroAsistencia(idAdmin, nombreAdmin);
+    }//GEN-LAST:event_btnMarcarAsistenciaActionPerformed
+
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -298,6 +341,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnMarcarAsistencia;
     private javax.swing.JButton btn_almacenes;
     private javax.swing.JButton btn_cerrarSesion;
     private javax.swing.JButton btn_compras;

@@ -1,72 +1,64 @@
 package edu.UPAO.proyecto.DAO;
 
+import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.HorarioEmpleado;
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.*;
 
 public class HorarioDAO {
-    private static final String ARCHIVO_HORARIOS = "horarios_empleados.csv";
 
-    // ✅ GUARDAR HORARIO
-    public static void guardarHorario(HorarioEmpleado horario) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO_HORARIOS, true))) {
-            bw.write(horario.toCSV());
-            bw.newLine();
-            System.out.println("✅ Horario guardado: " + horario.getIdEmpleado());
-        } catch (IOException e) {
-            System.err.println("❌ Error guardando horario: " + e.getMessage());
-        }
+    public HorarioDAO() {
     }
 
-    // ✅ CARGAR TODOS LOS HORARIOS
-    public static List<HorarioEmpleado> cargarHorarios() {
-        List<HorarioEmpleado> horarios = new ArrayList<>();
-        File archivo = new File(ARCHIVO_HORARIOS);
-        
-        if (!archivo.exists()) return horarios;
+    // ✅ MÉTODO PARA OBTENER (Solo hace SELECT)
+    public HorarioEmpleado obtenerHorarioPorEmpleado(String idEmpleado) {
+        String sql = "SELECT * FROM horario_empleado WHERE id_empleado = ?";
+        HorarioEmpleado horario = null;
 
-        try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
-            String linea;
-            while ((linea = br.readLine()) != null) {
-                HorarioEmpleado horario = HorarioEmpleado.fromCSV(linea);
-                if (horario != null) {
-                    horarios.add(horario);
-                }
+        try (Connection con = new Conexion().establecerConexion(); 
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, idEmpleado);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                Time sqlEntrada = rs.getTime("hora_entrada");
+                Time sqlSalida = rs.getTime("hora_salida");
+
+                // Ahora este constructor sí coincide con el Modelo (4 argumentos)
+                horario = new HorarioEmpleado(
+                        rs.getString("id_empleado"),
+                        "Empleado", 
+                        sqlEntrada != null ? sqlEntrada.toLocalTime() : null,
+                        sqlSalida != null ? sqlSalida.toLocalTime() : null
+                );
             }
-        } catch (IOException e) {
-            System.err.println("❌ Error cargando horarios: " + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("❌ Error obteniendo horario BD: " + e.getMessage());
         }
-        return horarios;
+        return horario;
     }
 
-    // ✅ OBTENER HORARIO POR EMPLEADO
-    public static HorarioEmpleado obtenerHorarioPorEmpleado(String idEmpleado) {
-        List<HorarioEmpleado> horarios = cargarHorarios();
-        return horarios.stream()
-                .filter(h -> h.getIdEmpleado().equals(idEmpleado))
-                .findFirst()
-                .orElse(null);
-    }
+    // ✅ MÉTODO PARA GUARDAR (Aquí sí va el INSERT)
+    public void guardarOActualizarHorario(HorarioEmpleado horario) {
+        String sql = "INSERT INTO horario_empleado (id_empleado, hora_entrada, hora_salida) " +
+                     "VALUES (?, ?, ?) " +
+                     "ON DUPLICATE KEY UPDATE " +
+                     "hora_entrada = VALUES(hora_entrada), " +
+                     "hora_salida = VALUES(hora_salida)";
 
-    // ✅ ACTUALIZAR HORARIO EXISTENTE
-    public static void actualizarHorario(HorarioEmpleado horarioActualizado) {
-        List<HorarioEmpleado> horarios = cargarHorarios();
-        
-        // Eliminar el horario antiguo
-        horarios.removeIf(h -> h.getIdEmpleado().equals(horarioActualizado.getIdEmpleado()));
-        
-        // Agregar el nuevo
-        horarios.add(horarioActualizado);
-        
-        // Guardar toda la lista
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO_HORARIOS))) {
-            for (HorarioEmpleado h : horarios) {
-                bw.write(h.toCSV());
-                bw.newLine();
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, horario.getIdEmpleado());
+            ps.setTime(2, Time.valueOf(horario.getHoraEntrada()));
+            ps.setTime(3, Time.valueOf(horario.getHoraSalida()));
+
+            int filas = ps.executeUpdate();
+            if (filas > 0) {
+                System.out.println("✅ Horario guardado/actualizado en BD para: " + horario.getIdEmpleado());
             }
-        } catch (IOException e) {
-            System.err.println("❌ Error actualizando horario: " + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("❌ Error guardando horario en BD: " + e.getMessage());
         }
     }
 }
