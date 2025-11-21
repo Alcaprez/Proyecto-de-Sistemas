@@ -2,11 +2,7 @@ package edu.UPAO.proyecto.app;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import javax.swing.JLabel;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
@@ -369,103 +365,169 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnRecepcionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepcionActionPerformed
-      int fila = tblPedidos.getSelectedRow();
+      // 1. VERIFICAR SELECCIÓN
+        int fila = tblPedidos.getSelectedRow();
         if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Primero seleccione un pedido de la tabla.");
+            JOptionPane.showMessageDialog(this, "Seleccione un pedido de la tabla.");
             return;
         }
 
-        // 2. OBTENER DATOS DE LA FILA
         String codigoPedido = tblPedidos.getValueAt(fila, 0).toString();
         String estadoActual = tblPedidos.getValueAt(fila, 4).toString();
 
-        // 3. VALIDAR QUE NO ESTÉ YA RECIBIDO
         if (estadoActual.equals("Recibido")) {
-            JOptionPane.showMessageDialog(this, "¡Este pedido ya fue recibido anteriormente!");
+            JOptionPane.showMessageDialog(this, "Este pedido ya fue procesado.");
             return;
         }
 
-        // 4. CONFIRMACIÓN
-        int confirm = JOptionPane.showConfirmDialog(this, 
-                "¿Confirmar recepción del pedido " + codigoPedido + "?\nEsto aumentará el stock en el inventario.",
-                "Confirmar Entrada", 
-                JOptionPane.YES_NO_OPTION);
+        // 2. PREGUNTAR DATOS ADICIONALES (Fecha de Vencimiento del Lote)
+        // Usamos un input simple para no complicar la UI hoy. Formato YYYY-MM-DD
+        String fechaVencimiento = JOptionPane.showInputDialog(this, 
+                "Ingrese la fecha de vencimiento del lote (YYYY-MM-DD):", 
+                "2026-12-31");
         
+        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) return; // Cancelado
+
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar ingreso al almacén y generar compra?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // --- INICIO DE TRANSACCIÓN ---
+        // --- INICIO DE LA TRANSACCIÓN MAESTRA ---
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // <--- ¡PON TU CLAVE!
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // <--- ¡TU CONTRASEÑA AQUÍ!
 
         Connection con = null;
 
         try {
             con = DriverManager.getConnection(url, usuario, password);
-            con.setAutoCommit(false); // Importante: Si falla el stock, no cambiamos el estado
+            con.setAutoCommit(false); // ¡Modo Transacción Activado!
 
-            // A. CAMBIAR ESTADO A 'Recibido'
-            String sqlEstado = "UPDATE pedido SET estado = 'Recibido' WHERE codigo = ?";
-            PreparedStatement psEst = con.prepareStatement(sqlEstado);
-            psEst.setString(1, codigoPedido);
-            psEst.executeUpdate();
-
-            // B. OBTENER LOS PRODUCTOS DE ESE PEDIDO
-            // Necesitamos saber el id_pedido interno primero
-            String sqlGetId = "SELECT id_pedido FROM pedido WHERE codigo = ?";
-            PreparedStatement psId = con.prepareStatement(sqlGetId);
-            psId.setString(1, codigoPedido);
-            ResultSet rsId = psId.executeQuery();
+            // DATOS FIJOS (Para este ejemplo)
+            int idSucursal = 1; 
+            String idEmpleado = "11000001"; // Aquí iría el usuario logueado
             
-            if (rsId.next()) {
-                int idPedidoInt = rsId.getInt("id_pedido");
-
-                // Traemos los productos y cantidades de ese pedido
-                String sqlItems = "SELECT id_producto, cantidad FROM detalle_pedido WHERE id_pedido = ?";
-                PreparedStatement psItems = con.prepareStatement(sqlItems);
-                psItems.setInt(1, idPedidoInt);
-                ResultSet rsItems = psItems.executeQuery();
-
-                // C. ACTUALIZAR INVENTARIO POR CADA PRODUCTO
-                // Usaremos la Sucursal 1 por defecto
-                int idSucursal = 1; 
-                String sqlUpdateStock = "UPDATE inventario_sucursal SET stock_actual = stock_actual + ? WHERE id_producto = ? AND id_sucursal = ?";
-                PreparedStatement psStock = con.prepareStatement(sqlUpdateStock);
-
-                // Preparamos también un INSERT por si el producto es NUEVO en esa sucursal y no existe en el inventario aún
-                String sqlInsertStock = "INSERT INTO inventario_sucursal (id_producto, id_sucursal, stock_actual, fecha_caducidad) VALUES (?, ?, ?, CURDATE() + INTERVAL 365 DAY)";
-                PreparedStatement psInsertStock = con.prepareStatement(sqlInsertStock);
-
-                while (rsItems.next()) {
-                    int idProd = rsItems.getInt("id_producto");
-                    int cant = rsItems.getInt("cantidad");
-
-                    // 1. Intentamos actualizar (Sumar)
-                    psStock.setInt(1, cant);
-                    psStock.setInt(2, idProd);
-                    psStock.setInt(3, idSucursal);
-                    int filasAfectadas = psStock.executeUpdate();
-
-                    // 2. Si no se actualizó nada (filasAfectadas == 0), es porque no existía -> LO CREAMOS
-                    if (filasAfectadas == 0) {
-                        psInsertStock.setInt(1, idProd);
-                        psInsertStock.setInt(2, idSucursal);
-                        psInsertStock.setInt(3, cant);
-                        psInsertStock.executeUpdate();
-                    }
-                }
+            // A. OBTENER DATOS DEL PEDIDO ORIGINAL
+            String sqlPedidoInfo = "SELECT id_pedido, id_proveedor FROM pedido WHERE codigo = ?";
+            PreparedStatement psPedInfo = con.prepareStatement(sqlPedidoInfo);
+            psPedInfo.setString(1, codigoPedido);
+            ResultSet rsPed = psPedInfo.executeQuery();
+            
+            int idPedido = 0;
+            String idProveedor = "";
+            if (rsPed.next()) {
+                idPedido = rsPed.getInt("id_pedido");
+                idProveedor = rsPed.getString("id_proveedor");
             }
 
-            // D. CONFIRMAR TODO
-            con.commit();
-            JOptionPane.showMessageDialog(this, "Pedido recepcionado correctamente.\nStock actualizado.");
+            // B. CREAR LA CABECERA DE COMPRA (FINANZAS)
+            // Creamos la compra con total 0, luego la actualizaremos
+            String sqlInsertCompra = "INSERT INTO compra (fecha_hora, total, id_proveedor, id_empleado, id_sucursal, estado) VALUES (NOW(), 0, ?, ?, ?, 'Registrada')";
+            PreparedStatement psCompra = con.prepareStatement(sqlInsertCompra, Statement.RETURN_GENERATED_KEYS);
+            psCompra.setString(1, idProveedor);
+            psCompra.setString(2, idEmpleado);
+            psCompra.setInt(3, idSucursal);
+            psCompra.executeUpdate();
             
-            // E. REFRESCAR TABLA (Para ver el botón verde)
-            mostrarDatos();
+            ResultSet rsKeyCompra = psCompra.getGeneratedKeys();
+            int idCompraGenerada = 0;
+            if (rsKeyCompra.next()) idCompraGenerada = rsKeyCompra.getInt(1);
+
+            // C. PROCESAR CADA ITEM (INVENTARIO + DETALLE COMPRA + KARDEX)
+            String sqlItems = "SELECT d.id_producto, d.cantidad, p.precio_compra " +
+                              "FROM detalle_pedido d " +
+                              "INNER JOIN producto p ON d.id_producto = p.id_producto " +
+                              "WHERE d.id_pedido = ?";
+            PreparedStatement psItems = con.prepareStatement(sqlItems);
+            psItems.setInt(1, idPedido);
+            ResultSet rsItems = psItems.executeQuery();
+
+            double totalCompra = 0;
+
+            // Preparamos las sentencias dentro del bucle para eficiencia
+            PreparedStatement psStockCheck = con.prepareStatement("SELECT stock_actual FROM inventario_sucursal WHERE id_producto=? AND id_sucursal=?");
+            PreparedStatement psStockUpdate = con.prepareStatement("UPDATE inventario_sucursal SET stock_actual = stock_actual + ?, fecha_caducidad = ? WHERE id_producto=? AND id_sucursal=?");
+            PreparedStatement psStockInsert = con.prepareStatement("INSERT INTO inventario_sucursal (id_producto, id_sucursal, stock_actual, fecha_caducidad) VALUES (?, ?, ?, ?)");
+            
+            // Kardex (Movimiento Inventario)
+            PreparedStatement psKardex = con.prepareStatement("INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto, id_sucursal) VALUES (NOW(), 'ENTRADA COMPRA', ?, ?, ?, 'COMPLETADO', ?, ?)");
+            
+            // Detalle Compra (Finanzas)
+            PreparedStatement psDetCompra = con.prepareStatement("INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_compra, subtotal) VALUES (?, ?, ?, ?, ?)");
+
+            while (rsItems.next()) {
+                int idProd = rsItems.getInt("id_producto");
+                int cant = rsItems.getInt("cantidad");
+                double precio = rsItems.getDouble("precio_compra");
+                double subtotal = cant * precio;
+                totalCompra += subtotal;
+
+                // 1. GESTIÓN DE STOCK (INVENTARIO)
+                int stockAnterior = 0;
+                psStockCheck.setInt(1, idProd);
+                psStockCheck.setInt(2, idSucursal);
+                ResultSet rsStock = psStockCheck.executeQuery();
+                
+                if (rsStock.next()) {
+                    stockAnterior = rsStock.getInt("stock_actual");
+                    // Update
+                    psStockUpdate.setInt(1, cant);
+                    psStockUpdate.setDate(2, java.sql.Date.valueOf(fechaVencimiento));
+                    psStockUpdate.setInt(3, idProd);
+                    psStockUpdate.setInt(4, idSucursal);
+                    psStockUpdate.executeUpdate();
+                } else {
+                    // Insert
+                    psStockInsert.setInt(1, idProd);
+                    psStockInsert.setInt(2, idSucursal);
+                    psStockInsert.setInt(3, cant);
+                    psStockInsert.setDate(4, java.sql.Date.valueOf(fechaVencimiento));
+                    psStockInsert.executeUpdate();
+                }
+                
+                int stockNuevo = stockAnterior + cant;
+
+                // 2. REGISTRO EN KARDEX (AUDITORÍA)
+                psKardex.setInt(1, cant);
+                psKardex.setInt(2, stockAnterior);
+                psKardex.setInt(3, stockNuevo);
+                psKardex.setInt(4, idProd);
+                psKardex.setInt(5, idSucursal);
+                psKardex.executeUpdate();
+
+                // 3. REGISTRO EN DETALLE COMPRA (FINANZAS)
+                psDetCompra.setInt(1, idCompraGenerada);
+                psDetCompra.setInt(2, idProd);
+                psDetCompra.setInt(3, cant);
+                psDetCompra.setDouble(4, precio);
+                psDetCompra.setDouble(5, subtotal);
+                psDetCompra.executeUpdate();
+            }
+
+            // D. ACTUALIZAR EL TOTAL DE LA COMPRA Y EL ESTADO DEL PEDIDO
+            String sqlUpdateTotal = "UPDATE compra SET total = ? WHERE id_compra = ?";
+            PreparedStatement psUpTotal = con.prepareStatement(sqlUpdateTotal);
+            psUpTotal.setDouble(1, totalCompra);
+            psUpTotal.setInt(2, idCompraGenerada);
+            psUpTotal.executeUpdate();
+
+            String sqlUpdatePedido = "UPDATE pedido SET estado = 'Recibido' WHERE id_pedido = ?";
+            PreparedStatement psUpPed = con.prepareStatement(sqlUpdatePedido);
+            psUpPed.setInt(1, idPedido);
+            psUpPed.executeUpdate();
+
+            // E. CONFIRMAR TODO (COMMIT)
+            con.commit();
+            
+            JOptionPane.showMessageDialog(this, "¡Recepción Exitosa!\n\n"
+                    + "- Stock Actualizado\n"
+                    + "- Kardex Registrado\n"
+                    + "- Compra #" + idCompraGenerada + " generada por S/ " + totalCompra);
+            
+            mostrarDatos(); // Refrescar tabla
 
         } catch (Exception e) {
             try { if (con != null) con.rollback(); } catch (SQLException ex) {}
-            JOptionPane.showMessageDialog(this, "Error en recepción: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error Crítico: " + e.getMessage());
             e.printStackTrace();
         } finally {
             try { if (con != null) con.close(); } catch (SQLException ex) {}
