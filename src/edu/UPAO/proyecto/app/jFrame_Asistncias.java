@@ -199,10 +199,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         }
     }
 
-    private void cargarRegistros() {
-        modelo.setRowCount(0);
-        System.out.println("Cargando registros para: " + usuarioNombre);
-    }
 
     private void actualizarHoraActual() {
         Timer timer = new Timer(1000, e -> {
@@ -465,6 +461,49 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                 new jFrame_Asistncias().setVisible(true);
             }
         });
+    }
+
+    private void cargarRegistros() {
+        // 1. Limpiar la tabla actual
+        modelo.setRowCount(0);
+        System.out.println("Cargando registros para: " + usuarioNombre);
+
+        // 2. Obtener la asistencia desde la Base de Datos usando el Servicio
+        java.util.Optional<edu.UPAO.proyecto.Modelo.Asistencia> asistenciaOpt = asistenciaService.obtenerAsistenciaHoy(idEmpleado);
+
+        // 3. Si existe un registro para hoy, lo procesamos
+        if (asistenciaOpt.isPresent()) {
+            edu.UPAO.proyecto.Modelo.Asistencia asistencia = asistenciaOpt.get();
+
+            // Formateadores de fecha y hora
+            DateTimeFormatter fmtFecha = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            DateTimeFormatter fmtHora = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+            // --- FILA DE ENTRADA ---
+            if (asistencia.getHoraEntrada() != null) {
+                // Calculamos el estado visualmente (puedes ajustar la lógica si lo deseas)
+                String estado = "REGISTRADO";
+
+                modelo.addRow(new Object[]{
+                    usuarioNombre,
+                    "ENTRADA",
+                    asistencia.getFecha().format(fmtFecha),
+                    asistencia.getHoraEntrada().format(fmtHora),
+                    estado
+                });
+            }
+
+            // --- FILA DE SALIDA ---
+            if (asistencia.getHoraSalida() != null) {
+                modelo.addRow(new Object[]{
+                    usuarioNombre,
+                    "SALIDA",
+                    asistencia.getFecha().format(fmtFecha),
+                    asistencia.getHoraSalida().format(fmtHora),
+                    "FINALIZADO"
+                });
+            }
+        }
     }
 
 
