@@ -512,10 +512,10 @@
                               </Group>
                           </Group>
                           <EmptySpace min="-2" pref="335" max="-2" attributes="0"/>
-                          <Group type="103" groupAlignment="0" attributes="0">
-                              <Component id="btnLimpiar" min="-2" pref="90" max="-2" attributes="0"/>
-                              <Component id="btnActualizar" min="-2" pref="90" max="-2" attributes="0"/>
-                              <Component id="btnAgregar" min="-2" pref="90" max="-2" attributes="0"/>
+                          <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                              <Component id="btnActualizar" alignment="0" max="32767" attributes="0"/>
+                              <Component id="btnLimpiar" alignment="0" max="32767" attributes="0"/>
+                              <Component id="btnAgregar" alignment="0" max="32767" attributes="0"/>
                           </Group>
                       </Group>
                   </Group>
@@ -774,11 +774,17 @@
                   <Properties>
                     <Property name="text" type="java.lang.String" value="LIMPIAR"/>
                   </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnLimpiarActionPerformed"/>
+                  </Events>
                 </Component>
                 <Component class="javax.swing.JButton" name="btnActualizar">
                   <Properties>
                     <Property name="text" type="java.lang.String" value="ACTUALIZAR"/>
                   </Properties>
+                  <Events>
+                    <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btnActualizarActionPerformed"/>
+                  </Events>
                 </Component>
                 <Component class="javax.swing.JButton" name="btnAgregar">
                   <Properties>

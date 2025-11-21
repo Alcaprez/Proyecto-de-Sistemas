@@ -1,5 +1,5 @@
-
 package edu.UPAO.proyecto.app;
+
 import javax.swing.table.TableRowSorter;
 import javax.swing.RowFilter;
 import java.awt.event.KeyAdapter;
@@ -20,74 +20,80 @@ import edu.UPAO.proyecto.Modelo.Sucursal;
 
 public class panel_PersonalGerente extends javax.swing.JPanel {
 
- 
     public panel_PersonalGerente() {
         initComponents();
         cargarEmpleadosEnTabla();
+        cargarCombosSucursales();
         activarBusqueda();
-        // Dentro del constructor panel_PersonalGerente()
-txtDni.addKeyListener(new java.awt.event.KeyAdapter() {
-    public void keyPressed(java.awt.event.KeyEvent evt) {
-        // Si presiona ENTER (Código 10)
-        if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-            String dni = txtDni.getText().trim();
-            if (!dni.isEmpty()) {
-                EmpleadoDAO dao = new EmpleadoDAO();
-                // Buscamos si la persona existe
-                Empleado persona = dao.buscarPersonaPorDni(dni);
-                
-                if (persona != null) {
-                    // ¡EXISTE! Llenamos los campos automáticamente
-                    txtNombres.setText(persona.getNombres());
-                    txtApellidos.setText(persona.getApellidos());
-                    txtTelefono.setText(persona.getTelefono());
-                    txtCorreo.setText(persona.getCorreo());
-                    
-                    javax.swing.JOptionPane.showMessageDialog(null, 
-                        "Persona encontrada. Complete el Cargo y Sueldo para registrarlo como Empleado.");
-                    
-                    // Opcional: Bloquear nombre y apellido para no editarlos por error
-                    // txtNombres.setEditable(false);
-                    // txtApellidos.setEditable(false);
-                } else {
-                     javax.swing.JOptionPane.showMessageDialog(null, "Persona nueva. Ingrese los datos manualmente.");
+        activarFiltrosAvanzados();
+        //Evento para llenar formulario al hacer clic en la tabla (Para editar)
+        tablaEmpleados.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                llenarFormularioDesdeTabla();
+            }
+        });
+        // Evento DNI (Enter)
+        txtDni.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                // Si presiona ENTER (Código 10)
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    String dni = txtDni.getText().trim();
+                    if (!dni.isEmpty()) {
+                        EmpleadoDAO dao = new EmpleadoDAO();
+                        // Buscamos si la persona existe
+                        Empleado persona = dao.buscarPersonaPorDni(dni);
+
+                        if (persona != null) {
+                            // ¡EXISTE! Llenamos los campos automáticamente
+                            txtNombres.setText(persona.getNombres());
+                            txtApellidos.setText(persona.getApellidos());
+                            txtTelefono.setText(persona.getTelefono());
+                            txtCorreo.setText(persona.getCorreo());
+
+                            javax.swing.JOptionPane.showMessageDialog(null,
+                                    "Persona encontrada. Complete el Cargo y Sueldo para registrarlo como Empleado.");
+
+                            // Opcional: Bloquear nombre y apellido para no editarlos por error
+                            // txtNombres.setEditable(false);
+                            // txtApellidos.setEditable(false);
+                        } else {
+                            javax.swing.JOptionPane.showMessageDialog(null, "Persona nueva. Ingrese los datos manualmente.");
+                        }
+                    }
                 }
             }
+        });
+    }
+
+    private void cargarEmpleadosEnTabla() {
+        // 1. Configurar el modelo de la tabla
+        DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+        modelo.setRowCount(0); // Limpiar tabla antes de cargar
+
+        // 2. Llamar al DAO
+        EmpleadoDAO dao = new EmpleadoDAO();
+        List<Empleado> lista = dao.listarEmpleadosDetallado();
+
+        // 3. Llenar la tabla con el orden CORRECTO que tienes en tu diseño
+        for (Empleado e : lista) {
+            Object[] fila = new Object[10];
+
+            fila[0] = e.getIdEmpleado();
+            fila[1] = e.getNombres();
+            fila[2] = e.getApellidos();
+            fila[3] = e.getDni();
+
+            fila[4] = e.getTelefono();
+            fila[5] = e.getCorreo();
+            fila[6] = e.getNombreSucursal();
+            fila[7] = e.getCargo();
+            fila[8] = e.getSueldo();
+            fila[9] = e.getEstado();
+            modelo.addRow(fila);
         }
+
+        tablaEmpleados.setModel(modelo);
     }
-});
-    }
-
-private void cargarEmpleadosEnTabla() {
-    // 1. Configurar el modelo de la tabla
-    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
-    modelo.setRowCount(0); // Limpiar tabla antes de cargar
-
-    // 2. Llamar al DAO
-    EmpleadoDAO dao = new EmpleadoDAO();
-    List<Empleado> lista = dao.listarEmpleadosDetallado();
-    
-    // 3. Llenar la tabla con el orden CORRECTO que tienes en tu diseño
-    for (Empleado e : lista) {
-        Object[] fila = new Object[10]; 
-
-        fila[0] = e.getIdEmpleado();      
-        fila[1] = e.getNombres();        
-        fila[2] = e.getApellidos();      
-        fila[3] = e.getDni();             
-        
-        fila[4] = e.getTelefono();        
-        fila[5] = e.getCorreo();         
-        fila[6] = e.getNombreSucursal();  
-        fila[7] = e.getCargo();           
-        fila[8] = e.getSueldo();          
-        fila[9] = e.getEstado();
-        modelo.addRow(fila);
-    }
-    
-    tablaEmpleados.setModel(modelo);
-}
-
 
     private String generarNuevoIdEmpleado(String rol) {
         String prefijo;
@@ -126,107 +132,135 @@ private void cargarEmpleadosEnTabla() {
             return String.format("%08d", base);
         }
     }
-private void cargarCombosSucursales() {
-    SucursalDAO sucursalDAO = new SucursalDAO();
-    List<Sucursal> listaSucursales = sucursalDAO.listar(); // Asegúrate que tu DAO tenga este método
-    
-    // Limpiamos y cargamos el combo del FORMULARIO
-    cbTiendaP.removeAllItems();
-    
-    // Limpiamos y cargamos el combo del FILTRO (jComboBox2)
-    jComboBox2.removeAllItems();
-    jComboBox2.addItem("Todas las Sucursales"); // Opción extra para el filtro
-    
-    for (Sucursal s : listaSucursales) {
-        String nombre = s.getNombre(); // O s.getNombreSucursal() según tu modelo
-        cbTiendaP.addItem(nombre);
-        jComboBox2.addItem(nombre);
+
+    private void cargarCombosSucursales() {
+        SucursalDAO sucursalDAO = new SucursalDAO();
+        List<Sucursal> listaSucursales = sucursalDAO.listar(); // Asegúrate que tu DAO tenga este método
+
+        // Limpiamos y cargamos el combo del FORMULARIO
+        cbTiendaP.removeAllItems();
+
+        // Limpiamos y cargamos el combo del FILTRO (jComboBox2)
+        jComboBox2.removeAllItems();
+        jComboBox2.addItem("Todas las Sucursales"); // Opción extra para el filtro
+
+        for (Sucursal s : listaSucursales) {
+            String nombre = s.getNombre(); // O s.getNombreSucursal() según tu modelo
+            cbTiendaP.addItem(nombre);
+            jComboBox2.addItem(nombre);
+        }
     }
-}
 
-private void activarFiltrosAvanzados() {
-    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
-    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
-    tablaEmpleados.setRowSorter(sorter);
+    private void activarFiltrosAvanzados() {
+        DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
+        tablaEmpleados.setRowSorter(sorter);
 
-    // Lógica que se ejecuta cada vez que tocas algo
-    Runnable filtrar = () -> {
-        List<RowFilter<Object, Object>> filtros = new ArrayList<>();
+        // Lógica que se ejecuta cada vez que tocas algo
+        Runnable filtrar = () -> {
+            List<RowFilter<Object, Object>> filtros = new ArrayList<>();
 
-        // 1. Filtro por TEXTO (jTextField1) - Busca en Nombre (col 1) o DNI (col 3)
-        String texto = jTextField1.getText().trim();
-        if (!texto.isEmpty()) {
-            filtros.add(RowFilter.regexFilter("(?i)" + texto));
-        }
+            // 1. Filtro por TEXTO (jTextField1) - Busca en Nombre (col 1) o DNI (col 3)
+            String texto = jTextField1.getText().trim();
+            if (!texto.isEmpty()) {
+                filtros.add(RowFilter.regexFilter("(?i)" + texto));
+            }
 
-        // 2. Filtro por ESTADO (jComboBox1) - Columna 9
-        String estadoSeleccionado = (String) jComboBox1.getSelectedItem();
-        if (estadoSeleccionado != null && !estadoSeleccionado.equals("Ver Todos") && !estadoSeleccionado.trim().isEmpty()) {
-            // "Activos" -> "ACTIVO" (Ajusta según cómo lo guardes en BD)
-            String estadoBusqueda = estadoSeleccionado.toUpperCase().startsWith("ACT") ? "ACTIVO" : "INACTIVO";
-            filtros.add(RowFilter.regexFilter(estadoBusqueda, 9)); 
-        }
+            // 2. Filtro por ESTADO (jComboBox1) - Columna 9
+            String estadoSeleccionado = (String) jComboBox1.getSelectedItem();
+            if (estadoSeleccionado != null && !estadoSeleccionado.equals("Ver Todos") && !estadoSeleccionado.trim().isEmpty()) {
+                // "Activos" -> "ACTIVO" (Ajusta según cómo lo guardes en BD)
+                String estadoBusqueda = estadoSeleccionado.toUpperCase().startsWith("ACT") ? "ACTIVO" : "INACTIVO";
+                filtros.add(RowFilter.regexFilter(estadoBusqueda, 9));
+            }
 
-        // 3. Filtro por SUCURSAL (jComboBox2) - Columna 6
-        String tiendaSeleccionada = (String) jComboBox2.getSelectedItem();
-        if (tiendaSeleccionada != null && !tiendaSeleccionada.equals("Todas las Sucursales")) {
-            filtros.add(RowFilter.regexFilter(tiendaSeleccionada, 6)); 
-        }
+            // 3. Filtro por SUCURSAL (jComboBox2) - Columna 6
+            String tiendaSeleccionada = (String) jComboBox2.getSelectedItem();
+            if (tiendaSeleccionada != null && !tiendaSeleccionada.equals("Todas las Sucursales")) {
+                filtros.add(RowFilter.regexFilter(tiendaSeleccionada, 6));
+            }
 
-        // Aplicar todos los filtros juntos
-        if (filtros.isEmpty()) {
-            sorter.setRowFilter(null);
-        } else {
-            sorter.setRowFilter(RowFilter.andFilter(filtros));
-        }
-    };
+            // Aplicar todos los filtros juntos
+            if (filtros.isEmpty()) {
+                sorter.setRowFilter(null);
+            } else {
+                sorter.setRowFilter(RowFilter.andFilter(filtros));
+            }
+        };
 
-    // Agregar los "Escuchadores" (Listeners) a los componentes
-    jTextField1.addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyReleased(KeyEvent e) { filtrar.run(); }
-    });
+        // Agregar los "Escuchadores" (Listeners) a los componentes
+        jTextField1.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                filtrar.run();
+            }
+        });
 
-    jComboBox1.addActionListener(e -> filtrar.run());
-    jComboBox2.addActionListener(e -> filtrar.run());
-}
+        jComboBox1.addActionListener(e -> filtrar.run());
+        jComboBox2.addActionListener(e -> filtrar.run());
+    }
+
     private int obtenerIdSucursalPorNombre(String nombreSucursal) {
-        String sql = "SELECT id_sucursal FROM sucursal WHERE nombre = ?";
-        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+      String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
+    
+    try (Connection cn = new Conexion().establecerConexion(); 
+         PreparedStatement ps = cn.prepareStatement(sql)) {
 
-            ps.setString(1, nombreSucursal);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("id_sucursal");
+        ps.setString(1, nombreSucursal);
+        
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("id_sucursal");
+            }
+        }
+    } catch (SQLException e) {
+        System.err.println("Error buscando ID sucursal: " + e.getMessage());
+    }
+    // Si falla, devuelve 1 (Por eso se te ponía siempre en Tienda Central)
+    return 1; 
+    }
+
+    private void activarBusqueda() {
+        // Creamos el clasificador de filas basado en el modelo de la tabla
+        DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
+        tablaEmpleados.setRowSorter(sorter);
+
+        // Añadimos el evento al campo de texto txtBuscar
+        txtBuscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String texto = txtBuscar.getText();
+                if (texto.trim().length() == 0) {
+                    sorter.setRowFilter(null); // Si está vacío, muestra todo
+                } else {
+                    // Filtra sin importar mayúsculas/minúsculas ("(?i)")
+                    sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto));
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return 1; // fallback: sucursal 1
+        });
     }
-    
-    private void activarBusqueda() {
-    // Creamos el clasificador de filas basado en el modelo de la tabla
-    DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
-    TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelo);
-    tablaEmpleados.setRowSorter(sorter);
-
-    // Añadimos el evento al campo de texto txtBuscar
-    txtBuscar.addKeyListener(new KeyAdapter() {
-        @Override
-        public void keyReleased(KeyEvent e) {
-            String texto = txtBuscar.getText();
-            if (texto.trim().length() == 0) {
-                sorter.setRowFilter(null); // Si está vacío, muestra todo
-            } else {
-                // Filtra sin importar mayúsculas/minúsculas ("(?i)")
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto));
-            }
-        }
-    });
+private void llenarFormularioDesdeTabla() {
+    int fila = tablaEmpleados.getSelectedRow();
+    if (fila >= 0) {
+        // Obtenemos datos de la tabla (ojo con el orden de tus columnas)
+        txtIdEmpleado.setText(tablaEmpleados.getValueAt(fila, 0).toString());
+        txtNombres.setText(tablaEmpleados.getValueAt(fila, 1).toString());
+        txtApellidos.setText(tablaEmpleados.getValueAt(fila, 2).toString());
+        txtDni.setText(tablaEmpleados.getValueAt(fila, 3).toString());
+        txtTelefono.setText(tablaEmpleados.getValueAt(fila, 4).toString());
+        txtCorreo.setText(tablaEmpleados.getValueAt(fila, 5).toString());
+        
+        // Seleccionar combos (Nombre exacto)
+        cbTiendaP.setSelectedItem(tablaEmpleados.getValueAt(fila, 6).toString());
+        cbCargo.setSelectedItem(tablaEmpleados.getValueAt(fila, 7).toString());
+        
+        // Sueldo y Estado
+        txtSueldo.setText(tablaEmpleados.getValueAt(fila, 8).toString());
+        cbEstado.setSelectedItem(tablaEmpleados.getValueAt(fila, 9).toString());
+    }
 }
-     @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
@@ -499,8 +533,18 @@ private void activarFiltrosAvanzados() {
         lblSueldo.setText("SUELDO:");
 
         btnLimpiar.setText("LIMPIAR");
+        btnLimpiar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnLimpiarActionPerformed(evt);
+            }
+        });
 
         btnActualizar.setText("ACTUALIZAR");
+        btnActualizar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnActualizarActionPerformed(evt);
+            }
+        });
 
         btnAgregar.setText("AGREGAR");
         btnAgregar.addActionListener(new java.awt.event.ActionListener() {
@@ -562,10 +606,10 @@ private void activarFiltrosAvanzados() {
                         .addGap(18, 18, 18)
                         .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(335, 335, 335)
-                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnLimpiar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnActualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnAgregar, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btnActualizar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnAgregar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
         panelFormLayout.setVerticalGroup(
             panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -668,8 +712,11 @@ private void activarFiltrosAvanzados() {
                                 .addComponent(lblListaEmpleadosP))
                             .addGroup(panelListaLayout.createSequentialGroup()
                                 .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, 0)
                                 .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, 0)
                                 .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, 0)
                                 .addComponent(jButton1))
                             .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1157, javax.swing.GroupLayout.PREFERRED_SIZE))))
                 .addGap(35, 35, 35))
@@ -681,14 +728,13 @@ private void activarFiltrosAvanzados() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblListaEmpleadosP)
                 .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(panelListaLayout.createSequentialGroup()
-                        .addGap(1, 1, 1)
-                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(panelListaLayout.createSequentialGroup()
                         .addGap(1, 1, 1)
-                        .addComponent(jButton1)))
+                        .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jButton1))))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -719,14 +765,14 @@ private void activarFiltrosAvanzados() {
 
         String rol = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
-        String sucursalNombre = cbTienda.getSelectedItem().toString();
+        String sucursalNombre = cbTiendaP.getSelectedItem().toString();
         int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
 
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this,
-                "Completa al menos Nombres, Apellidos y DNI",
-                "Datos incompletos",
-                javax.swing.JOptionPane.WARNING_MESSAGE);
+                    "Completa al menos Nombres, Apellidos y DNI",
+                    "Datos incompletos",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -736,67 +782,67 @@ private void activarFiltrosAvanzados() {
             cn.setAutoCommit(false);
 
             // 1) PERSONA (si no existe, la creamos)
-        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
-        + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
-        + "ON DUPLICATE KEY UPDATE "
-        + "nombres = VALUES(nombres), "
-        + "apellidos = VALUES(apellidos), "
-        + "telefono = VALUES(telefono), "
-        + "correo = VALUES(correo)";
-        try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
-            ps.setString(1, dni);
-            ps.setString(2, nombres);
-            ps.setString(3, apellidos);
-            ps.setString(4, telefono);
-            ps.setString(5, correo);
-            ps.executeUpdate();
-        }
+            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
+                    + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
+                    + "ON DUPLICATE KEY UPDATE "
+                    + "nombres = VALUES(nombres), "
+                    + "apellidos = VALUES(apellidos), "
+                    + "telefono = VALUES(telefono), "
+                    + "correo = VALUES(correo)";
+            try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
+                ps.setString(1, dni);
+                ps.setString(2, nombres);
+                ps.setString(3, apellidos);
+                ps.setString(4, telefono);
+                ps.setString(5, correo);
+                ps.executeUpdate();
+            }
 
-        // =================================================
-        // LEER SUELDO DEL TXT
-        // =================================================
-        String sueldoTexto = txtSueldo.getText().trim();
-        double sueldo = (sueldoTexto.isEmpty())
-        ? 0.0
-        : Double.parseDouble(sueldoTexto);
+            // =================================================
+            // LEER SUELDO DEL TXT
+            // =================================================
+            String sueldoTexto = txtSueldo.getText().trim();
+            double sueldo = (sueldoTexto.isEmpty())
+                    ? 0.0
+                    : Double.parseDouble(sueldoTexto);
 
-        // =================================================
-        // INSERT EMPLEADO
-        // =================================================
-        String sqlEmpleado = "INSERT INTO empleado "
-        + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
-        + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            // =================================================
+            // INSERT EMPLEADO
+            // =================================================
+            String sqlEmpleado = "INSERT INTO empleado "
+                    + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
-            ps.setString(1, idEmpleadoNuevo);
-            ps.setString(2, dni);
-            ps.setInt(3, idSucursal);
-            ps.setString(4, rol);
-            ps.setString(5, estado);
-            ps.setDouble(6, sueldo);       // ← YA NO MARCA ERROR
-            ps.setString(7, "MAÑANA");
-            ps.executeUpdate();
-        }
+            try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
+                ps.setString(1, idEmpleadoNuevo);
+                ps.setString(2, dni);
+                ps.setInt(3, idSucursal);
+                ps.setString(4, rol);
+                ps.setString(5, estado);
+                ps.setDouble(6, sueldo);       // ← YA NO MARCA ERROR
+                ps.setString(7, "MAÑANA");
+                ps.executeUpdate();
+            }
 
-        cn.commit();
+            cn.commit();
 
-        // Mostrar ID generado en el formulario
-        txtIdEmpleado.setText(idEmpleadoNuevo);
+            // Mostrar ID generado en el formulario
+            txtIdEmpleado.setText(idEmpleadoNuevo);
 
-        javax.swing.JOptionPane.showMessageDialog(this,
-            "Empleado registrado correctamente",
-            "Éxito",
-            javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Empleado registrado correctamente",
+                    "Éxito",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
 
-        // recargar tabla
-        cargarEmpleadosEnTabla();
+            // recargar tabla
+            cargarEmpleadosEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this,
-                "Error al registrar empleado. Revisa la consola.",
-                "Error",
-                javax.swing.JOptionPane.ERROR_MESSAGE);
+                    "Error al registrar empleado. Revisa la consola.",
+                    "Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
         }
         String sueldoTxt = txtSueldo.getText().trim();
         double sueldo = sueldoTxt.isEmpty() ? 0.0 : Double.parseDouble(sueldoTxt);
@@ -805,6 +851,74 @@ private void activarFiltrosAvanzados() {
     private void txtIdEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtIdEmpleadoActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_txtIdEmpleadoActionPerformed
+
+    private void btnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLimpiarActionPerformed
+        txtIdEmpleado.setText("");
+        txtNombres.setText("");
+        txtApellidos.setText("");
+        txtDni.setText("");
+        txtTelefono.setText("");
+        txtCorreo.setText("");
+        txtSueldo.setText("");
+        cbTiendaP.setSelectedIndex(0);
+        cbCargo.setSelectedIndex(0);
+        cbEstado.setSelectedIndex(0);
+        txtDni.setEditable(true);
+    }//GEN-LAST:event_btnLimpiarActionPerformed
+
+    private void btnActualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarActionPerformed
+     String idEmp = txtIdEmpleado.getText();
+    
+    if (idEmp.isEmpty()) {
+        javax.swing.JOptionPane.showMessageDialog(this, "Selecciona un empleado de la tabla primero.");
+        return;
+    }
+
+    // Recolectar datos
+    String correo = txtCorreo.getText();
+    String telefono = txtTelefono.getText();
+    String sucursalNombre = cbTiendaP.getSelectedItem().toString(); // Ojo: cbTiendaP
+    String cargo = cbCargo.getSelectedItem().toString();
+    String estado = cbEstado.getSelectedItem().toString();
+    double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
+    
+    int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
+
+    // SQL UPDATE
+    String sql = "UPDATE empleado SET id_sucursal=?, rol=?, estado=?, sueldo=?, horario='MAÑANA' WHERE id_empleado=?";
+    String sqlPersona = "UPDATE persona SET correo=?, telefono=? WHERE dni=?";
+
+    try (Connection cn = new Conexion().establecerConexion()) {
+        cn.setAutoCommit(false); // Transacción
+        
+        // 1. Actualizar datos de empleado (Cargo, Tienda, Sueldo)
+        try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setInt(1, idSucursal);
+            ps.setString(2, cargo);
+            ps.setString(3, estado);
+            ps.setDouble(4, sueldo);
+            ps.setString(5, idEmp);
+            ps.executeUpdate();
+        }
+        
+        // 2. Actualizar datos de contacto (Persona)
+        try (PreparedStatement ps2 = cn.prepareStatement(sqlPersona)) {
+            ps2.setString(1, correo);
+            ps2.setString(2, telefono);
+            ps2.setString(3, txtDni.getText());
+            ps2.executeUpdate();
+        }
+        
+        cn.commit(); // Guardar cambios
+        javax.swing.JOptionPane.showMessageDialog(this, "Empleado actualizado correctamente.");
+        cargarEmpleadosEnTabla(); // Refrescar tabla
+        btnLimpiarActionPerformed(null); // Limpiar formulario
+        
+    } catch (SQLException e) {
+        e.printStackTrace();
+        javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
+    }
+    }//GEN-LAST:event_btnActualizarActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
