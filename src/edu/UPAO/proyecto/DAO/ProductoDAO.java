@@ -35,7 +35,6 @@ public class ProductoDAO {
             if (rs.next()) {
                 return rs.getInt("stock_actual");
             } else {
-                // Si no existe registro, crearlo con stock 0
                 crearRegistroInventarioSucursal(idProducto, idSucursal, 0);
                 return 0;
             }
@@ -44,15 +43,16 @@ public class ProductoDAO {
             return 0;
         }
     }
-// Listar productos por sucursal con creación automática
 
+    // ✅ LISTAR PRODUCTOS (SIN la columna vendidos)
     public List<Producto> listarPorSucursal(int idSucursal) {
         List<Producto> productos = new ArrayList<>();
+        // CORREGIDO: Se eliminó 'p.vendidos' de la consulta
         String sql = "SELECT p.id_producto, p.nombre, p.stock_minimo, "
                 + "p.precio_compra, p.precio_venta, p.estado, "
-                + "p.codigo, p.vendidos, c.nombre as categoria_nombre, "
+                + "p.codigo, c.nombre as categoria_nombre, "
                 + "COALESCE(iss.stock_actual, 0) as stock_sucursal, "
-                + "iss.fecha_caducidad as fecha_caducidad_sucursal " // ✅ MOVIDA A inventario_sucursal
+                + "iss.fecha_caducidad as fecha_caducidad_sucursal "
                 + "FROM producto p "
                 + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
                 + "LEFT JOIN inventario_sucursal iss ON p.id_producto = iss.id_producto AND iss.id_sucursal = ? "
@@ -66,7 +66,6 @@ public class ProductoDAO {
                 Producto producto = mapearProducto(rs);
                 producto.setStockTemporal(rs.getInt("stock_sucursal"));
 
-                // ✅ MANEJAR FECHA CADUCIDAD DESDE INVENTARIO_SUCURSAL
                 java.sql.Date fechaCaducidad = rs.getDate("fecha_caducidad_sucursal");
                 if (fechaCaducidad != null && !rs.wasNull()) {
                     producto.setFechaCaducidad(new java.util.Date(fechaCaducidad.getTime()));
@@ -81,13 +80,13 @@ public class ProductoDAO {
         return productos;
     }
 
-    // ✅ MÉTODO: Buscar por código con sucursal
+    // ✅ BUSCAR POR CÓDIGO (SIN la columna vendidos)
     public Producto buscarPorCodigo(String codigo, int idSucursal) {
         String sql = "SELECT p.id_producto, p.nombre, p.stock_minimo, "
                 + "p.precio_compra, p.precio_venta, p.estado, "
-                + "p.codigo, p.vendidos, c.nombre as categoria_nombre, "
+                + "p.codigo, c.nombre as categoria_nombre, "
                 + "COALESCE(iss.stock_actual, 0) as stock_sucursal, "
-                + "iss.fecha_caducidad as fecha_caducidad_sucursal " // ✅ MOVIDA A inventario_sucursal
+                + "iss.fecha_caducidad as fecha_caducidad_sucursal "
                 + "FROM producto p "
                 + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
                 + "LEFT JOIN inventario_sucursal iss ON p.id_producto = iss.id_producto AND iss.id_sucursal = ? "
@@ -102,7 +101,6 @@ public class ProductoDAO {
                 Producto producto = mapearProducto(rs);
                 producto.setStockTemporal(rs.getInt("stock_sucursal"));
 
-                // ✅ MANEJAR FECHA CADUCIDAD DESDE INVENTARIO_SUCURSAL
                 java.sql.Date fechaCaducidad = rs.getDate("fecha_caducidad_sucursal");
                 if (fechaCaducidad != null && !rs.wasNull()) {
                     producto.setFechaCaducidad(new java.util.Date(fechaCaducidad.getTime()));
@@ -117,14 +115,14 @@ public class ProductoDAO {
         return null;
     }
 
-    // ✅ MÉTODO: Buscar por nombre con sucursal
+    // ✅ BUSCAR POR NOMBRE (SIN la columna vendidos)
     public List<Producto> buscarPorNombre(String nombre, int idSucursal) {
         List<Producto> productos = new ArrayList<>();
         String sql = "SELECT p.id_producto, p.nombre, p.stock_minimo, "
                 + "p.precio_compra, p.precio_venta, p.estado, "
-                + "p.codigo, p.vendidos, c.nombre as categoria_nombre, "
+                + "p.codigo, c.nombre as categoria_nombre, "
                 + "COALESCE(iss.stock_actual, 0) as stock_sucursal, "
-                + "iss.fecha_caducidad as fecha_caducidad_sucursal " // ✅ MOVIDA A inventario_sucursal
+                + "iss.fecha_caducidad as fecha_caducidad_sucursal "
                 + "FROM producto p "
                 + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
                 + "LEFT JOIN inventario_sucursal iss ON p.id_producto = iss.id_producto AND iss.id_sucursal = ? "
@@ -139,7 +137,6 @@ public class ProductoDAO {
                 Producto producto = mapearProducto(rs);
                 producto.setStockTemporal(rs.getInt("stock_sucursal"));
 
-                // ✅ MANEJAR FECHA CADUCIDAD DESDE INVENTARIO_SUCURSAL
                 java.sql.Date fechaCaducidad = rs.getDate("fecha_caducidad_sucursal");
                 if (fechaCaducidad != null && !rs.wasNull()) {
                     producto.setFechaCaducidad(new java.util.Date(fechaCaducidad.getTime()));
@@ -152,10 +149,8 @@ public class ProductoDAO {
             e.printStackTrace();
         }
         return productos;
-
     }
 
-    // ✅ MÉTODO: Obtener stock específico por sucursal
     public int obtenerStockSucursal(int idProducto, int idSucursal) {
         String sql = "SELECT stock_actual FROM inventario_sucursal WHERE id_producto = ? AND id_sucursal = ?";
 
@@ -176,7 +171,6 @@ public class ProductoDAO {
         }
     }
 
-    // ✅ MÉTODO: Obtener ID por código
     public int obtenerIdPorCodigo(String codigo) {
         String sql = "SELECT id_producto FROM producto WHERE codigo = ?";
 
@@ -194,10 +188,9 @@ public class ProductoDAO {
         return -1;
     }
 
-    // ✅ MÉTODO: Actualizar producto
     public boolean actualizar(Producto producto) {
         String sql = "UPDATE producto SET codigo=?, nombre=?, stock_minimo=?, "
-                + "precio_compra=?, precio_venta=?, estado=?, id_categoria=? " // ❌ ELIMINADO: fecha_caducidad
+                + "precio_compra=?, precio_venta=?, estado=?, id_categoria=? "
                 + "WHERE id_producto=?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
@@ -207,10 +200,9 @@ public class ProductoDAO {
             stmt.setDouble(4, producto.getPrecioCompra());
             stmt.setDouble(5, producto.getPrecioVenta());
             stmt.setString(6, producto.getEstado());
-            stmt.setInt(7, 1); // Categoría por defecto
+            stmt.setInt(7, 1);
             stmt.setInt(8, producto.getId());
 
-            // ❌ ELIMINADO: Manejo de fecha_caducidad
             return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
@@ -220,10 +212,9 @@ public class ProductoDAO {
         }
     }
 
-    // ✅ MÉTODO: Insertar producto
     public boolean insertar(Producto producto) {
         String sql = "INSERT INTO producto (codigo, nombre, stock_minimo, "
-                + "precio_compra, precio_venta, estado, id_categoria) " // ❌ ELIMINADO: fecha_caducidad
+                + "precio_compra, precio_venta, estado, id_categoria) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
@@ -233,9 +224,8 @@ public class ProductoDAO {
             stmt.setDouble(4, producto.getPrecioCompra());
             stmt.setDouble(5, producto.getPrecioVenta());
             stmt.setString(6, producto.getEstado());
-            stmt.setInt(7, 1); // Categoría por defecto
+            stmt.setInt(7, 1);
 
-            // ❌ ELIMINADO: Manejo de fecha_caducidad
             return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
@@ -260,6 +250,7 @@ public class ProductoDAO {
         }
     }
 
+    // ✅ MAPEO CORREGIDO (Sin 'vendidos')
     private Producto mapearProducto(ResultSet rs) throws SQLException {
         Producto p = new Producto();
         p.setId(rs.getInt("id_producto"));
@@ -271,13 +262,10 @@ public class ProductoDAO {
         p.setEstado(rs.getString("estado"));
         p.setCategoria(rs.getString("categoria_nombre"));
 
-        try {
-            p.setVendidos(rs.getInt("vendidos"));
-        } catch (SQLException e) {
-            p.setVendidos(0);
-        }
+        // Ya no intentamos leer "vendidos" porque no existe. 
+        // El objeto Producto se inicializa con 0 por defecto.
+        p.setVendidos(0);
 
-        // La fecha de caducidad se establece desde inventario_sucursal en los métodos anteriores
         return p;
     }
 

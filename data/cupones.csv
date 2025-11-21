@@ -1,0 +1,2 @@
+codigo,tipo,valor,sku_aplicado,minimo_compra,inicio,fin,activo,max_usos,usos
+VERANO2025,PERCENT,10.0,Cupon del 10%,0.0,2025-11-21,2025-12-21,true,10,0

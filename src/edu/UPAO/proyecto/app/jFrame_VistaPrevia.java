@@ -19,6 +19,7 @@ import javax.swing.JTextArea;
 public class jFrame_VistaPrevia extends javax.swing.JFrame {
 
     private String rutaPDF; // Variable para almacenar la ruta del PDF
+    private Menu2 menuPrincipal;
 
     public jFrame_VistaPrevia() {
         initComponents();
@@ -26,30 +27,30 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
     }
+// ✅ Referencia para actualizar
 
-    // ✅ CONSTRUCTOR PRINCIPAL - Con el orden correcto de parámetros
-    public jFrame_VistaPrevia(Venta venta, String dniCliente, String observaciones, String rutaPDF) {
-        this.rutaPDF = rutaPDF; // Guardar la ruta del PDF
+    // Constructor Principal
+    public jFrame_VistaPrevia(Menu2 menu, Venta venta, String dni, String obs, String rutaPDF) {
+        this.menuPrincipal = menu;
+        this.rutaPDF = rutaPDF;
         initComponents();
+
+        setTitle("Vista Previa");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setTitle("Comprobante de Pago - Vista Previa");
         setLocationRelativeTo(null);
-
         area.setEditable(false);
-        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12));
+        area.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
-        // ✅ GENERAR COMPROBANTE CON DNI Y OBSERVACIONES
-        String comprobanteModificado = modificarComprobante(venta.generarComprobante(), dniCliente, observaciones);
-        area.setText(comprobanteModificado);
+        // Modificar texto del comprobante
+        String texto = venta.generarComprobante();
+        if (dni != null && !dni.isEmpty()) {
+            texto = texto.replace("Cajero ID:", "Cajero ID:\nClient DNI: " + dni);
+        }
+        if (obs != null && !obs.isEmpty()) {
+            texto += "\n[OBSERVACIONES]\n" + obs;
+        }
 
-        // ✅ CONFIGURAR BOTÓN PARA ABRIR PDF
-        configurarBotonPDF();
-    }
-
-    // ✅ CONSTRUCTOR SIMPLIFICADO - Con el orden CORRECTO
-    public jFrame_VistaPrevia(Venta venta, String rutaPDF) {
-        // ✅ ORDEN CORRECTO: venta, dniCliente, observaciones, rutaPDF
-        this(venta, null, null, rutaPDF);
+        area.setText(texto);
     }
 
     // ✅ CONSTRUCTOR PARA COMPATIBILIDAD (si aún lo necesitas)
@@ -128,49 +129,24 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
     }
 
     private void abrirPDF() {
-        if (rutaPDF == null || rutaPDF.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "No se encontró la ruta del PDF generado.",
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        File archivoPDF = new File(rutaPDF);
-
-        if (!archivoPDF.exists()) {
-            JOptionPane.showMessageDialog(this,
-                    "El archivo PDF no se encuentra en la ruta:\n" + rutaPDF,
-                    "Archivo no encontrado",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         try {
-            // Intentar abrir con el programa predeterminado del sistema
-            Desktop.getDesktop().open(archivoPDF);
-            System.out.println("✅ PDF abierto: " + rutaPDF);
-
-        } catch (IOException e) {
-            System.err.println("❌ Error al abrir PDF: " + e.getMessage());
-
-            // Fallback: mostrar diálogo para abrir manualmente
-            int option = JOptionPane.showConfirmDialog(this,
-                    "No se pudo abrir el PDF automáticamente.\n"
-                    + "¿Desea abrir la carpeta donde se guardó el archivo?",
-                    "Error al abrir PDF",
-                    JOptionPane.YES_NO_OPTION);
-
-            if (option == JOptionPane.YES_OPTION) {
-                abrirCarpetaContenedora(archivoPDF);
+            if (rutaPDF != null && !rutaPDF.isEmpty()) {
+                File f = new File(rutaPDF);
+                if (f.exists()) {
+                    Desktop.getDesktop().open(f);
+                }
             }
-        } catch (UnsupportedOperationException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Tu sistema no soporta abrir archivos automáticamente.\n"
-                    + "Puedes encontrar el PDF en: " + rutaPDF,
-                    "Operación no soportada",
-                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error abriendo PDF: " + e.getMessage());
         }
+    }
+
+    private void cerrarYActualizar() {
+        // ✅ Actualizar Menu2 también desde aquí por si acaso
+        if (menuPrincipal != null) {
+            menuPrincipal.finalizarVenta();
+        }
+        this.dispose();
     }
 
     private void abrirCarpetaContenedora(File archivo) {
@@ -264,6 +240,7 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_AbrirPDFActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+
         this.dispose();
     }//GEN-LAST:event_jButton1ActionPerformed
 

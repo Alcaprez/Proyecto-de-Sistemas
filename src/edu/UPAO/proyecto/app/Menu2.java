@@ -24,7 +24,7 @@ public class Menu2 extends javax.swing.JFrame {
 
     public Menu2(String idEmpleado) {
         initComponents();
-        btn_validar.addActionListener(e -> onValidarCupon());
+        //btn_validar.addActionListener(e -> onValidarCupon());
         this.idEmpleado = idEmpleado;
         this.idSucursal = obtenerSucursalEmpleado(idEmpleado);
         System.out.println("Cajero - Empleado: " + this.idEmpleado + ", Sucursal: " + this.idSucursal);
@@ -37,7 +37,7 @@ public class Menu2 extends javax.swing.JFrame {
         btn_inicio.doClick();
         verificarStockCajero(idEmpleado);
     }
-    
+
     private void verificarStockCajero(String idEmpleado) {
         // Usar un hilo secundario para no congelar la ventana mientras carga
         new Thread(() -> {
@@ -45,11 +45,11 @@ public class Menu2 extends javax.swing.JFrame {
                 // 1. Obtener la sucursal del empleado
                 edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
                 int idSucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
-                
+
                 // 2. Buscar alertas para ESA sucursal
                 edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
                 java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
-                
+
                 // 3. Mostrar si hay alertas
                 if (!alertas.isEmpty()) {
                     StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK BAJO ⚠️\n\n");
@@ -58,18 +58,18 @@ public class Menu2 extends javax.swing.JFrame {
                     for (int i = 0; i < limite; i++) {
                         mensaje.append(alertas.get(i)).append("\n\n");
                     }
-                    
+
                     if (alertas.size() > 10) {
                         mensaje.append("... y ").append(alertas.size() - 10).append(" productos más.");
                     }
-                    
+
                     mensaje.append("\nPor favor, notifique al administrador.");
 
                     javax.swing.SwingUtilities.invokeLater(() -> {
-                        javax.swing.JOptionPane.showMessageDialog(this, 
-                            mensaje.toString(), 
-                            "Stock Crítico en Sucursal", 
-                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                mensaje.toString(),
+                                "Stock Crítico en Sucursal",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
                     });
                 }
             } catch (Exception e) {
@@ -77,7 +77,37 @@ public class Menu2 extends javax.swing.JFrame {
             }
         }).start();
     }
-
+    
+    
+    
+    public void finalizarVenta() {
+        // 1. Limpiar campos de texto
+        txtBuscarCodigo.setText("");
+        txtCupon.setText("");
+        txtObservaciones.setText("");
+        
+        // 2. Reiniciar etiquetas y spinners
+        lbl_subtotal.setText("Subtotal: S/ 0.00");
+        lbl_descuento.setText("Descuento: S/ 0.00");
+        resultadoTotal.setText("S/ 0.00");
+        spCantidad.setValue(1);
+        
+        // 3. Vaciar la tabla del carrito
+        javax.swing.table.DefaultTableModel modeloCarrito = (javax.swing.table.DefaultTableModel) miniTabla.getModel();
+        modeloCarrito.setRowCount(0);
+        
+        // 4. Desactivar controles opcionales
+        rb_cupon.setSelected(false);
+        txtCupon.setEnabled(false);
+        rb_observacion.setSelected(false);
+        txtObservaciones.setEnabled(false);
+        
+        // 5. 🔥 RECARGAR EL STOCK DE LA TABLA DE PRODUCTOS (Actualizar vista)
+        cargarProductosEnTabla(); 
+        
+        System.out.println("🔄 Venta finalizada: Interfaz limpia y stock actualizado.");
+    }
+    
     private void inicializarComponentes() {
         inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
@@ -894,29 +924,36 @@ public class Menu2 extends javax.swing.JFrame {
         txtCupon.setText("");
     }
 
-    // 🚀 Recalcula subtotal, descuento y total
     public void actualizarTotal() {
-        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
+        javax.swing.table.DefaultTableModel modeloCarrito = (javax.swing.table.DefaultTableModel) miniTabla.getModel();
         double subtotal = 0.0;
 
         for (int i = 0; i < modeloCarrito.getRowCount(); i++) {
-            Object valorSubtotal = modeloCarrito.getValueAt(i, 3); // Columna 3 = Subtotal
+            Object valorSubtotal = modeloCarrito.getValueAt(i, 3);
             if (valorSubtotal != null) {
                 try {
                     subtotal += Double.parseDouble(valorSubtotal.toString());
                 } catch (NumberFormatException e) {
-                    System.err.println("⚠ Error en fila " + i + ": " + valorSubtotal);
+                    System.err.println("⚠ Error en fila " + i);
                 }
             }
         }
 
-        // 🔥 Aplicar reglas de negocio
-        PromocionController promoCtrl = new PromocionController();
-        double descuento = promoCtrl.calcularDescuentoReglas(modeloCarrito);
+        // ---------------------------------------------------------
+        // 🔴 CÓDIGO VIEJO (CAUSANTE DEL ERROR): COMENTAR O BORRAR
+        // PromocionController promoCtrl = new PromocionController();
+        // double descuento = promoCtrl.calcularDescuentoReglas(modeloCarrito);
+        // ---------------------------------------------------------
+        // ✅ CÓDIGO NUEVO:
+        // Por ahora ponemos 0 en automático. El descuento real se aplica
+        // cuando presionas el botón "VALIDAR CUPÓN".
+        double descuento = 0.0;
 
+        // Si quisieras que el descuento del cupón se mantenga al agregar productos,
+        // necesitarías una variable global 'descuentoActual', pero por ahora esto
+        // elimina los errores.
         double total = subtotal - descuento;
 
-        // Actualiza los labels
         lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
         lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
         resultadoTotal.setText("S/ " + String.format("%.2f", total));
@@ -1019,29 +1056,48 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_txtBuscarCodigoActionPerformed
 
     private void btn_validarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_validarActionPerformed
-        String cupon = txtCupon.getText().trim().replaceAll("\\s+", ""); // limpia espacios
+        try {
+            String codigo = txtCupon.getText().trim();
+            if (codigo.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Ingrese un cupón.");
+                return;
+            }
 
-        if (cupon.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese un cupón primero.");
-            return;
+            java.util.Optional<edu.UPAO.proyecto.Modelo.Cupon> opt
+                    = edu.UPAO.proyecto.DAO.CuponDAO.buscarPorCodigo(codigo);
+
+            if (opt.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "❌ Cupón no existe.");
+                return;
+            }
+
+            edu.UPAO.proyecto.Modelo.Cupon cupon = opt.get();
+            double subtotal = calcularSubtotalCarrito();
+
+            // Validaciones
+            if (!cupon.isVigente(java.time.LocalDate.now())) {
+                JOptionPane.showMessageDialog(this, "⛔ Cupón vencido o inactivo.");
+                return;
+            }
+            if (!cupon.cumpleMinimo(subtotal)) {
+                JOptionPane.showMessageDialog(this, "⚠️ Compra mínima: S/. " + cupon.getMinimoCompra());
+                return;
+            }
+
+            // ✅ CORREGIDO: Solo pasamos subtotal (eliminamos 'items')
+            double descuento = cupon.calcularDescuento(subtotal);
+
+            if (descuento > 0) {
+                JOptionPane.showMessageDialog(this, "✅ ¡Descuento aplicado! S/. " + descuento);
+                lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
+
+                double total = Math.max(0, subtotal - descuento);
+                resultadoTotal.setText("S/ " + String.format("%.2f", total));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        double subtotal = calcularSubtotalCarrito();
-        List<edu.UPAO.proyecto.Modelo.VentaItem> itemsDelCarrito = obtenerItemsDelCarrito();
-
-        double descuento = edu.UPAO.proyecto.PromocionController.aplicarCupon(cupon, itemsDelCarrito, subtotal);
-        double totalConCupon = subtotal - descuento;
-
-        if (descuento > 0) {
-            double porcentaje = (subtotal > 0) ? (descuento / subtotal) * 100 : 0;
-            JOptionPane.showMessageDialog(this, "✓ Cupón válido: " + (int) porcentaje + "% aplicado.");
-        } else {
-            JOptionPane.showMessageDialog(this, "✗ Cupón inválido, caducado o inactivo.");
-        }
-
-        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
-        lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
-        resultadoTotal.setText(String.format("S/ %.2f", totalConCupon));
     }//GEN-LAST:event_btn_validarActionPerformed
 
     private void btn_eliminarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarItemActionPerformed

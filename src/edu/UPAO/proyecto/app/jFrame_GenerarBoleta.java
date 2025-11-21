@@ -25,94 +25,60 @@ import javax.swing.Timer;
 
 public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
-    private Menu2 owner;                        // referencia a la ventana principal
-    private DefaultTableModel modeloBoleta;     // modelo que mostrará la boleta (copia del carrito)
-    private jFram_MaquinaDePAgo maquina;
-    private String idEmpleado;                  // AGREGAR este campo
-    private String observaciones = "";
-    private int idSucursal;
 
     // Constructor que recibe carrito + totales listos
-    public jFrame_GenerarBoleta(java.awt.Frame parent, DefaultTableModel carrito,
-            String subtotal, String descuento, String total,
-            String idEmpleado, int idSucursal, String observaciones) { // ✅ NUEVO PARÁMETRO
+    private Menu2 menuPrincipal;  // ✅ Referencia a la ventana del cajero
+    private DefaultTableModel modeloBoleta;
+    private jFram_MaquinaDePAgo maquina;
+    private String idEmpleado;
+    private int idSucursal;
+    private String observaciones = "";
 
+    // ✅ CONSTRUCTOR PRINCIPAL (El que usas desde Menu2)
+    public jFrame_GenerarBoleta(Menu2 menu, DefaultTableModel carritoClonado, 
+                                String subtotal, String descuento, String total, 
+                                String idEmpleado, int idSucursal, String observaciones) {
+        
         initComponents();
-        this.idSucursal = idSucursal;
+        this.menuPrincipal = menu; // ✅ Guardamos referencia para actualizar stock luego
+        this.modeloBoleta = carritoClonado;
         this.idEmpleado = idEmpleado;
-        this.modeloBoleta = carrito;
-        this.observaciones = observaciones; // ✅ ASIGNAR OBSERVACIONES DIRECTAMENTE
+        this.idSucursal = idSucursal;
+        this.observaciones = observaciones;
 
         configurarAutocompletarCliente();
+        cargarMetodosPago();
 
+        // Grupos de botones
         bg_boletaOfactura = new ButtonGroup();
         bg_boletaOfactura.add(rb_boleta);
         bg_boletaOfactura.add(rb_factura);
+        rb_boleta.setSelected(true); // Boleta por defecto
 
         btn_mostrarMaquina.setEnabled(false);
-
-        this.owner = (Menu2) parent;
-
-        // ✅ CARGAR MÉTODOS DE PAGO EN COMBOBOX
-        cargarMetodosPago();
-
-        // ✅ AGREGAR LISTENER PARA CONTROLAR BOTÓN DE MÁQUINA
         cb_metodoPago.addActionListener(e -> controlarBotonMaquina());
 
-        // Mostrar tabla
+        // Configurar Tabla
         jTable1.setModel(modeloBoleta);
         jTable1.setEnabled(false);
 
-        // Mostrar valores recibidos
+        // Mostrar totales iniciales
         lbl_subtotal.setText("Subtotal: " + subtotal);
         lbl_descueto.setText("Descuento: " + descuento);
         lbl_total.setText("Total: " + total);
 
-        double totalNum = Double.parseDouble(total.replace("S/", "").trim());
-        double subtotalCalculado = totalNum / 1.18;
-        double igvCalculado = subtotalCalculado * 0.18;
-        diagnosticarCalculos();
+        // Recalcular IGV para mostrarlo desglosado correctamente
+        calcularTotales();
 
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
-        System.out.println("✅ Boleta creada - Empleado: " + idEmpleado
-                + ", Sucursal: " + idSucursal
-                + ", Observaciones: " + observaciones);
+        setLocationRelativeTo(null);
     }
 
-    private void generarComprobanteYVistaPrevia(Venta venta, int idVenta, String dniCliente, String observaciones) {
-        try {
-            // 1. GENERAR Y REGISTRAR COMPROBANTE EN BD
-            ComprobanteDAO comprobanteDAO = new ComprobanteDAO();
-            String tipoComprobante = "BOLETA";
-            boolean comprobanteRegistrado = comprobanteDAO.registrarComprobante(idVenta, tipoComprobante, venta);
-
-            if (!comprobanteRegistrado) {
-                System.err.println("⚠️ No se pudo registrar el comprobante en la BD");
-            }
-
-            // 2. Generar el PDF
-            String numeroComprobante = String.format("%08d", idVenta);
-            String rutaPDF = GeneradorPDF.generarBoleta(venta, numeroComprobante);
-
-            if (rutaPDF == null) {
-                throw new Exception("No se pudo generar el PDF");
-            }
-
-            // 3. Mostrar vista previa CON LA RUTA DEL PDF
-            jFrame_VistaPrevia vistaPrevia = new jFrame_VistaPrevia(venta, dniCliente, observaciones, rutaPDF);
-            vistaPrevia.setVisible(true);
-
-            System.out.println("✅ Comprobante generado - ID Venta: " + idVenta + ", PDF: " + rutaPDF);
-
-        } catch (Exception e) {
-            System.err.println("❌ Error al generar comprobante: " + e.getMessage());
-            JOptionPane.showMessageDialog(this,
-                    "Error al generar comprobante: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
+    // ✅ Constructor vacío (Solo para evitar errores de diseño en NetBeans)
+    public jFrame_GenerarBoleta() {
+        initComponents();
     }
+
 
     private void verificarMontoMovimientoCaja(double totalVenta) {
         try {
@@ -142,92 +108,35 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
     }
 
-    // Constructor vacío (para pruebas desde NetBeans). No inicializa owner ni modeloBoleta.
-    public jFrame_GenerarBoleta() {
-
-        initComponents();
-        configurarAutocompletarCliente();
-        bg_boletaOfactura = new ButtonGroup();
-        bg_boletaOfactura.add(rb_boleta);
-        bg_boletaOfactura.add(rb_factura);
-
-        bg_TipoPago = new ButtonGroup();
-
-        btn_mostrarMaquina.setEnabled(false);
-
-        this.owner = null;
-        this.modeloBoleta = new DefaultTableModel(); // tabla vacía por defecto
-        jTable1.setModel(modeloBoleta);
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-
-    }
-
-    // Constructor que recibe la ventana que llamó y el carrito clonado
-    public jFrame_GenerarBoleta(Menu2 owner, DefaultTableModel carritoClonado, String subtotal, String descuento, String total, String idEmpleado) {
-
-        initComponents();
-        configurarAutocompletarCliente();
-        bg_boletaOfactura = new ButtonGroup();
-        bg_boletaOfactura.add(rb_boleta);
-        bg_boletaOfactura.add(rb_factura);
-
-        bg_TipoPago = new ButtonGroup();
-
-        btn_mostrarMaquina.setEnabled(false);
-
-        this.owner = owner;
-        this.modeloBoleta = carritoClonado;
-        this.idEmpleado = idEmpleado; // CAPTURAR id_empleado
-
-        // ✅ CARGAR MÉTODOS DE PAGO EN COMBOBOX
-        cargarMetodosPago();
-
-        // ✅ AGREGAR LISTENER PARA CONTROLAR BOTÓN DE MÁQUINA
-        cb_metodoPago.addActionListener(e -> controlarBotonMaquina());
-
-        // Mostrar tabla
-        jTable1.setModel(modeloBoleta);
-        jTable1.setEnabled(false);
-
-        // Mostrar valores recibidos
-        lbl_subtotal.setText("Subtotal: " + subtotal);
-        lbl_descueto.setText("Descuento: " + descuento);
-        lbl_total.setText("Total: " + total);
-
-        double totalNum = Double.parseDouble(total.replace("S/", "").trim());
-        double subtotalCalculado = totalNum / 1.18;
-        double igvCalculado = subtotalCalculado * 0.18;
-
-        diagnosticarCalculos();
-
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-    }
 
     @SuppressWarnings("unchecked")
 
-    private void calcularTotales() {
+private void calcularTotales() {
         double subtotal = 0.0;
         for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
-            Object val = modeloBoleta.getValueAt(i, 3); // Columna "Subtotal" (índice 3)
+            Object val = modeloBoleta.getValueAt(i, 3); // Columna Subtotal
             if (val != null) {
                 subtotal += Double.parseDouble(String.valueOf(val));
             }
         }
+        
+        // Recuperar descuento si existe
+        double descuento = 0.0;
+        try {
+             String descText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
+             descuento = Double.parseDouble(descText);
+        } catch(Exception e) {}
 
-        // ✅ CÁLCULO SIMPLE Y DIRECTO - SIN DUPLICAR IGV
-        double igv = subtotal * 0.18;
-        double total = subtotal + igv;
+        double baseImponible = (subtotal - descuento) / 1.18;
+        double igv = baseImponible * 0.18;
+        double total = subtotal - descuento;
 
-        // ✅ ACTUALIZAR LABELS
-        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
+        // Actualizar etiquetas
+        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", baseImponible));
         lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
         lbl_total.setText("Total: S/ " + String.format("%.2f", total));
-
-        System.out.println("🧮 Totales calculados:");
-        System.out.println("  - Subtotal: " + subtotal);
-        System.out.println("  - IGV: " + igv);
-        System.out.println("  - Total: " + total);
     }
+    
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
@@ -458,128 +367,106 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     }//GEN-LAST:event_tf_dniActionPerformed
 
     private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
-        if (!validarCampos()) {
-            return;
-        }
+if (!validarCampos()) return;
 
         try {
-            // ✅ OBTENER TOTAL ACTUAL
-            String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").trim();
-            double totalConIgvDuplicado = Double.parseDouble(totalText);
+            // 1. OBTENER DATOS
+            String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").replace(",", ".").trim();
+            double totalVenta = Double.parseDouble(totalText);
+            
+            // Recalcular bases para guardar exacto
+            double subtotalBase = totalVenta / 1.18;
+            double igv = subtotalBase * 0.18;
 
-            String descuentoText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
-            double descuento = Double.parseDouble(descuentoText);
-
-            // ✅ CALCULAR CORRECTAMENTE
-            double subtotal = totalConIgvDuplicado / 1.18;
-            double igv = subtotal * 0.18;
-            double totalReal = subtotal + igv;
-
-            System.out.println("🔧 SOLUCIÓN APLICADA:");
-            System.out.println("  - Total recibido: " + totalConIgvDuplicado);
-            System.out.println("  - Subtotal real: " + subtotal);
-            System.out.println("  - IGV correcto: " + igv);
-            System.out.println("  - Total para guardar: " + totalReal);
-
-            // ✅ ACTUALIZAR LABELS
-            lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
-            lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
-            lbl_total.setText("Total: S/ " + String.format("%.2f", totalReal));
-
-            String dniCliente = tf_dni.getText().trim();
+            String dni = tf_dni.getText().trim();
             String nombres = tf_nombres.getText().trim();
             String apellidos = tf_apellidos.getText().trim();
-
-            // OBTENER MÉTODO DE PAGO
             String metodoPago = (String) cb_metodoPago.getSelectedItem();
-            if (metodoPago == null || metodoPago.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "❌ Seleccione un método de pago");
-                return;
-            }
 
-            // DEBUG
-            System.out.println("DEBUG - Datos de venta:");
-            System.out.println("  - Empleado: " + this.idEmpleado);
-            System.out.println("  - Método Pago: " + metodoPago);
-            System.out.println("  - DNI Cliente: " + dniCliente);
-            System.out.println("  - Total para guardar: " + totalReal);
+            // 2. REGISTRAR CLIENTE (Si no existe)
+            ClienteDAO clienteDAO = new ClienteDAO();
+            clienteDAO.registrarClienteSiNoExiste(dni, nombres.isEmpty() ? "CLIENTE" : nombres, apellidos.isEmpty() ? "GENERICO" : apellidos);
+            clienteDAO.cerrarConexion();
 
-            // 1. REGISTRAR CLIENTE SI NO EXISTE
-            try {
-                ClienteDAO clienteDAO = new ClienteDAO();
-
-                if (nombres.isEmpty()) {
-                    nombres = "CLIENTE";
-                }
-                if (apellidos.isEmpty()) {
-                    apellidos = "GENERICO";
-                }
-
-                clienteDAO.registrarClienteSiNoExiste(dniCliente, nombres, apellidos);
-                clienteDAO.cerrarConexion();
-            } catch (Exception e) {
-                System.err.println("⚠️ Error al registrar cliente: " + e.getMessage());
-            }
-
-            // 2. CREAR DETALLES DE VENTA - ✅ CORREGIDO: Usar sucursal
+            // 3. PREPARAR DETALLE VENTA
             List<DetalleVenta> detalles = new ArrayList<>();
             ProductoDAO productoDAO = new ProductoDAO();
 
             for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
-                String nombreProducto = modeloBoleta.getValueAt(i, 0).toString();
+                String codigo = modeloBoleta.getValueAt(i, 4).toString();
                 int cantidad = Integer.parseInt(modeloBoleta.getValueAt(i, 1).toString());
-                double precioUnitario = Double.parseDouble(modeloBoleta.getValueAt(i, 2).toString());
-                double subtotalItem = Double.parseDouble(modeloBoleta.getValueAt(i, 3).toString());
-                String codigoProducto = modeloBoleta.getValueAt(i, 4).toString();
+                double precio = Double.parseDouble(modeloBoleta.getValueAt(i, 2).toString());
 
-                // ✅ CORREGIDO: Usar método con sucursal
-                Producto producto = productoDAO.buscarPorCodigo(codigoProducto, this.idSucursal);
-
-                if (producto != null) {
-                    DetalleVenta detalle = new DetalleVenta(producto, cantidad, precioUnitario);
-                    detalles.add(detalle);
-                } else {
-                    JOptionPane.showMessageDialog(this, "⚠️ Producto no encontrado: " + nombreProducto);
-                    productoDAO.cerrarConexion();
-                    return;
+                Producto p = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
+                if (p != null) {
+                    detalles.add(new DetalleVenta(p, cantidad, precio));
                 }
             }
+            productoDAO.cerrarConexion();
 
-            // 3. CREAR OBJETO VENTA CON VALORES CORREGIDOS
+            // 4. CREAR OBJETO VENTA
             Venta venta = new Venta();
             venta.setIdEmpleado(this.idEmpleado);
-            venta.setDniCliente(dniCliente);
+            venta.setIdSucursal(this.idSucursal);
+            venta.setDniCliente(dni);
             venta.setMetodoPago(metodoPago);
             venta.setDetalleVenta(detalles);
-            venta.setSubtotal(subtotal);
+            venta.setSubtotal(subtotalBase);
             venta.setIgv(igv);
-            venta.setTotal(totalReal);
-            venta.setIdSucursal(this.idSucursal); // ✅ USAR SUCURSAL
+            venta.setTotal(totalVenta);
 
-            System.out.println("Sucursal para venta: " + this.idSucursal);
-
-            // 4. GUARDAR EN BD USANDO VentaDAO
+            // 5. GUARDAR VENTA EN BD
             VentaDAO ventaDAO = new VentaDAO();
-            int idVentaGenerada = ventaDAO.registrarVenta(venta);
+            int idVenta = ventaDAO.registrarVenta(venta);
 
-            generarComprobanteYVistaPrevia(venta, idVentaGenerada, dniCliente, observaciones);
+            if (idVenta > 0) {
+                // 6. GENERAR COMPROBANTE Y PDF
+                generarComprobanteYVistaPrevia(venta, idVenta, dni, observaciones);
 
-            JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID Venta: " + idVentaGenerada);
+                JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID: " + idVenta);
 
-            verificarMontoMovimientoCaja(totalReal);
-            
-            productoDAO.cerrarConexion();
-            this.dispose();
+                // 7. 🔥 ACTUALIZAR STOCK Y LIMPIAR MENU (Lo que pediste)
+                if (this.menuPrincipal != null) {
+                    this.menuPrincipal.finalizarVenta(); // Esto recarga la tabla con stock nuevo
+                }
 
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "❌ Error de base de datos: " + e.getMessage());
-            e.printStackTrace();
+                // Cerrar esta ventana, queda abierta la vista previa
+                this.dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "❌ Error al guardar venta en BD.");
+            }
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "❌ Error al registrar venta: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error crítico: " + e.getMessage());
             e.printStackTrace();
         }
     }//GEN-LAST:event_btn_pagadoActionPerformed
 
+    
+    private void generarComprobanteYVistaPrevia(Venta venta, int idVenta, String dni, String obs) {
+        try {
+            // Registrar comprobante en BD
+            new ComprobanteDAO().registrarComprobante(idVenta, "BOLETA", venta);
+            
+            // Generar PDF
+            String numComprobante = String.format("B001-%08d", idVenta);
+            String rutaPDF = GeneradorPDF.generarBoleta(venta, numComprobante);
+
+            // Abrir Vista Previa pasando el menú para que el botón "Listo" también pueda actualizar
+            jFrame_VistaPrevia vista = new jFrame_VistaPrevia(
+                this.menuPrincipal, // ✅ Pasamos la referencia
+                venta, 
+                dni, 
+                obs, 
+                rutaPDF
+            );
+            vista.setVisible(true);
+
+        } catch (Exception e) {
+            System.err.println("Error generando comprobante: " + e.getMessage());
+        }
+    }
+    
     private void btn_mostrarMaquinaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_mostrarMaquinaActionPerformed
         if (maquina == null || !maquina.isDisplayable()) {
             maquina = new jFram_MaquinaDePAgo();
