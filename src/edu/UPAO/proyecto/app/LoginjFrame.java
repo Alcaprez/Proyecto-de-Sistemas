@@ -248,8 +248,11 @@ public class LoginjFrame extends javax.swing.JFrame {
 
                 case "ADMINISTRADOR":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Abrir panel de administrador
-                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador();
+
+                    // --- CAMBIO AQUÍ: Pasamos idEmpleado y nombreUsuario al constructor ---
+                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador(idEmpleado, nombreUsuario);
+                    // -----------------------------------------------------------------------
+
                     principalAdministrador.setLocationRelativeTo(null);
                     principalAdministrador.setVisible(true);
                     break;
@@ -352,13 +355,6 @@ public class LoginjFrame extends javax.swing.JFrame {
             tf_contraseña.setText("");
             tf_identificacion.requestFocus();
         }
-    }
-
-    private void mostrarRegistroAsistencia(String idEmpleado, String nombreEmpleado) {
-        SwingUtilities.invokeLater(() -> {
-            RegistroEntrada registro = new RegistroEntrada(idEmpleado, nombreEmpleado);
-            registro.mostrarVentana();
-        });
     }
 
     /**

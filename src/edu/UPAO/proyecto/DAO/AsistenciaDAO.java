@@ -2,13 +2,11 @@ package edu.UPAO.proyecto.DAO;
 
 import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Asistencia;
+import edu.UPAO.proyecto.Modelo.HorarioEmpleado; // ✅ Importante
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
-import java.time.LocalDate;
-import java.util.Optional;
-
 
 public class AsistenciaDAO {
 
@@ -28,7 +26,7 @@ public class AsistenciaDAO {
         String sql = "SELECT * FROM asistencia WHERE DATE(fecha_hora_entrada) = ?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setDate(1, java.sql.Date.valueOf(fecha)); // Específicamente java.sql.Date
+            stmt.setDate(1, java.sql.Date.valueOf(fecha));
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -53,7 +51,7 @@ public class AsistenciaDAO {
         String sql = "SELECT * FROM asistencia WHERE DATE(fecha_hora_entrada) = ? AND id_empleado = ?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setDate(1, java.sql.Date.valueOf(fecha)); // Específicamente java.sql.Date
+            stmt.setDate(1, java.sql.Date.valueOf(fecha));
             stmt.setString(2, idEmpleado);
             ResultSet rs = stmt.executeQuery();
 
@@ -75,37 +73,25 @@ public class AsistenciaDAO {
         return Optional.empty();
     }
 
-    /**
-     * Marca entrada en la base de datos
-     */
     public void marcarEntrada(LocalDate fecha, String idEmpleado, LocalTime hora) {
-        // Primero verificamos si ya existe un registro para hoy
         Optional<Asistencia> existente = obtener(fecha, idEmpleado);
 
         if (existente.isPresent()) {
-            // Si ya existe y tiene entrada, no hacemos nada
             if (existente.get().getHoraEntrada() != null) {
                 throw new IllegalStateException("Ya registró entrada hoy");
             }
-            // Si existe pero no tiene entrada, actualizamos
             actualizarEntrada(existente.get(), hora);
         } else {
-            // Si no existe, creamos nuevo registro
             insertarNuevaAsistencia(fecha, idEmpleado, hora, null, "RESPONSABLE");
         }
     }
 
-    /**
-     * Marca salida en la base de datos
-     */
     public void marcarSalida(LocalDate fecha, String idEmpleado, LocalTime hora) {
         Optional<Asistencia> existente = obtener(fecha, idEmpleado);
 
         if (existente.isEmpty()) {
-            // Si no existe registro de entrada, creamos uno completo
             insertarNuevaAsistencia(fecha, idEmpleado, null, hora, "AUSENTE");
         } else {
-            // Actualizamos la salida
             actualizarSalida(existente.get(), hora);
         }
     }
@@ -114,13 +100,11 @@ public class AsistenciaDAO {
         String sql = "INSERT INTO asistencia (fecha_hora_entrada, fecha_hora_salida, id_empleado, id_sucursal, estado) VALUES (?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            // Combinar fecha y hora para entrada
             java.sql.Timestamp timestampEntrada = null;
             if (entrada != null) {
                 timestampEntrada = java.sql.Timestamp.valueOf(fecha.atTime(entrada));
             }
 
-            // Combinar fecha y hora para salida
             java.sql.Timestamp timestampSalida = null;
             if (salida != null) {
                 timestampSalida = java.sql.Timestamp.valueOf(fecha.atTime(salida));
@@ -130,14 +114,13 @@ public class AsistenciaDAO {
             stmt.setTimestamp(2, timestampSalida);
             stmt.setString(3, idEmpleado);
 
-            // Obtener sucursal del empleado
             int idSucursal = new EmpleadoDAO().obtenerSucursalEmpleado(idEmpleado);
             stmt.setInt(4, idSucursal);
 
-            // Calcular estado automáticamente si es entrada
+            // ✅ CORREGIDO: Usamos el cálculo de estado compatible
             String estadoFinal = estado;
             if (entrada != null) {
-                estadoFinal = calcularEstado(entrada);
+                estadoFinal = calcularEstado(idEmpleado, entrada);
             }
             stmt.setString(5, estadoFinal);
 
@@ -156,7 +139,10 @@ public class AsistenciaDAO {
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(asistencia.getFecha().atTime(horaEntrada));
             stmt.setTimestamp(1, timestamp);
-            stmt.setString(2, calcularEstado(horaEntrada));
+
+            // ✅ CORREGIDO: Pasamos idEmpleado y hora
+            stmt.setString(2, calcularEstado(asistencia.getUsuario(), horaEntrada));
+
             stmt.setString(3, asistencia.getUsuario());
             stmt.setDate(4, java.sql.Date.valueOf(asistencia.getFecha()));
 
@@ -185,10 +171,24 @@ public class AsistenciaDAO {
         }
     }
 
-    private String calcularEstado(LocalTime horaEntrada) {
-        // Definir horario esperado (8:00 AM con 15 minutos de tolerancia)
-        LocalTime horaEsperada = LocalTime.of(8, 0);
-        LocalTime horaLimite = horaEsperada.plusMinutes(15);
+    // ✅ MÉTODO CALCULAR ESTADO ACTUALIZADO
+    private String calcularEstado(String idEmpleado, LocalTime horaEntrada) {
+        HorarioDAO horarioDAO = new HorarioDAO();
+        HorarioEmpleado horario = horarioDAO.obtenerHorarioPorEmpleado(idEmpleado);
+
+        LocalTime horaEsperada;
+        // Tolerancia fija de 15 minutos (ya no viene de BD)
+        int minutosTolerancia = 15;
+
+        if (horario != null && horario.getHoraEntrada() != null) {
+            horaEsperada = horario.getHoraEntrada();
+        } else {
+            // Horario por defecto si no tiene asignado
+            System.out.println("⚠️ Sin horario asignado, usando defecto 8:00 AM");
+            horaEsperada = LocalTime.of(8, 0);
+        }
+
+        LocalTime horaLimite = horaEsperada.plusMinutes(minutosTolerancia);
 
         if (horaEntrada.isAfter(horaLimite)) {
             return "TARDE";
@@ -204,9 +204,5 @@ public class AsistenciaDAO {
         } catch (SQLException e) {
             System.err.println("Error cerrando conexión: " + e.getMessage());
         }
-    }
-
-    public Optional<Asistencia> obtenerAsistenciaHoy(String idEmpleado) {
-        return sistenciaDAO.obtener(LocalDate.now(), idEmpleado);
     }
 }

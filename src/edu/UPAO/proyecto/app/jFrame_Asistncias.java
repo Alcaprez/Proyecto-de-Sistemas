@@ -40,22 +40,24 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         this.idEmpleado = idEmpleado;
         this.usuarioNombre = usuarioNombre;
 
-        // ⚠️ QUITA ESTA LÍNEA: setOpacity(0.0f);
         initComponents();
         setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null); // CENTRAR VENTANA
+        setLocationRelativeTo(null); // Centrar ventana
 
-        // Configurar tabla
+        // --- CONFIGURACIÓN DE TABLA Y DATOS ---
         modelo = new DefaultTableModel(new Object[]{"Usuario", "Tipo", "Fecha", "Hora", "Estado"}, 0);
         jTable3.setModel(modelo);
 
         jLabel7.setText("Registro - " + usuarioNombre);
-        cargarRegistros();
-        actualizarEstadoBotones();
-        actualizarHoraActual();
 
-        //configurarAnimacion();
-        //mostrarConAnimacion();
+        // 1. Cargamos lo que haya en la base de datos (si ya marcó, aparecerá aquí)
+        cargarRegistros();
+
+        // 2. Actualizamos los botones (si ya marcó, se bloquearán automáticamente)
+        actualizarEstadoBotones();
+
+        // 3. Iniciamos el reloj
+        actualizarHoraActual();
     }
 
     private void verificarEstadoActual() {
@@ -63,35 +65,66 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
     }
 
     private void actualizarEstadoBotones() {
-        String estado = asistenciaService.obtenerEstadoActual(idEmpleado);
+        System.out.println("🔄 [DEBUG] Iniciando actualización de botones...");
 
-        switch (estado) {
-            case "PENDIENTE_ENTRADA":
-                btn_entrada.setEnabled(true);
-                btn_entrada.setText("MARCAR ENTRADA");
-                btn_entrada.setBackground(new java.awt.Color(76, 175, 80));
-                btn_salida.setEnabled(false);
-                btn_salida.setText("SALIDA (Espere entrada)");
-                btn_salida.setBackground(new java.awt.Color(200, 200, 200));
-                break;
+        try {
+            // 1. Verificar servicio
+            if (asistenciaService == null) {
+                System.out.println("❌ [ERROR] asistenciaService es NULL");
+                return;
+            }
 
-            case "ENTRADA_REGISTRADA":
-                btn_entrada.setEnabled(false);
-                btn_entrada.setText("✓ ENTRADA REGISTRADA");
-                btn_entrada.setBackground(new java.awt.Color(46, 125, 50));
-                btn_salida.setEnabled(true);
-                btn_salida.setText("MARCAR SALIDA");
-                btn_salida.setBackground(new java.awt.Color(244, 67, 54));
-                break;
+            // 2. Obtener estado
+            String estado = asistenciaService.obtenerEstadoActual(idEmpleado);
+            System.out.println("📊 [DEBUG] Estado devuelto por servicio: " + estado);
 
-            case "SALIDA_REGISTRADA":
-                btn_entrada.setEnabled(false);
-                btn_entrada.setText("✓ ENTRADA REGISTRADA");
-                btn_entrada.setBackground(new java.awt.Color(46, 125, 50));
-                btn_salida.setEnabled(false);
-                btn_salida.setText("✓ SALIDA REGISTRADA");
-                btn_salida.setBackground(new java.awt.Color(183, 28, 28));
-                break;
+            // 3. Verificar componentes de UI
+            if (btn_entrada == null || btn_salida == null) {
+                System.out.println("❌ [ERROR] Los botones no están inicializados (son null)");
+                return;
+            }
+
+            switch (estado) {
+                case "PENDIENTE_ENTRADA":
+                    System.out.println("🔓 [ACCION] Habilitando botón ENTRADA");
+                    btn_entrada.setEnabled(true);
+                    btn_entrada.setText("MARCAR ENTRADA");
+                    btn_entrada.setBackground(new java.awt.Color(76, 175, 80)); // Verde
+
+                    btn_salida.setEnabled(false);
+                    btn_salida.setText("SALIDA (Espere entrada)");
+                    btn_salida.setBackground(new java.awt.Color(200, 200, 200));
+                    break;
+
+                case "ENTRADA_REGISTRADA":
+                    System.out.println("🔓 [ACCION] Habilitando botón SALIDA");
+                    btn_entrada.setEnabled(false);
+                    btn_entrada.setText("✓ ENTRADA REGISTRADA");
+
+                    btn_salida.setEnabled(true);
+                    btn_salida.setText("MARCAR SALIDA");
+                    btn_salida.setBackground(new java.awt.Color(244, 67, 54)); // Rojo
+                    break;
+
+                case "SALIDA_REGISTRADA":
+                    System.out.println("🔒 [ACCION] Bloqueando todo (Jornada terminada)");
+                    btn_entrada.setEnabled(false);
+                    btn_entrada.setText("✓ ENTRADA REGISTRADA");
+                    btn_salida.setEnabled(false);
+                    btn_salida.setText("✓ SALIDA REGISTRADA");
+                    break;
+
+                default:
+                    System.out.println("⚠️ [ALERTA] Estado desconocido recibido: " + estado);
+            }
+
+            // Forzar repintado por si acaso
+            btn_entrada.repaint();
+            btn_salida.repaint();
+
+        } catch (Exception e) {
+            System.out.println("❌ [EXCEPCION] Error fatal en actualizarEstadoBotones:");
+            e.printStackTrace();
         }
     }
 
@@ -198,7 +231,6 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
                     JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     private void actualizarHoraActual() {
         Timer timer = new Timer(1000, e -> {
