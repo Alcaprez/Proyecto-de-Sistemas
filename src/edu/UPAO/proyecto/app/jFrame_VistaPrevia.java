@@ -20,10 +20,6 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
 
     private String rutaPDF; // Variable para almacenar la ruta del PDF
 
-    public jFrame_VistaPrevia(Venta venta, String rutaPDF) {
-        this(venta, rutaPDF, null, null); // Reutilizar constructor principal
-    }
-
     public jFrame_VistaPrevia() {
         initComponents();
         setTitle("Vista Previa - Comprobante de Pago");
@@ -31,7 +27,9 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }
 
-    public jFrame_VistaPrevia(Venta venta, String dniCliente, String observaciones) {
+    // ✅ CONSTRUCTOR PRINCIPAL - Con el orden correcto de parámetros
+    public jFrame_VistaPrevia(Venta venta, String dniCliente, String observaciones, String rutaPDF) {
+        this.rutaPDF = rutaPDF; // Guardar la ruta del PDF
         initComponents();
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setTitle("Comprobante de Pago - Vista Previa");
@@ -40,10 +38,35 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
         area.setEditable(false);
         area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12));
 
-        // ✅ GENERAR COMPROBANTE MODIFICADO CON DNI Y OBSERVACIONES
+        // ✅ GENERAR COMPROBANTE CON DNI Y OBSERVACIONES
         String comprobanteModificado = modificarComprobante(venta.generarComprobante(), dniCliente, observaciones);
         area.setText(comprobanteModificado);
 
+        // ✅ CONFIGURAR BOTÓN PARA ABRIR PDF
+        configurarBotonPDF();
+    }
+
+    // ✅ CONSTRUCTOR SIMPLIFICADO - Con el orden CORRECTO
+    public jFrame_VistaPrevia(Venta venta, String rutaPDF) {
+        // ✅ ORDEN CORRECTO: venta, dniCliente, observaciones, rutaPDF
+        this(venta, null, null, rutaPDF);
+    }
+
+    // ✅ CONSTRUCTOR PARA COMPATIBILIDAD (si aún lo necesitas)
+    public jFrame_VistaPrevia(Venta venta, String dniCliente, String observaciones) {
+        // Este constructor NO tiene rutaPDF, el botón no abrirá PDF
+        initComponents();
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setTitle("Comprobante de Pago - Vista Previa");
+        setLocationRelativeTo(null);
+
+        area.setEditable(false);
+        area.setFont(new java.awt.Font("Monospaced", Font.PLAIN, 12));
+
+        String comprobanteModificado = modificarComprobante(venta.generarComprobante(), dniCliente, observaciones);
+        area.setText(comprobanteModificado);
+
+        // ✅ CONFIGURAR BOTÓN PARA IMPRIMIR (comportamiento original)
         btn_AbrirPDF.addActionListener(e -> {
             try {
                 area.print();
@@ -63,7 +86,6 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
         btn_AbrirPDF.setText("📂 Abrir PDF");
     }
 
-    // ✅ NUEVO CONSTRUCTOR que recibe DNI y observaciones
     private String modificarComprobante(String comprobanteOriginal, String dniCliente, String observaciones) {
         StringBuilder sb = new StringBuilder();
         String[] lineas = comprobanteOriginal.split("\n");
