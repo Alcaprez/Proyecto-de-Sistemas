@@ -18,12 +18,27 @@ public class PrincipalGerente extends javax.swing.JFrame {
     /**
      * Creates new form Principal
      */
+    private String idEmpleado;
+    private String nombreUsuario;
+
     public PrincipalGerente() {
-        initComponents();
+        this("10000001", "Gerente");
+    }
+
+    public PrincipalGerente(String idEmpleado, String nombreUsuario) {
+        this.idEmpleado = idEmpleado;
+        this.nombreUsuario = nombreUsuario;
+
+        initComponents(); // Inicia los componentes visuales
+
+        // Configuración inicial de la ventana
         panel_Rentabilidad panel_Rentabilidad1 = new panel_Rentabilidad();
         MostrarPanel(panel_Rentabilidad1);
         this.setResizable(false);
         setLocationRelativeTo(null);
+
+        // Aquí puedes poner el método de verificar stock si lo implementaste
+        // verificarStockGlobal(); 
     }
 
     private void MostrarPanel(JPanel p) {
@@ -34,6 +49,42 @@ public class PrincipalGerente extends javax.swing.JFrame {
         content.repaint();
         setLocationRelativeTo(null);
 
+    }
+
+    private void verificarStockGlobal() {
+        new Thread(() -> {
+            try {
+                edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
+
+                // 0 = BUSCAR EN TODAS LAS SUCURSALES (Visión de Dios/Gerente)
+                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(0);
+
+                if (!alertas.isEmpty()) {
+                    StringBuilder mensaje = new StringBuilder("📉 REPORTE GLOBAL DE QUIEBRES DE STOCK\n");
+                    mensaje.append("========================================\n\n");
+
+                    int limite = Math.min(alertas.size(), 20); // El gerente ve más detalles
+                    for (int i = 0; i < limite; i++) {
+                        mensaje.append(alertas.get(i)).append("\n----------------------------------------\n");
+                    }
+
+                    if (alertas.size() > 20) {
+                        mensaje.append("\n⚠️ Total de incidencias: ").append(alertas.size());
+                    }
+
+                    mensaje.append("\n\n✅ Acción sugerida: Contactar a proveedores.");
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 25, 50)),
+                                "Reporte Gerencial de Abastecimiento",
+                                javax.swing.JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Error stock gerente: " + e.getMessage());
+            }
+        }).start();
     }
 
     /**
@@ -278,12 +329,18 @@ public class PrincipalGerente extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_almacenesActionPerformed
 
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
-        panel_Cuenta panel_Cuenta1 = new panel_Cuenta();
-        MostrarPanel(panel_Cuenta1);
+        // 1. Validar que tenemos el ID del administrador (por si acaso)
+        String idParaEnviar = (this.idEmpleado != null) ? this.idEmpleado : "12000001";
+
+        // 2. Instanciar el panel pasándole el ID
+        panel_Cuenta panelCuenta = new panel_Cuenta(idParaEnviar);
+
+        // 3. Mostrarlo en el contenido
+        MostrarPanel(panelCuenta);
     }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_cerrarSesionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cerrarSesionActionPerformed
-      int confirmacion = JOptionPane.showConfirmDialog(
+        int confirmacion = JOptionPane.showConfirmDialog(
                 this,
                 "¿Está seguro que desea cerrar sesión?",
                 "Cerrar Sesión",
@@ -305,36 +362,10 @@ public class PrincipalGerente extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(PrincipalGerente.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(PrincipalGerente.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(PrincipalGerente.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(PrincipalGerente.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-
-        /* Create and display the form */
+        // ... (código de look and feel) ...
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new PrincipalGerente().setVisible(true);
+                new PrincipalGerente().setVisible(true); // ✅ Ahora sí funciona
             }
         });
     }

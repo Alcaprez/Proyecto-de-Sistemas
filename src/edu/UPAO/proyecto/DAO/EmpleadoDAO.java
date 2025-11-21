@@ -20,6 +20,29 @@ public class EmpleadoDAO {
             System.err.println("❌ Error conectando EmpleadoDAO: " + e.getMessage());
         }
     }
+    
+    public boolean actualizarDatosContacto(String idEmpleado, String nuevoTelefono, String nuevoCorreo) {
+        // Actualizamos la tabla PERSONA usando el DNI vinculado al empleado
+        String sql = "UPDATE persona p " +
+                     "INNER JOIN empleado e ON p.dni = e.dni " +
+                     "SET p.telefono = ?, p.correo = ? " +
+                     "WHERE e.id_empleado = ?";
+        
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, nuevoTelefono);
+            ps.setString(2, nuevoCorreo);
+            ps.setString(3, idEmpleado);
+            
+            int filas = ps.executeUpdate();
+            return filas > 0;
+            
+        } catch (java.sql.SQLException e) {
+            System.err.println("❌ Error actualizando contacto: " + e.getMessage());
+            return false;
+        }
+    }
 
     // ✅ OBTENER SUCURSAL DEL EMPLEADO
     public int obtenerSucursalEmpleado(String idEmpleado) {
@@ -46,8 +69,40 @@ public class EmpleadoDAO {
             return 1; // Sucursal por defecto en caso de error
         }
     }
+    
+    public java.util.Map<String, String> obtenerDatosUsuario(String idEmpleado) {
+        java.util.Map<String, String> datos = new java.util.HashMap<>();
+        
+        String sql = "SELECT e.id_empleado, p.dni, p.nombres, p.apellidos, p.telefono, p.correo, " +
+                     "s.nombre_sucursal, e.rol " +
+                     "FROM empleado e " +
+                     "INNER JOIN persona p ON e.dni = p.dni " +
+                     "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
+                     "WHERE e.id_empleado = ?";
 
-    // ✅ VERIFICAR DATOS DEL EMPLEADO
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, idEmpleado);
+            java.sql.ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                datos.put("id", rs.getString("id_empleado"));
+                datos.put("dni", rs.getString("dni"));
+                datos.put("nombres", rs.getString("nombres"));
+                datos.put("apellidos", rs.getString("apellidos"));
+                datos.put("telefono", rs.getString("telefono"));
+                datos.put("direccion", rs.getString("correo")); // Usamos correo ya que no hay dirección en tabla Persona
+                datos.put("sucursal", rs.getString("nombre_sucursal"));
+                datos.put("cargo", rs.getString("rol"));
+            }
+        } catch (java.sql.SQLException e) {
+            System.err.println("❌ Error obteniendo datos de usuario: " + e.getMessage());
+        }
+        return datos;
+    }
+
+    // VERIFICAR DATOS DEL EMPLEADO
     public void verificarDatosEmpleado(String idEmpleado) {
         String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, s.nombre_sucursal, e.rol " +
                      "FROM empleado e " +

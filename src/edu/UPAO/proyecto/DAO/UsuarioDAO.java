@@ -36,6 +36,35 @@ public class UsuarioDAO {
         }
         return false;
     }
+    
+    public boolean validarContrasena(String idEmpleado, String contrasena) {
+        String sql = "SELECT id_usuario FROM usuario WHERE id_empleado = ? AND contraseña = ?";
+        try (java.sql.Connection con = conexion != null ? conexion : new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, idEmpleado);
+            ps.setString(2, contrasena);
+            return ps.executeQuery().next();
+            
+        } catch (java.sql.SQLException e) {
+            return false;
+        }
+    }
+    
+    public boolean cambiarContrasena(String idEmpleado, String nuevaContrasena) {
+        String sql = "UPDATE usuario SET contraseña = ? WHERE id_empleado = ?";
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, nuevaContrasena);
+            ps.setString(2, idEmpleado);
+            return ps.executeUpdate() > 0;
+            
+        } catch (java.sql.SQLException e) {
+            System.err.println("Error cambiando contraseña: " + e.getMessage());
+            return false;
+        }
+    }
 
     public Usuario autenticar(String idEmpleado, String contrasena) {
         System.out.println("🔐 Intentando autenticar: " + idEmpleado);

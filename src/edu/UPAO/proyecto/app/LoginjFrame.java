@@ -241,8 +241,10 @@ public class LoginjFrame extends javax.swing.JFrame {
             switch (rol) {
                 case "GERENTE":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Abrir panel de gerente
-                    PrincipalGerente principalGerente = new PrincipalGerente();
+
+                    // ✅ CAMBIO AQUÍ: Pasamos los datos al constructor nuevo
+                    PrincipalGerente principalGerente = new PrincipalGerente(idEmpleado, nombreUsuario);
+
                     principalGerente.setVisible(true);
                     break;
 

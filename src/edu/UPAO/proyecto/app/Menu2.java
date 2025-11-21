@@ -35,6 +35,47 @@ public class Menu2 extends javax.swing.JFrame {
 
         inicializarComponentes();
         btn_inicio.doClick();
+        verificarStockCajero(idEmpleado);
+    }
+    
+    private void verificarStockCajero(String idEmpleado) {
+        // Usar un hilo secundario para no congelar la ventana mientras carga
+        new Thread(() -> {
+            try {
+                // 1. Obtener la sucursal del empleado
+                edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+                int idSucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
+                
+                // 2. Buscar alertas para ESA sucursal
+                edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
+                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
+                
+                // 3. Mostrar si hay alertas
+                if (!alertas.isEmpty()) {
+                    StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK BAJO ⚠️\n\n");
+                    // Mostrar solo los primeros 10 para no saturar la pantalla
+                    int limite = Math.min(alertas.size(), 10);
+                    for (int i = 0; i < limite; i++) {
+                        mensaje.append(alertas.get(i)).append("\n\n");
+                    }
+                    
+                    if (alertas.size() > 10) {
+                        mensaje.append("... y ").append(alertas.size() - 10).append(" productos más.");
+                    }
+                    
+                    mensaje.append("\nPor favor, notifique al administrador.");
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this, 
+                            mensaje.toString(), 
+                            "Stock Crítico en Sucursal", 
+                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Error verificando stock cajero: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void inicializarComponentes() {

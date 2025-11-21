@@ -16,7 +16,7 @@ public class InventarioSucursalDAO {
         }
     }
 
-    // ✅ OBTENER STOCK DE UN PRODUCTO EN UNA SUCURSAL
+    // OBTENER STOCK DE UN PRODUCTO EN UNA SUCURSAL
     public int obtenerStock(int idProducto, int idSucursal) {
         String sql = "SELECT stock_actual FROM inventario_sucursal WHERE id_producto = ? AND id_sucursal = ?";
         
@@ -76,4 +76,44 @@ public class InventarioSucursalDAO {
             System.err.println("Error cerrando conexión: " + e.getMessage());
         }
     }
+
+    // Si idSucursal es 0, busca en TODAS las sucursales (Para Admin)
+    // Si idSucursal > 0, busca solo en esa sucursal (Para Cajero)
+    public java.util.List<String> obtenerAlertasBajoStock(int idSucursal) {
+        java.util.List<String> alertas = new java.util.ArrayList<>();
+        
+        String sql = "SELECT p.nombre, s.nombre_sucursal, i.stock_actual, p.stock_minimo " +
+                     "FROM inventario_sucursal i " +
+                     "JOIN producto p ON i.id_producto = p.id_producto " +
+                     "JOIN sucursal s ON i.id_sucursal = s.id_sucursal " +
+                     "WHERE i.stock_actual <= p.stock_minimo " +
+                     "AND p.estado = 'ACTIVO' " + // Solo productos activos
+                     (idSucursal > 0 ? "AND i.id_sucursal = ? " : "") + // Filtro opcional por sucursal
+                     "ORDER BY i.stock_actual ASC";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            if (idSucursal > 0) {
+                stmt.setInt(1, idSucursal);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String nombreProd = rs.getString("nombre");
+                String sucursal = rs.getString("nombre_sucursal");
+                int actual = rs.getInt("stock_actual");
+                int minimo = rs.getInt("stock_minimo");
+                
+                // Formato del mensaje: "Coca Cola (Laredo) - Actual: 2 / Mín: 10"
+                String mensaje = String.format("⚠️ %s (%s)\n   📦 Stock: %d  |  📉 Mínimo: %d", 
+                        nombreProd, sucursal, actual, minimo);
+                alertas.add(mensaje);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error buscando alertas de stock: " + e.getMessage());
+        }
+        return alertas;
+    }
+    
 }
+

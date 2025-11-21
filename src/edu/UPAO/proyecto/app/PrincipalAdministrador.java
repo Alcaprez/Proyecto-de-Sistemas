@@ -24,8 +24,45 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
         this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
 
-        // Si tienes un label de bienvenida (ej. jLabelUsuario), úsalo aquí:
-        // jLabelUsuario.setText(nombreUsuario);
+        verificarStockSucursal();
+    }
+    
+    private void verificarStockSucursal() {
+        new Thread(() -> {
+            try {
+                // 1. Obtener la sucursal de ESTE administrador
+                edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+                int idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
+                
+                // 2. Buscar alertas SOLO de esa sucursal (pasamos el ID)
+                edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
+                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
+                
+                if (!alertas.isEmpty()) {
+                    StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK (Tu Sucursal)\n\n");
+                    
+                    int limite = Math.min(alertas.size(), 15);
+                    for (int i = 0; i < limite; i++) {
+                        mensaje.append(alertas.get(i)).append("\n");
+                    }
+                    
+                    if (alertas.size() > 15) {
+                        mensaje.append("\n... y ").append(alertas.size() - 15).append(" más.");
+                    }
+                    
+                    mensaje.append("\n\nSe requiere reposición urgente en esta sede.");
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this, 
+                            new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)), 
+                            "Gestión de Inventario - Local", 
+                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Error stock admin: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void MostrarPanel(JPanel p) {
@@ -273,7 +310,14 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_almacenesActionPerformed
 
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
-
+        // 1. Validar que tenemos el ID del administrador (por si acaso)
+        String idParaEnviar = (this.idEmpleado != null) ? this.idEmpleado : "12000001"; 
+        
+        // 2. Instanciar el panel pasándole el ID
+        panel_Cuenta panelCuenta = new panel_Cuenta(idParaEnviar);
+        
+        // 3. Mostrarlo en el contenido
+        MostrarPanel(panelCuenta);
     }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_cerrarSesionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cerrarSesionActionPerformed
