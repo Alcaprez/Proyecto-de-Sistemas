@@ -1,4 +1,5 @@
 package edu.UPAO.proyecto.DAO;
+
 import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Empleado;
 import java.sql.Connection;
@@ -20,24 +21,23 @@ public class EmpleadoDAO {
             System.err.println("❌ Error conectando EmpleadoDAO: " + e.getMessage());
         }
     }
-    
+
     public boolean actualizarDatosContacto(String idEmpleado, String nuevoTelefono, String nuevoCorreo) {
         // Actualizamos la tabla PERSONA usando el DNI vinculado al empleado
-        String sql = "UPDATE persona p " +
-                     "INNER JOIN empleado e ON p.dni = e.dni " +
-                     "SET p.telefono = ?, p.correo = ? " +
-                     "WHERE e.id_empleado = ?";
-        
-        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
-             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
-            
+        String sql = "UPDATE persona p "
+                + "INNER JOIN empleado e ON p.dni = e.dni "
+                + "SET p.telefono = ?, p.correo = ? "
+                + "WHERE e.id_empleado = ?";
+
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
             ps.setString(1, nuevoTelefono);
             ps.setString(2, nuevoCorreo);
             ps.setString(3, idEmpleado);
-            
+
             int filas = ps.executeUpdate();
             return filas > 0;
-            
+
         } catch (java.sql.SQLException e) {
             System.err.println("❌ Error actualizando contacto: " + e.getMessage());
             return false;
@@ -46,10 +46,10 @@ public class EmpleadoDAO {
 
     // ✅ OBTENER SUCURSAL DEL EMPLEADO
     public int obtenerSucursalEmpleado(String idEmpleado) {
-        String sql = "SELECT e.id_sucursal, s.nombre_sucursal " +
-                     "FROM empleado e " +
-                     "JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                     "WHERE e.id_empleado = ? AND e.estado = 'ACTIVO'";
+        String sql = "SELECT e.id_sucursal, s.nombre_sucursal "
+                + "FROM empleado e "
+                + "JOIN sucursal s ON e.id_sucursal = s.id_sucursal "
+                + "WHERE e.id_empleado = ? AND e.estado = 'ACTIVO'";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, idEmpleado);
@@ -69,20 +69,62 @@ public class EmpleadoDAO {
             return 1; // Sucursal por defecto en caso de error
         }
     }
-    
+
+    public int contarCajerosPorTurnoExcluyendo(int idSucursal, String turno, String idEmpleadoExcluir) {
+        String sql = "SELECT COUNT(*) FROM empleado "
+                + "WHERE id_sucursal = ? AND horario = ? AND rol = 'CAJERO' AND estado = 'ACTIVO' "
+                + "AND id_empleado != ?"; // <--- Excluye al actual
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setInt(1, idSucursal);
+            ps.setString(2, turno);
+            ps.setString(3, idEmpleadoExcluir);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error validando cupo: " + e.getMessage());
+        }
+        return 0;
+    }
+
+    // ✅ MÉTODO NUEVO: Contar cajeros por sucursal y turno
+    public int contarCajerosPorTurno(int idSucursal, String turno) {
+        String sql = "SELECT COUNT(*) FROM empleado "
+                + "WHERE id_sucursal = ? AND horario = ? AND rol = 'CAJERO' AND estado = 'ACTIVO'";
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setInt(1, idSucursal);
+            ps.setString(2, turno);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error contando cajeros: " + e.getMessage());
+        }
+        return 0;
+    }
+
     public java.util.Map<String, String> obtenerDatosUsuario(String idEmpleado) {
         java.util.Map<String, String> datos = new java.util.HashMap<>();
-        
-        String sql = "SELECT e.id_empleado, p.dni, p.nombres, p.apellidos, p.telefono, p.correo, " +
-                     "s.nombre_sucursal, e.rol " +
-                     "FROM empleado e " +
-                     "INNER JOIN persona p ON e.dni = p.dni " +
-                     "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                     "WHERE e.id_empleado = ?";
 
-        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
-             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
-            
+        String sql = "SELECT e.id_empleado, p.dni, p.nombres, p.apellidos, p.telefono, p.correo, "
+                + "s.nombre_sucursal, e.rol "
+                + "FROM empleado e "
+                + "INNER JOIN persona p ON e.dni = p.dni "
+                + "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal "
+                + "WHERE e.id_empleado = ?";
+
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
             ps.setString(1, idEmpleado);
             java.sql.ResultSet rs = ps.executeQuery();
 
@@ -104,11 +146,11 @@ public class EmpleadoDAO {
 
     // VERIFICAR DATOS DEL EMPLEADO
     public void verificarDatosEmpleado(String idEmpleado) {
-        String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, s.nombre_sucursal, e.rol " +
-                     "FROM empleado e " +
-                     "JOIN persona p ON e.dni = p.dni " +
-                     "JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                     "WHERE e.id_empleado = ?";
+        String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, s.nombre_sucursal, e.rol "
+                + "FROM empleado e "
+                + "JOIN persona p ON e.dni = p.dni "
+                + "JOIN sucursal s ON e.id_sucursal = s.id_sucursal "
+                + "WHERE e.id_empleado = ?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, idEmpleado);
@@ -136,68 +178,68 @@ public class EmpleadoDAO {
         }
     }
 
-public List<Empleado> listarEmpleadosDetallado() {
-    List<Empleado> lista = new ArrayList<>();
-    
-    // SQL CORREGIDO: Usamos 'nombre_sucursal' en lugar de 'nombre'
-    String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, p.dni, " +
-                 "       p.telefono, p.correo, s.nombre_sucursal, " + // <--- Aquí estaba el error
-                 "       e.rol, e.estado, e.sueldo " +
-                 "FROM empleado e " +
-                 "INNER JOIN persona p ON e.dni = p.dni " +
-                 "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                 "WHERE e.rol <> 'GERENTE' " + // Filtramos al gerente si quieres
-                 "ORDER BY p.apellidos ASC";
+    public List<Empleado> listarEmpleadosDetallado() {
+        List<Empleado> lista = new ArrayList<>();
 
-    try (Connection con = new Conexion().establecerConexion();
-         PreparedStatement ps = con.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
+        // SQL CORREGIDO: Usamos 'nombre_sucursal' en lugar de 'nombre'
+        String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, p.dni, "
+                + "       p.telefono, p.correo, s.nombre_sucursal, "
+                + // <--- Aquí estaba el error
+                "       e.rol, e.estado, e.sueldo "
+                + "FROM empleado e "
+                + "INNER JOIN persona p ON e.dni = p.dni "
+                + "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal "
+                + "WHERE e.rol <> 'GERENTE' "
+                + // Filtramos al gerente si quieres
+                "ORDER BY p.apellidos ASC";
 
-        while (rs.next()) {
-            Empleado emp = new Empleado();
-            // Datos propios de Empleado
-            emp.setIdEmpleado(rs.getString("id_empleado"));
-            emp.setDni(rs.getString("dni"));
-            emp.setCargo(rs.getString("rol"));
-            emp.setEstado(rs.getString("estado"));
-            emp.setSueldo(rs.getDouble("sueldo"));
-            
-            // Datos traídos de Persona y Sucursal (Ahora sí existen los setters)
-            emp.setNombres(rs.getString("nombres"));
-            emp.setApellidos(rs.getString("apellidos"));
-            emp.setTelefono(rs.getString("telefono"));
-            emp.setCorreo(rs.getString("correo"));
-            emp.setNombreSucursal(rs.getString("nombre_sucursal"));
+        try (Connection con = new Conexion().establecerConexion(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
-            lista.add(emp);
+            while (rs.next()) {
+                Empleado emp = new Empleado();
+                // Datos propios de Empleado
+                emp.setIdEmpleado(rs.getString("id_empleado"));
+                emp.setDni(rs.getString("dni"));
+                emp.setCargo(rs.getString("rol"));
+                emp.setEstado(rs.getString("estado"));
+                emp.setSueldo(rs.getDouble("sueldo"));
+
+                // Datos traídos de Persona y Sucursal (Ahora sí existen los setters)
+                emp.setNombres(rs.getString("nombres"));
+                emp.setApellidos(rs.getString("apellidos"));
+                emp.setTelefono(rs.getString("telefono"));
+                emp.setCorreo(rs.getString("correo"));
+                emp.setNombreSucursal(rs.getString("nombre_sucursal"));
+
+                lista.add(emp);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al listar empleados en DAO: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("❌ Error al listar empleados en DAO: " + e.getMessage());
+        return lista;
     }
-    return lista;
-}
 // Agrega esto en EmpleadoDAO.java
-public Empleado buscarPersonaPorDni(String dni) {
-    Empleado personaEncontrada = null;
-    String sql = "SELECT nombres, apellidos, telefono, correo FROM persona WHERE dni = ?";
 
-    try (Connection con = new Conexion().establecerConexion();
-         PreparedStatement ps = con.prepareStatement(sql)) {
-        
-        ps.setString(1, dni);
-        ResultSet rs = ps.executeQuery();
+    public Empleado buscarPersonaPorDni(String dni) {
+        Empleado personaEncontrada = null;
+        String sql = "SELECT nombres, apellidos, telefono, correo FROM persona WHERE dni = ?";
 
-        if (rs.next()) {
-            personaEncontrada = new Empleado();
-            personaEncontrada.setDni(dni);
-            personaEncontrada.setNombres(rs.getString("nombres"));
-            personaEncontrada.setApellidos(rs.getString("apellidos"));
-            personaEncontrada.setTelefono(rs.getString("telefono"));
-            personaEncontrada.setCorreo(rs.getString("correo"));
+        try (Connection con = new Conexion().establecerConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, dni);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                personaEncontrada = new Empleado();
+                personaEncontrada.setDni(dni);
+                personaEncontrada.setNombres(rs.getString("nombres"));
+                personaEncontrada.setApellidos(rs.getString("apellidos"));
+                personaEncontrada.setTelefono(rs.getString("telefono"));
+                personaEncontrada.setCorreo(rs.getString("correo"));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error al buscar persona: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("Error al buscar persona: " + e.getMessage());
+        return personaEncontrada;
     }
-    return personaEncontrada;
-}
 }

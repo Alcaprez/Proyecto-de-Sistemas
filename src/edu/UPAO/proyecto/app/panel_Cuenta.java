@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.EmpleadoDAO;
@@ -16,38 +12,31 @@ import javax.swing.SwingUtilities;
  */
 public class panel_Cuenta extends javax.swing.JPanel {
 
-    private String idEmpleadoLogueado;
-    private javax.swing.JPasswordField pf_passActual;
-    private javax.swing.JPasswordField pf_passNueva;
-    private javax.swing.JPasswordField pf_passConfirmar;
-    private javax.swing.JButton btn_cambiarPass;
+private String idEmpleadoLogueado;
 
     public panel_Cuenta(String idEmpleado) {
         this.idEmpleadoLogueado = idEmpleado;
         initComponents(); // Carga diseño generado
-        initChangePasswordTab(); // Carga diseño pestaña contraseña
         configurarCampos(); // Bloquea campos de solo lectura
         cargarInformacion(); // Llena los datos
     }
-    
+
     private void configurarCampos() {
-        // 🔒 Bloquear campos que no deben editarse
         tf_nombres.setEditable(false);
         tf_apellidos.setEditable(false);
         tf_dni.setEditable(false);
         tf_sucursal.setEditable(false);
-        
-        // 🖌️ Estilo visual para indicar que están bloqueados
+
         java.awt.Color colorBloqueado = new java.awt.Color(230, 230, 230);
         tf_nombres.setBackground(colorBloqueado);
         tf_apellidos.setBackground(colorBloqueado);
         tf_dni.setBackground(colorBloqueado);
         tf_sucursal.setBackground(colorBloqueado);
-        
-        // Asignar evento al botón guardar
+
+        // Acción para guardar DATOS DE CONTACTO (Pestaña 1)
         btn_guardar.addActionListener(e -> guardarCambiosDatos());
     }
-    
+
     private void cargarInformacion() {
         new Thread(() -> {
             EmpleadoDAO dao = new EmpleadoDAO();
@@ -55,112 +44,63 @@ public class panel_Cuenta extends javax.swing.JPanel {
 
             SwingUtilities.invokeLater(() -> {
                 if (!datos.isEmpty()) {
-                    // Pestaña INFO GENERAL
                     lbl_id.setText(datos.get("id"));
                     lbl_dni.setText(datos.get("dni"));
                     lbl_nombres.setText(datos.get("nombres"));
                     lbl_apellidos.setText(datos.get("apellidos"));
                     lbl_telefono.setText(datos.get("telefono"));
-                    lbl_direccion.setText(datos.get("direccion")); 
+                    lbl_direccion.setText(datos.get("direccion"));
                     lbl_sucursal.setText(datos.get("sucursal"));
                     lbl_cargo.setText(datos.get("cargo"));
-                    lbl_cuenta.setText(datos.get("cargo")); // Para el título de la otra pestaña
+                    lbl_cuenta.setText(datos.get("cargo"));
 
-                    // Pestaña CAMBIAR DATOS (Llenar TextFields)
                     tf_nombres.setText(datos.get("nombres"));
                     tf_apellidos.setText(datos.get("apellidos"));
                     tf_dni.setText(datos.get("dni"));
                     tf_sucursal.setText(datos.get("sucursal"));
-                    
-                    // Estos son los editables:
+
                     tf_telefono.setText(datos.get("telefono"));
                     tf_direccion.setText(datos.get("direccion"));
                 }
             });
         }).start();
     }
-    
+
     private void guardarCambiosDatos() {
         String pass = new String(pf_contraseña.getPassword());
         String nuevoTel = tf_telefono.getText().trim();
-        String nuevaDir = tf_direccion.getText().trim(); // Esto es el correo
+        String nuevaDir = tf_direccion.getText().trim();
 
         if (pass.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese su contraseña para confirmar.", "Seguridad", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Ingrese su contraseña para confirmar cambios de datos.", "Seguridad", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 1. Validar contraseña
         UsuarioDAO usuarioDAO = new UsuarioDAO();
         if (!usuarioDAO.validarContrasena(idEmpleadoLogueado, pass)) {
             JOptionPane.showMessageDialog(this, "Contraseña incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // 2. Guardar cambios
         EmpleadoDAO empleadoDAO = new EmpleadoDAO();
         if (empleadoDAO.actualizarDatosContacto(idEmpleadoLogueado, nuevoTel, nuevaDir)) {
             JOptionPane.showMessageDialog(this, "✅ Datos actualizados correctamente.");
-            cargarInformacion(); // Refrescar etiquetas
-            pf_contraseña.setText(""); // Limpiar campo pass
+            cargarInformacion();
+            pf_contraseña.setText("");
         } else {
             JOptionPane.showMessageDialog(this, "Error al actualizar datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
-    // DISEÑO Y LÓGICA: PESTAÑA CAMBIAR CONTRASEÑA
-    private void initChangePasswordTab() {
-        jPanel3.setLayout(null); // Usamos layout nulo para coincidir con tu estilo
-        
-        // Títulos y Campos
-        javax.swing.JLabel l1 = new javax.swing.JLabel("Contraseña Actual:");
-        l1.setFont(new java.awt.Font("Dialog", 1, 18));
-        l1.setBounds(50, 50, 200, 30);
-        jPanel3.add(l1);
 
-        pf_passActual = new javax.swing.JPasswordField();
-        pf_passActual.setBounds(300, 50, 250, 35);
-        jPanel3.add(pf_passActual);
 
-        javax.swing.JLabel l2 = new javax.swing.JLabel("Nueva Contraseña:");
-        l2.setFont(new java.awt.Font("Dialog", 1, 18));
-        l2.setBounds(50, 110, 200, 30);
-        jPanel3.add(l2);
-
-        pf_passNueva = new javax.swing.JPasswordField();
-        pf_passNueva.setBounds(300, 110, 250, 35);
-        jPanel3.add(pf_passNueva);
-
-        javax.swing.JLabel l3 = new javax.swing.JLabel("Confirmar Nueva:");
-        l3.setFont(new java.awt.Font("Dialog", 1, 18));
-        l3.setBounds(50, 170, 200, 30);
-        jPanel3.add(l3);
-
-        pf_passConfirmar = new javax.swing.JPasswordField();
-        pf_passConfirmar.setBounds(300, 170, 250, 35);
-        jPanel3.add(pf_passConfirmar);
-
-        btn_cambiarPass = new javax.swing.JButton("Actualizar Contraseña");
-        btn_cambiarPass.setBackground(new java.awt.Color(255, 153, 0));
-        btn_cambiarPass.setForeground(java.awt.Color.WHITE);
-        btn_cambiarPass.setFont(new java.awt.Font("Dialog", 1, 14));
-        btn_cambiarPass.setBounds(300, 240, 250, 40);
-        
-        // Acción del botón
-        btn_cambiarPass.addActionListener(e -> cambiarPassword());
-        
-        jPanel3.add(btn_cambiarPass);
-        jPanel3.repaint();
-    }
-
-    // ✅ LÓGICA: CAMBIAR PASSWORD
-    private void cambiarPassword() {
-        String actual = new String(pf_passActual.getPassword());
-        String nueva = new String(pf_passNueva.getPassword());
-        String confirm = new String(pf_passConfirmar.getPassword());
+    public void cambiarPassword() {
+        // Usamos los campos que ya tienes en las variables
+        String actual = tf_contraseñaActual.getText();
+        String nueva = tf_constraseñNueva.getText();
+        String confirm = tf_confirmacionContraseña.getText();
 
         if (actual.isEmpty() || nueva.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Complete todos los campos.");
+            JOptionPane.showMessageDialog(this, "Complete todos los campos de contraseña.");
             return;
         }
 
@@ -173,9 +113,10 @@ public class panel_Cuenta extends javax.swing.JPanel {
         if (dao.validarContrasena(idEmpleadoLogueado, actual)) {
             if (dao.cambiarContrasena(idEmpleadoLogueado, nueva)) {
                 JOptionPane.showMessageDialog(this, "✅ Contraseña actualizada con éxito.");
-                pf_passActual.setText("");
-                pf_passNueva.setText("");
-                pf_passConfirmar.setText("");
+                // Limpiar
+                tf_contraseñaActual.setText("");
+                tf_constraseñNueva.setText("");
+                tf_confirmacionContraseña.setText("");
             } else {
                 JOptionPane.showMessageDialog(this, "Error al actualizar en BD.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -183,7 +124,6 @@ public class panel_Cuenta extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "La contraseña actual es incorrecta.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -230,6 +170,16 @@ public class panel_Cuenta extends javax.swing.JPanel {
         jLabel4 = new javax.swing.JLabel();
         lbl_id = new javax.swing.JLabel();
         jPanel3 = new javax.swing.JPanel();
+        jPanel8 = new javax.swing.JPanel();
+        jPanel9 = new javax.swing.JPanel();
+        jLabel19 = new javax.swing.JLabel();
+        tf_contraseñaActual = new javax.swing.JTextField();
+        jLabel20 = new javax.swing.JLabel();
+        tf_constraseñNueva = new javax.swing.JTextField();
+        jLabel21 = new javax.swing.JLabel();
+        tf_confirmacionContraseña = new javax.swing.JTextField();
+        lbl_cuenta1 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
 
         jPanel6.setBackground(new java.awt.Color(51, 102, 255));
 
@@ -559,15 +509,103 @@ public class panel_Cuenta extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("INFO GENERAL", jPanel2);
 
+        jPanel9.setBackground(new java.awt.Color(51, 102, 255));
+
+        jLabel19.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        jLabel19.setText("Ingrese contraseña nueva:");
+
+        jLabel20.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        jLabel20.setText("Ingrese contraseña actual:");
+
+        tf_constraseñNueva.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tf_constraseñNuevaActionPerformed(evt);
+            }
+        });
+
+        jLabel21.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        jLabel21.setText("Confirmar nueva contraseña:");
+
+        tf_confirmacionContraseña.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tf_confirmacionContraseñaActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
+        jPanel9.setLayout(jPanel9Layout);
+        jPanel9Layout.setHorizontalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addGap(64, 64, 64)
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(tf_confirmacionContraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 465, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tf_constraseñNueva, javax.swing.GroupLayout.PREFERRED_SIZE, 465, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, 316, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, 316, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(tf_contraseñaActual, javax.swing.GroupLayout.PREFERRED_SIZE, 465, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel21, javax.swing.GroupLayout.PREFERRED_SIZE, 440, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(576, Short.MAX_VALUE))
+        );
+        jPanel9Layout.setVerticalGroup(
+            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel9Layout.createSequentialGroup()
+                .addGap(59, 59, 59)
+                .addComponent(jLabel20)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tf_contraseñaActual, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel19)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tf_constraseñNueva, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(77, 77, 77)
+                .addComponent(jLabel21)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tf_confirmacionContraseña, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(98, Short.MAX_VALUE))
+        );
+
+        lbl_cuenta1.setFont(new java.awt.Font("Dialog", 0, 24)); // NOI18N
+        lbl_cuenta1.setText("Empleado");
+
+        jLabel5.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        jLabel5.setText("Cuenta:");
+
+        javax.swing.GroupLayout jPanel8Layout = new javax.swing.GroupLayout(jPanel8);
+        jPanel8.setLayout(jPanel8Layout);
+        jPanel8Layout.setHorizontalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel8Layout.createSequentialGroup()
+                .addGap(42, 42, 42)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel8Layout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(lbl_cuenta1, javax.swing.GroupLayout.PREFERRED_SIZE, 277, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(81, Short.MAX_VALUE))
+        );
+        jPanel8Layout.setVerticalGroup(
+            jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel8Layout.createSequentialGroup()
+                .addContainerGap(39, Short.MAX_VALUE)
+                .addGroup(jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5)
+                    .addComponent(lbl_cuenta1))
+                .addGap(32, 32, 32)
+                .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(87, 87, 87))
+        );
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1228, Short.MAX_VALUE)
+            .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 664, Short.MAX_VALUE)
+            .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         jTabbedPane1.addTab("CAMBIAR CONTRASEÑA", jPanel3);
@@ -584,6 +622,14 @@ public class panel_Cuenta extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 
+    private void tf_constraseñNuevaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_constraseñNuevaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tf_constraseñNuevaActionPerformed
+
+    private void tf_confirmacionContraseñaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_confirmacionContraseñaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tf_confirmacionContraseñaActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btn_guardar;
@@ -596,9 +642,13 @@ public class panel_Cuenta extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel18;
+    private javax.swing.JLabel jLabel19;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel20;
+    private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
@@ -610,10 +660,13 @@ public class panel_Cuenta extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
+    private javax.swing.JPanel jPanel8;
+    private javax.swing.JPanel jPanel9;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JLabel lbl_apellidos;
     private javax.swing.JLabel lbl_cargo;
     private javax.swing.JLabel lbl_cuenta;
+    private javax.swing.JLabel lbl_cuenta1;
     private javax.swing.JLabel lbl_direccion;
     private javax.swing.JLabel lbl_dni;
     private javax.swing.JLabel lbl_id;
@@ -622,6 +675,9 @@ public class panel_Cuenta extends javax.swing.JPanel {
     private javax.swing.JLabel lbl_telefono;
     private javax.swing.JPasswordField pf_contraseña;
     private javax.swing.JTextField tf_apellidos;
+    private javax.swing.JTextField tf_confirmacionContraseña;
+    private javax.swing.JTextField tf_constraseñNueva;
+    private javax.swing.JTextField tf_contraseñaActual;
     private javax.swing.JTextField tf_direccion;
     private javax.swing.JTextField tf_dni;
     private javax.swing.JTextField tf_nombres;

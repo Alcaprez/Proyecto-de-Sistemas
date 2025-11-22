@@ -20,15 +20,12 @@ public class PrincipalGerente extends javax.swing.JFrame {
      */
     private String idEmpleado;
     private String nombreUsuario;
+    private int idSucursalActual;
 
-    public PrincipalGerente() {
-        this("10000001", "Gerente");
-    }
-
-    public PrincipalGerente(String idEmpleado, String nombreUsuario) {
-        this.idEmpleado = idEmpleado;
+    public PrincipalGerente(String idUsuario, String nombreUsuario) {
+        this.idEmpleado = idUsuario; // <--- ✅ CORREGIDO
         this.nombreUsuario = nombreUsuario;
-
+ 
         initComponents(); // Inicia los componentes visuales
 
         // Configuración inicial de la ventana
@@ -314,7 +311,8 @@ public class PrincipalGerente extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
-        panel_ComprasGerente panel_ComprasGerente1 = new panel_ComprasGerente();
+        panel_ComprasGerente panel_ComprasGerente1 = new panel_ComprasGerente(this.idSucursalActual);
+
         MostrarPanel(panel_ComprasGerente1);
     }//GEN-LAST:event_btn_comprasActionPerformed
 
@@ -365,7 +363,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
         // ... (código de look and feel) ...
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new PrincipalGerente().setVisible(true); // ✅ Ahora sí funciona
+                new PrincipalGerente("10000001","Lucas Muñoz Wong").setVisible(true); // ✅ Ahora sí funciona
             }
         });
     }
