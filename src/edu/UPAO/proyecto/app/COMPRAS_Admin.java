@@ -402,6 +402,7 @@ private void mostrarHistorialCompras() {
 
         btnAnular.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
         btnAnular.setText("Anular Compra");
+        btnAnular.setActionCommand("Devolver Pedido");
         btnAnular.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnAnularActionPerformed(evt);
@@ -410,7 +411,7 @@ private void mostrarHistorialCompras() {
 
         jLabel4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel4.setText("Seleccione un pedido y anule la compra");
+        jLabel4.setText("Seleccione un pedido y devuelvalo");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -687,34 +688,38 @@ private void mostrarHistorialCompras() {
     }//GEN-LAST:event_tblComprasMouseClicked
 
     private void btnAnularActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAnularActionPerformed
-    int fila = tblCompras.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una compra para anular.");
-            return;
-        }
-        
-        // Validación: Verificar que la celda no sea nula (a veces pasa con clics en vacío)
-        if (tblCompras.getValueAt(fila, 0) == null) return;
+  int fila = tblCompras.getSelectedRow();
+    
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(this, "Seleccione una compra para devolver.");
+        return;
+    }
+    
+    // Validación: Verificar que la celda no sea nula
+    if (tblCompras.getValueAt(fila, 0) == null) return;
 
-        String idCompra = tblCompras.getValueAt(fila, 0).toString();
-        String estado = tblCompras.getValueAt(fila, 4).toString();
+    String idCompra = tblCompras.getValueAt(fila, 0).toString();
+    String estado = tblCompras.getValueAt(fila, 4).toString();
+    
+    // CAMBIO 1: Validamos si ya dice "DEVUELTA" (o ANULADA por compatibilidad)
+    if ("DEVUELTA".equals(estado) || "ANULADA".equals(estado)) {
+        JOptionPane.showMessageDialog(this, "Esta compra ya ha sido devuelta anteriormente.");
+        return;
+    }
+    
+    // CAMBIO 2: Textos actualizados a "Devolución"
+    int confirm = JOptionPane.showConfirmDialog(this, 
+            "¿Seguro que desea DEVOLVER la compra #" + idCompra + " al proveedor?\n" +
+            "Se recuperará el dinero en caja y se retirará el stock del almacén.", 
+            "Confirmar Devolución", JOptionPane.YES_NO_OPTION);
+            
+    if (confirm == JOptionPane.YES_OPTION) {
+        // Llamamos al método de lógica (sigue siendo el mismo, solo cambiaremos el SQL adentro)
+        anularCompra(idCompra); 
         
-        if ("ANULADA".equals(estado)) {
-            JOptionPane.showMessageDialog(this, "Esta compra ya está anulada.");
-            return;
-        }
-        
-        // Confirmación de seguridad
-        int confirm = JOptionPane.showConfirmDialog(this, 
-                "¿Seguro que desea ANULAR la compra #" + idCompra + "?\n" +
-                "Se devolverá el dinero a caja y se restará el stock.", 
-                "Confirmar Anulación", JOptionPane.YES_NO_OPTION);
-                
-        if (confirm == JOptionPane.YES_OPTION) {
-            anularCompra(idCompra); 
-            mostrarHistorialCompras();
-            ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
-        }     // TODO add your handling code here:
+        mostrarHistorialCompras();
+        ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
+    }     // TODO add your handling code here:
     }//GEN-LAST:event_btnAnularActionPerformed
    private void mostrarDetalleDeCompra(int idCompra) {
         DefaultTableModel modelo = (DefaultTableModel) tblDetalleCompra.getModel();
@@ -867,7 +872,7 @@ private void mostrarHistorialCompras() {
             // C. CAMBIAR ESTADO DE LA COMPRA
             // Ojo: En tu tabla 'compra' no vi columna 'motivo', 
             // así que solo cambiamos estado o podrías guardar el motivo en auditoría.
-            String sqlEstado = "UPDATE compra SET estado = 'ANULADA' WHERE id_compra = ?";
+            String sqlEstado = "UPDATE compra SET estado = 'DEVUELTA' WHERE id_compra = ?";
             PreparedStatement psEst = con.prepareStatement(sqlEstado);
             psEst.setInt(1, idCompra);
             psEst.executeUpdate();

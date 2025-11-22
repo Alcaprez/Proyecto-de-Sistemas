@@ -20,7 +20,7 @@ import javax.swing.table.DefaultTableModel;
 import static edu.UPAO.proyecto.DAO.ColorADM.*;
 import javax.swing.*;
 
-public class ALMACEN extends javax.swing.JPanel {
+public class ALMACEN_Admin extends javax.swing.JPanel {
     
    private DefaultTableModel modeloTabla;
     private List<ProductoCaducidad> listaProductos;
@@ -35,7 +35,7 @@ public class ALMACEN extends javax.swing.JPanel {
     String usuario = "root";
     String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
     
-    public ALMACEN() {
+    public ALMACEN_Admin() {
         initComponents();
         inicializarTabla();
         configurarComboBoxes();  
@@ -77,25 +77,12 @@ public class ALMACEN extends javax.swing.JPanel {
     }
     
     private void configurarComboBoxes() {
-        Estado.removeAllItems();
+       Estado.removeAllItems();
         Estado.addItem("Todos");
         Estado.addItem("Vencidos");
+        Estado.addItem("No Vencidos"); // <--- NUEVA OPCIÓN
         Estado.addItem("Vencen en 7 días");
         Estado.addItem("Vencen en 30 días");
-        
-        // Llenamos proveedores desde BD
-        FiltroProveedor.removeAllItems();
-        FiltroProveedor.addItem("Todos");
-        
-        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT Razon_Social FROM proveedor");
-            while(rs.next()){
-                FiltroProveedor.addItem(rs.getString("Razon_Social"));
-            }
-        } catch (Exception e) {
-            System.out.println("Error cargando proveedores: " + e);
-        }
     }
     
     // MÉTODO PRINCIPAL PARA CARGAR TABLA DE CADUCIDAD
@@ -192,11 +179,9 @@ public class ALMACEN extends javax.swing.JPanel {
     private void filtrarProductos() {
        String estadoSel = (String) Estado.getSelectedItem();
         
-        // Obtenemos el texto y lo limpiamos
+        // Limpieza del buscador
         String busqueda = jTextField1.getText().trim().toLowerCase();
-        String placeholder = "buscar producto por nombre/sku....."; // En minúsculas para comparar
-        
-        // Si el texto es el placeholder o está vacío, no filtramos por texto (busqueda = vacío)
+        String placeholder = "buscar producto por nombre/sku.....";
         if (busqueda.equals(placeholder) || busqueda.isEmpty()) {
             busqueda = "";
         }
@@ -207,20 +192,27 @@ public class ALMACEN extends javax.swing.JPanel {
             long dias = p.getDiasRestantes();
             boolean cumpleEstado = true;
             
-            // Filtro de Estado (Semáforo)
-            if ("Vencidos".equals(estadoSel)) cumpleEstado = dias < 0;
-            else if ("Vencen en 7 días".equals(estadoSel)) cumpleEstado = dias >= 0 && dias <= 7;
-            else if ("Vencen en 30 días".equals(estadoSel)) cumpleEstado = dias > 7 && dias <= 30;
+            // Lógica de Filtros
+            if ("Vencidos".equals(estadoSel)) {
+                cumpleEstado = dias < 0;
+            } 
+            else if ("No Vencidos".equals(estadoSel)) { // <--- NUEVA LÓGICA
+                cumpleEstado = dias >= 0; // Muestra todo lo que NO esté vencido (incluye por vencer)
+            }
+            else if ("Vencen en 7 días".equals(estadoSel)) {
+                cumpleEstado = dias >= 0 && dias <= 7;
+            }
+            else if ("Vencen en 30 días".equals(estadoSel)) {
+                cumpleEstado = dias > 7 && dias <= 30;
+            }
             
-            // Filtro de Texto (Buscador)
-            // Buscamos en el Nombre O en el Código (Lote/SKU)
+            // Filtro de Texto
             boolean cumpleBusqueda = true;
             if (!busqueda.isEmpty()) {
                 cumpleBusqueda = p.getNombreProducto().toLowerCase().contains(busqueda) || 
                                  p.getLote().toLowerCase().contains(busqueda);
             }
             
-            // Si cumple con AMBOS filtros, lo mostramos
             if (cumpleEstado && cumpleBusqueda) {
                 modeloTabla.addRow(new Object[]{
                     p.getNombreProducto() + " (" + p.getLote() + ")",
@@ -449,7 +441,6 @@ public class ALMACEN extends javax.swing.JPanel {
         jLabel4 = new javax.swing.JLabel();
         jTextField1 = new javax.swing.JTextField();
         Estado = new javax.swing.JComboBox<>();
-        FiltroProveedor = new javax.swing.JComboBox<>();
         jScrollPane1 = new javax.swing.JScrollPane();
         jTable1 = new javax.swing.JTable();
         jPanel3 = new javax.swing.JPanel();
@@ -562,13 +553,6 @@ public class ALMACEN extends javax.swing.JPanel {
             }
         });
 
-        FiltroProveedor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        FiltroProveedor.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                FiltroProveedorActionPerformed(evt);
-            }
-        });
-
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null, null},
@@ -589,10 +573,7 @@ public class ALMACEN extends javax.swing.JPanel {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(56, 56, 56)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 261, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(70, 70, 70)
-                        .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 261, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(49, 49, 49)
@@ -600,11 +581,14 @@ public class ALMACEN extends javax.swing.JPanel {
                         .addGap(56, 56, 56)
                         .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(FiltroProveedor, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGap(60, 60, 60)
-                        .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(116, 116, 116))))
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 980, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -622,8 +606,7 @@ public class ALMACEN extends javax.swing.JPanel {
                 .addGap(31, 31, 31)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(FiltroProveedor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 305, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
@@ -676,15 +659,11 @@ public class ALMACEN extends javax.swing.JPanel {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel5)
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 387, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 151, Short.MAX_VALUE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(103, 103, 103)
-                        .addComponent(jLabel6)
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 86, Short.MAX_VALUE)
-                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 374, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(82, 82, 82))))
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 374, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(17, 17, 17))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -722,14 +701,9 @@ public class ALMACEN extends javax.swing.JPanel {
         filtrarProductos();
     }//GEN-LAST:event_EstadoActionPerformed
 
-    private void FiltroProveedorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FiltroProveedorActionPerformed
-        filtrarProductos();
-    }//GEN-LAST:event_FiltroProveedorActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> Estado;
-    private javax.swing.JComboBox<String> FiltroProveedor;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
