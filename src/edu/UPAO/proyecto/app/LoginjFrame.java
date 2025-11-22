@@ -435,15 +435,17 @@ public class LoginjFrame extends javax.swing.JFrame {
     private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
         edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
 
-        // 1. ✅ CORRECCIÓN AQUÍ: Verificar si ESTE USUARIO ya tiene caja abierta
-        // Antes usabas 'obtenerCajaAbierta(idSucursal)' y encontraba la de otros o las vacías.
+        // 1. Verificar si YA tiene caja abierta
         edu.UPAO.proyecto.Modelo.Caja cajaActual = cajaDAO.obtenerCajaAbiertaPorUsuario(idSucursal, idEmpleado);
 
         if (cajaActual == null) {
             System.out.println("🔄 No tienes caja abierta. Iniciando apertura automática para " + idEmpleado + "...");
 
-            // 2. Calcular el saldo histórico para iniciar
-            double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
+            // --- CAMBIO AQUÍ -----------------------------------------------------
+            // ANTES: double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
+            // AHORA: Usamos el saldo con el que TÚ cerraste la última vez
+            double saldoHistorico = cajaDAO.obtenerSaldoUltimoCierre(idSucursal, idEmpleado);
+            // ---------------------------------------------------------------------
 
             // 3. Determinar turno
             java.time.LocalTime hora = java.time.LocalTime.now();
@@ -453,15 +455,14 @@ public class LoginjFrame extends javax.swing.JFrame {
             boolean exito = cajaDAO.abrirCaja(idSucursal, saldoHistorico, idEmpleado, turno);
 
             if (exito) {
-                System.out.println("✅ CAJA CREADA CORRECTAMENTE. Saldo Inicial: S/ " + saldoHistorico);
+                System.out.println("✅ CAJA CREADA. Saldo Inicial (Continuidad): S/ " + saldoHistorico);
             } else {
-                JOptionPane.showMessageDialog(this, "Error al intentar abrir la caja automáticamente.", "Error BD", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al abrir caja.", "Error BD", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + "). Accediendo...");
+            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + ").");
         }
     }
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;

@@ -32,6 +32,27 @@ public class CajaDAO {
         return 0.0;
     }
 
+    public double obtenerSaldoUltimoCierre(int idSucursal, String idEmpleado) {
+        // Buscamos la última caja CERRADA de este empleado en esta tienda
+        String sql = "SELECT saldo_final FROM caja "
+                + "WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'CERRADA' "
+                + "ORDER BY fecha_hora_cierre DESC LIMIT 1";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idSucursal);
+            stmt.setString(2, idEmpleado);
+
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("saldo_final");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo último saldo: " + e.getMessage());
+        }
+        // Si no ha trabajado antes o no tiene cierres, empieza en 0.00
+        return 0.0;
+    }
+
     public double obtenerSaldoAcumuladoHistorico(int idSucursal) {
         // 1. Sumar todas las VENTAS históricas de la sucursal
         String sqlVentas = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_sucursal = ?";
@@ -144,15 +165,15 @@ public class CajaDAO {
             return false;
         }
     }
-    
+
     // ✅ CORRECCIÓN: Buscar caja abierta ESPECÍFICA del empleado en esa sucursal
     public Caja obtenerCajaAbiertaPorUsuario(int idSucursal, String idEmpleado) {
         String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
-        
+
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             stmt.setString(2, idEmpleado); // Filtramos por TU usuario
-            
+
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 Caja c = new Caja();
@@ -168,7 +189,7 @@ public class CajaDAO {
         }
         return null; // Retorna null si ESTE empleado no tiene caja (permitiendo abrir una nueva)
     }
-    
+
     // ✅ Método para el Arqueo: Calcula cuánto dinero debería haber según el sistema
     public double calcularSaldoTeorico(int idCaja) {
         double saldoInicial = 0;
@@ -182,7 +203,9 @@ public class CajaDAO {
             if (rs.next()) {
                 saldoInicial = rs.getDouble("saldo_inicial");
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
         // 2. Sumar movimientos (VENTAS + INGRESOS - GASTOS - DEVOLUCIONES)
         // Asumiendo que los movimientos de SALIDA ya se guardaron como negativos o los restamos aquí.
@@ -194,14 +217,16 @@ public class CajaDAO {
             while (rs.next()) {
                 String tipo = rs.getString("tipo").toUpperCase();
                 double monto = rs.getDouble("monto");
-                
+
                 if (tipo.contains("SALIDA") || tipo.contains("GASTO") || tipo.contains("DEVOLUCION")) {
                     totalMovimientos -= monto;
                 } else {
                     totalMovimientos += monto; // VENTAS, INGRESOS
                 }
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
 
         return saldoInicial + totalMovimientos;
     }
@@ -210,7 +235,7 @@ public class CajaDAO {
     public boolean cerrarCajaConArqueo(int idCaja, double saldoFinalReal, double diferencia, String observaciones) {
         String sql = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
         // Podrías guardar la diferencia en otra tabla 'arqueo' si quisieras, por ahora cerramos la caja.
-        
+
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setDouble(1, saldoFinalReal);
             stmt.setInt(2, idCaja);

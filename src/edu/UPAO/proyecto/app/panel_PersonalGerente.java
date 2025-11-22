@@ -67,8 +67,8 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     }
 
     private void configurarComboTurno() {
-       if (cb_turno != null) {
-            cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "MAÑANA", "TARDE", "NOCHE" }));
+        if (cb_turno != null) {
+            cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"MAÑANA", "TARDE", "NOCHE"}));
         }
     }
 
@@ -337,6 +337,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         jComboBox2 = new javax.swing.JComboBox<>();
         jButton1 = new javax.swing.JButton();
         lblListaEmpleadosP = new javax.swing.JLabel();
+        btn_horarios = new javax.swing.JButton();
 
         ASISTENCIAS.setLayout(new java.awt.BorderLayout());
 
@@ -591,6 +592,12 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(panelFormLayout.createSequentialGroup()
+                        .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(lblTienda1)
+                        .addGap(18, 18, 18)
+                        .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(panelFormLayout.createSequentialGroup()
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -613,85 +620,79 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                                 .addComponent(lblTienda)
                                 .addGap(16, 16, 16)))
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(cbTiendaP, 0, 132, Short.MAX_VALUE)
-                            .addComponent(cbCargo, javax.swing.GroupLayout.Alignment.LEADING, 0, 132, Short.MAX_VALUE)
-                            .addComponent(cbEstado, javax.swing.GroupLayout.Alignment.LEADING, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(txtSueldo, javax.swing.GroupLayout.Alignment.LEADING)))
-                    .addGroup(panelFormLayout.createSequentialGroup()
-                        .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(lblTienda1)
-                        .addGap(18, 18, 18)
-                        .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(27, 27, 27)
+                            .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(cbCargo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(cbEstado, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(txtSueldo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addGap(25, 25, 25)
                 .addComponent(lblIdEmpleado)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(186, 186, 186)
+                .addGap(50, 50, 50)
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(btnActualizar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnAgregar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                    .addComponent(btnAgregar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(0, 256, Short.MAX_VALUE))
         );
         panelFormLayout.setVerticalGroup(
             panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelFormLayout.createSequentialGroup()
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblApellidos)))
                     .addGroup(panelFormLayout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(lblIdEmpleado)
-                                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(btnLimpiar))
-                        .addGap(6, 6, 6)
-                        .addComponent(btnActualizar)
-                        .addGap(6, 6, 6)
-                        .addComponent(btnAgregar))
+                        .addGap(2, 2, 2)
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(lblNombres)
+                            .addComponent(lblTienda1)
+                            .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(lblTienda)
+                            .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(lblCorreo)
+                        .addComponent(lblSueldo))
                     .addGroup(panelFormLayout.createSequentialGroup()
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(lblApellidos)))
-                            .addGroup(panelFormLayout.createSequentialGroup()
-                                .addGap(2, 2, 2)
-                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(lblNombres)
-                                    .addComponent(lblTienda1)
-                                    .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(lblTienda)
-                                    .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(lblCorreo)
-                                .addComponent(lblSueldo))
                             .addGroup(panelFormLayout.createSequentialGroup()
-                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addGroup(panelFormLayout.createSequentialGroup()
-                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                            .addComponent(cbCargo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(lblCargo))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(cbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelFormLayout.createSequentialGroup()
-                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                            .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(lblDni))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                            .addComponent(lblEstado)
-                                            .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(lblTelefono))))
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(cbCargo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblCargo))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                .addComponent(cbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelFormLayout.createSequentialGroup()
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblDni))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(lblEstado)
+                                    .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(lblTelefono))))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
+            .addGroup(panelFormLayout.createSequentialGroup()
+                .addGap(10, 10, 10)
+                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblIdEmpleado)
+                    .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnLimpiar)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnActualizar)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnAgregar)
+                .addGap(22, 22, 22))
         );
 
         REGISTRAR_PERSONAL.add(panelForm, java.awt.BorderLayout.PAGE_START);
@@ -721,6 +722,13 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         lblListaEmpleadosP.setText("Lista de Empleados");
 
+        btn_horarios.setText("Horarios");
+        btn_horarios.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_horariosActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout panelListaLayout = new javax.swing.GroupLayout(panelLista);
         panelLista.setLayout(panelListaLayout);
         panelListaLayout.setHorizontalGroup(
@@ -743,9 +751,13 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                                 .addGap(0, 0, 0)
                                 .addComponent(jComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(0, 0, 0)
-                                .addComponent(jButton1))
-                            .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1157, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addGap(35, 35, 35))
+                                .addComponent(jButton1)
+                                .addGap(18, 18, 18)
+                                .addComponent(btn_horarios, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addGap(49, 49, 49))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelListaLayout.createSequentialGroup()
+                .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1170, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(22, 22, 22))
         );
         panelListaLayout.setVerticalGroup(
             panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -760,7 +772,9 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                         .addGap(1, 1, 1)
                         .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton1))))
+                            .addGroup(panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(jButton1)
+                                .addComponent(btn_horarios)))))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -799,18 +813,18 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         if (rol.equalsIgnoreCase("CAJERO")) {
             EmpleadoDAO daoValidacion = new EmpleadoDAO();
             int cantidadActual = daoValidacion.contarCajerosPorTurno(idSucursal, turnoSeleccionado);
-            
+
             if (cantidadActual >= 3) {
                 javax.swing.JOptionPane.showMessageDialog(this,
-                        "⚠️ Límite alcanzado:\n" +
-                        "Ya existen 3 cajeros activos en el turno " + turnoSeleccionado + " para la tienda " + sucursalNombre + ".\n" +
-                        "No se puede agregar más personal en este horario.",
+                        "⚠️ Límite alcanzado:\n"
+                        + "Ya existen 3 cajeros activos en el turno " + turnoSeleccionado + " para la tienda " + sucursalNombre + ".\n"
+                        + "No se puede agregar más personal en este horario.",
                         "Cupo Lleno",
                         javax.swing.JOptionPane.WARNING_MESSAGE);
                 return; // 🛑 DETIENE EL PROCESO AQUÍ
             }
         }
-        
+
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this,
                     "Completa al menos Nombres, Apellidos y DNI",
@@ -916,7 +930,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
     private void btnActualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarActionPerformed
         String idEmp = txtIdEmpleado.getText();
-    
+
         if (idEmp.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this, "Selecciona un empleado de la tabla primero.");
             return;
@@ -925,13 +939,13 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         // 1. Recolectar datos del formulario
         String correo = txtCorreo.getText();
         String telefono = txtTelefono.getText();
-        String sucursalNombre = cbTiendaP.getSelectedItem().toString(); 
+        String sucursalNombre = cbTiendaP.getSelectedItem().toString();
         String cargo = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
-        
+
         // Asegúrate que este sea el nombre correcto de tu ComboBox de turno
-        String turnoSeleccionado = cb_turno.getSelectedItem().toString(); 
-        
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+
         double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
         int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
 
@@ -942,12 +956,12 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             EmpleadoDAO daoValidacion = new EmpleadoDAO();
             // Verificamos si hay espacio en el turno destino
             int cantidad = daoValidacion.contarCajerosPorTurnoExcluyendo(idSucursal, turnoSeleccionado, idEmp);
-            
+
             if (cantidad >= 3) {
-                javax.swing.JOptionPane.showMessageDialog(this, 
-                    "⚠️ Cupo lleno:\nYa existen 3 cajeros activos en el turno " + turnoSeleccionado + ".\n" +
-                    "No se puede mover a este empleado a ese horario.",
-                    "Límite Alcanzado", javax.swing.JOptionPane.WARNING_MESSAGE);
+                javax.swing.JOptionPane.showMessageDialog(this,
+                        "⚠️ Cupo lleno:\nYa existen 3 cajeros activos en el turno " + turnoSeleccionado + ".\n"
+                        + "No se puede mover a este empleado a ese horario.",
+                        "Límite Alcanzado", javax.swing.JOptionPane.WARNING_MESSAGE);
                 return; // 🛑 Detiene la actualización
             }
         }
@@ -959,7 +973,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         try (Connection cn = new Conexion().establecerConexion()) {
             cn.setAutoCommit(false); // Iniciar Transacción
-            
+
             // 2. Actualizar datos de EMPLEADO (Incluyendo Turno)
             try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
                 ps.setInt(1, idSucursal);
@@ -970,7 +984,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 ps.setString(6, idEmp);
                 ps.executeUpdate();
             }
-            
+
             // 3. Actualizar datos de CONTACTO
             try (PreparedStatement ps2 = cn.prepareStatement(sqlPersona)) {
                 ps2.setString(1, correo);
@@ -978,18 +992,28 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 ps2.setString(3, txtDni.getText());
                 ps2.executeUpdate();
             }
-            
+
             cn.commit(); // Confirmar cambios
             javax.swing.JOptionPane.showMessageDialog(this, "Empleado actualizado correctamente.");
-            
+
             cargarEmpleadosEnTabla(); // Refrescar tabla visual
             btnLimpiarActionPerformed(null); // Limpiar formulario
-            
+
         } catch (SQLException e) {
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
         }
     }//GEN-LAST:event_btnActualizarActionPerformed
+
+    private void btn_horariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_horariosActionPerformed
+        java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
+        java.awt.Frame parentFrame = (parentWindow instanceof java.awt.Frame) ? (java.awt.Frame) parentWindow : null;
+
+        // Abrir el visualizador
+        DialogoVerHorarios dialog = new DialogoVerHorarios(parentFrame, true);
+        dialog.setVisible(true);
+
+    }//GEN-LAST:event_btn_horariosActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -1001,6 +1025,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JButton btnExportar;
     private javax.swing.JButton btnFecha;
     private javax.swing.JButton btnLimpiar;
+    private javax.swing.JButton btn_horarios;
     private javax.swing.JComboBox<String> cbCargo;
     private javax.swing.JComboBox<String> cbEstado;
     private javax.swing.JComboBox<String> cbFiltroEstado;
