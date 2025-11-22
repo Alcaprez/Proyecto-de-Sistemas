@@ -16,9 +16,9 @@ public class ProductoDAO {
     public ProductoDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
-            System.out.println("✅ ProductoDAO conectado");
+            System.out.println("ProductoDAO conectado");
         } catch (Exception e) {
-            System.err.println("❌ Error conectando ProductoDAO: " + e.getMessage());
+            System.err.println("Error conectando ProductoDAO: " + e.getMessage());
         }
     }
 
@@ -186,6 +186,57 @@ public class ProductoDAO {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public boolean eliminar(int idProducto) {
+        String sql = "UPDATE producto SET estado = 'INACTIVO' WHERE id_producto = ?";
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idProducto);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("❌ Error eliminando producto: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<Producto> listarGlobal() {
+        List<Producto> productos = new ArrayList<>();
+        // Seleccionamos datos del producto y la SUMA del stock de todas las sucursales
+        String sql = "SELECT p.id_producto, p.nombre, p.stock_minimo, "
+                + "p.precio_compra, p.precio_venta, p.estado, "
+                + "p.codigo, c.nombre as categoria_nombre, "
+                + "COALESCE(SUM(iss.stock_actual), 0) as stock_total " // Suma global
+                + "FROM producto p "
+                + "LEFT JOIN categoria c ON p.id_categoria = c.id_categoria "
+                + "LEFT JOIN inventario_sucursal iss ON p.id_producto = iss.id_producto "
+                + "WHERE p.estado = 'ACTIVO' "
+                + "GROUP BY p.id_producto, p.nombre, p.stock_minimo, p.precio_compra, "
+                + "p.precio_venta, p.estado, p.codigo, c.nombre";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Producto p = new Producto();
+                p.setId(rs.getInt("id_producto"));
+                p.setCodigo(rs.getString("codigo"));
+                p.setNombre(rs.getString("nombre"));
+                p.setStockMinimo(rs.getInt("stock_minimo"));
+                p.setPrecioCompra(rs.getDouble("precio_compra"));
+                p.setPrecioVenta(rs.getDouble("precio_venta"));
+                p.setEstado(rs.getString("estado"));
+                p.setCategoria(rs.getString("categoria_nombre"));
+
+                // Usamos el setter temporal para guardar la suma total del stock
+                p.setStockTemporal(rs.getInt("stock_total"));
+
+                productos.add(p);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al listar productos globales: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return productos;
     }
 
     public boolean actualizar(Producto producto) {

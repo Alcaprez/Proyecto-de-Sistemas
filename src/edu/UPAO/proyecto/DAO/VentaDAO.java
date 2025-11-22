@@ -7,6 +7,7 @@ import edu.UPAO.proyecto.Modelo.MovimientoInventario; // ✅ NUEVA IMPORT
 import BaseDatos.Conexion;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,135 @@ public class VentaDAO {
         } catch (Exception e) {
             System.err.println("Error conectando DAO: " + e.getMessage());
         }
+    }
+
+    public List<Venta> listarPorRangoFecha(java.sql.Date fechaInicio, java.sql.Date fechaFin) {
+        List<Venta> lista = new ArrayList<>();
+        // SQL para obtener ventas en rango. Necesito JOINs si quiero mostrar nombres, pero por ahora con IDs basta para cumplir.
+        // Mejor hacer un JOIN simple para mostrar algo decente si es posible, pero la tabla Venta tiene id_cliente char(8).
+        String sql = "SELECT * FROM venta WHERE fecha_hora BETWEEN ? AND ? ORDER BY fecha_hora DESC";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            // Ajustar fechas para cubrir el rango completo (inicio del día 1 al final del día 2)
+            stmt.setTimestamp(1, new Timestamp(fechaInicio.getTime()));
+            // Para fechaFin, sumamos 1 día o ajustamos hora a 23:59:59
+            Calendar c = Calendar.getInstance();
+            c.setTime(fechaFin);
+            c.add(Calendar.DAY_OF_MONTH, 1);
+            stmt.setTimestamp(2, new Timestamp(c.getTimeInMillis()));
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Venta v = new Venta();
+                v.setIdVenta(rs.getInt("id_venta"));
+                v.setFecha(rs.getTimestamp("fecha_hora").toLocalDateTime());
+                v.setTotal(rs.getDouble("total"));
+                v.setIdCliente(rs.getString("id_cliente"));
+                v.setIdEmpleado(rs.getString("id_empleado")); // String según modelo actualizado
+                // v.setMetodoPago(...); // Necesitaría JOIN con metodo_pago o hacer otra consulta. 
+                // Para optimizar, asumimos que en la tabla visual mostraremos el ID o haremos una carga perezosa/cache.
+                // Dado el DAO previo, id_metodo_pago es int.
+                v.setIdMetodoPago(rs.getInt("id_metodo_pago"));
+                lista.add(v);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
+    public List<Venta> listarHistorialPorEmpleado(java.util.Date fechaInicio, java.util.Date fechaFin, String idEmpleado) {
+        List<Venta> lista = new ArrayList<>();
+        String sql = "SELECT v.id_venta, v.fecha_hora, v.total, v.id_cliente, v.id_empleado, mp.nombre AS metodo_pago "
+                + "FROM venta v "
+                + "LEFT JOIN metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago "
+                + "WHERE v.id_empleado = ? "
+                + // <--- FILTRO CLAVE
+                "AND v.fecha_hora BETWEEN ? AND ? "
+                + "ORDER BY v.fecha_hora DESC";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setString(1, idEmpleado);
+
+            // Configurar fechas (Inicio del día 1 al final del día 2)
+            Calendar cal = Calendar.getInstance();
+
+            cal.setTime(fechaInicio);
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            stmt.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
+
+            cal.setTime(fechaFin);
+            cal.set(Calendar.HOUR_OF_DAY, 23);
+            cal.set(Calendar.MINUTE, 59);
+            cal.set(Calendar.SECOND, 59);
+            stmt.setTimestamp(3, new Timestamp(cal.getTimeInMillis()));
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Venta v = new Venta();
+                v.setIdVenta(rs.getInt("id_venta"));
+                v.setFecha(rs.getTimestamp("fecha_hora").toLocalDateTime());
+                v.setTotal(rs.getDouble("total"));
+                v.setIdCliente(rs.getString("id_cliente"));
+                v.setIdEmpleado(rs.getString("id_empleado"));
+                v.setMetodoPago(rs.getString("metodo_pago"));
+                lista.add(v);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al listar ventas del empleado: " + e.getMessage());
+        }
+        return lista;
+    }
+
+    public List<Venta> listarHistorial(java.util.Date fechaInicio, java.util.Date fechaFin) {
+        List<Venta> lista = new ArrayList<>();
+        // Usamos JOIN para obtener el nombre del método de pago directamente
+        String sql = "SELECT v.id_venta, v.fecha_hora, v.total, v.id_cliente, v.id_empleado, mp.nombre AS nombre_pago "
+                + "FROM venta v "
+                + "LEFT JOIN metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago "
+                + "WHERE v.fecha_hora BETWEEN ? AND ? "
+                + "ORDER BY v.fecha_hora DESC";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            // Convertir fechas de Java util a SQL Timestamp
+            // Fecha Inicio: 00:00:00
+            Calendar calInicio = Calendar.getInstance();
+            calInicio.setTime(fechaInicio);
+            calInicio.set(Calendar.HOUR_OF_DAY, 0);
+            calInicio.set(Calendar.MINUTE, 0);
+            calInicio.set(Calendar.SECOND, 0);
+            stmt.setTimestamp(1, new Timestamp(calInicio.getTimeInMillis()));
+
+            // Fecha Fin: 23:59:59
+            Calendar calFin = Calendar.getInstance();
+            calFin.setTime(fechaFin);
+            calFin.set(Calendar.HOUR_OF_DAY, 23);
+            calFin.set(Calendar.MINUTE, 59);
+            calFin.set(Calendar.SECOND, 59);
+            stmt.setTimestamp(2, new Timestamp(calFin.getTimeInMillis()));
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Venta v = new Venta();
+                v.setIdVenta(rs.getInt("id_venta"));
+                // Convertir Timestamp SQL a LocalDateTime del modelo
+                v.setFecha(rs.getTimestamp("fecha_hora").toLocalDateTime());
+                v.setTotal(rs.getDouble("total"));
+                v.setIdCliente(rs.getString("id_cliente"));
+                v.setIdEmpleado(rs.getString("id_empleado"));
+                v.setMetodoPago(rs.getString("nombre_pago")); // Asignamos el nombre recuperado
+
+                lista.add(v);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error listando historial de ventas: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return lista;
     }
 
     private void actualizarInventarioSucursal(List<DetalleVenta> detalles, int idSucursal, Connection conn) throws SQLException {
@@ -142,7 +272,6 @@ public class VentaDAO {
         }
     }
 
-// ✅ MÉTODO PARA REGISTRAR MOVIMIENTO CAJA DIRECTAMENTE
     private void registrarMovimientoCajaDirecto(Connection conn, int idCaja, int idVenta, double monto, int idSucursal, String metodoPago) throws SQLException {
         String sql = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_caja, id_venta, id_sucursal, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
