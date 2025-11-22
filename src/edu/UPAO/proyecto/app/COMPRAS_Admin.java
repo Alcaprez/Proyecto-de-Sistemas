@@ -22,7 +22,15 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         mostrarDatos();
 
         // 3. --- EVENTOS: SI TOCAN ALGO, REFRESCA LA TABLA ---
-        
+        jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                if (jTabbedPane1.getSelectedIndex() == 1) { // Pestaña Devoluciones
+                    mostrarHistorialCompras();
+                    // Limpiamos el detalle para que no se vea lo anterior
+                    ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
+                }
+            }
+        });
         // Si cambian el proveedor...
         cboProveedor.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -44,7 +52,47 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             }
         });
     }
+private void mostrarHistorialCompras() {
+        DefaultTableModel modelo = (DefaultTableModel) tblCompras.getModel();
+        modelo.setRowCount(0);
+        modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Proveedor", "Total", "Estado"});
+        
+        // Ajuste de anchos para que se vea profesional
+        tblCompras.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID pequeño
+        tblCompras.getColumnModel().getColumn(1).setPreferredWidth(120); // Fecha
+        tblCompras.getColumnModel().getColumn(2).setPreferredWidth(250); // Proveedor grande
+        
+        // Ocultamos la columna ID visualmente si quieres, pero la necesitamos
+        
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
 
+        // Traemos las compras que NO estén ya anuladas
+        String sql = "SELECT c.id_compra, c.fecha_hora, p.Razon_Social, c.total, c.estado " +
+                     "FROM compra c " +
+                     "INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor " +
+                     "ORDER BY c.fecha_hora DESC";
+
+        try {
+            Connection con = DriverManager.getConnection(url, usuario, password);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                modelo.addRow(new Object[]{
+                    rs.getInt("id_compra"),
+                    rs.getTimestamp("fecha_hora"),
+                    rs.getString("Razon_Social"),
+                    "S/ " + rs.getDouble("total"),
+                    rs.getString("estado")
+                });
+            }
+            con.close();
+        } catch (SQLException e) {
+            System.out.println("Error cargando compras: " + e);
+        }
+    }
     private void mostrarDatos() {
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
@@ -191,8 +239,12 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         cboEstado = new javax.swing.JComboBox<>();
         txtBuscar = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        tblDetalleCompra = new javax.swing.JTable();
+        jScrollPane4 = new javax.swing.JScrollPane();
+        tblCompras = new javax.swing.JTable();
+        btnAnular = new javax.swing.JButton();
+        jLabel4 = new javax.swing.JLabel();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -291,7 +343,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                             .addGroup(jPanel3Layout.createSequentialGroup()
                                 .addGap(51, 51, 51)
                                 .addComponent(txtBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 196, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap(127, Short.MAX_VALUE))
+                .addContainerGap(133, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -317,34 +369,78 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tblDetalleCompra.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
             },
             new String [] {
-                "Producto (Lote/SKU)", "Provvedor", "Fecha de Caducidad", "Días Restantes", "Cantidad"
+                "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane1.setViewportView(jTable1);
+        jScrollPane3.setViewportView(tblDetalleCompra);
+
+        tblCompras.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        tblCompras.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tblComprasMouseClicked(evt);
+            }
+        });
+        jScrollPane4.setViewportView(tblCompras);
+
+        btnAnular.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        btnAnular.setText("Anular Compra");
+        btnAnular.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAnularActionPerformed(evt);
+            }
+        });
+
+        jLabel4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel4.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel4.setText("Seleccione un pedido y anule la compra");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 980, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+                .addContainerGap(32, Short.MAX_VALUE)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 413, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 930, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 930, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(30, 30, 30))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                        .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(431, 431, 431))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(229, 229, 229)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 305, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(37, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+                .addGap(51, 51, 51)
+                .addComponent(jLabel4)
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(50, 50, 50)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(29, 29, 29)
+                .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(50, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", jPanel2);
@@ -365,7 +461,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnRecepcionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepcionActionPerformed
-      // 1. VERIFICAR SELECCIÓN
+     // 1. VERIFICAR SELECCIÓN
         int fila = tblPedidos.getSelectedRow();
         if (fila == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un pedido de la tabla.");
@@ -380,18 +476,14 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             return;
         }
 
-        // 2. PREGUNTAR DATOS ADICIONALES (Fecha de Vencimiento del Lote)
-        // Usamos un input simple para no complicar la UI hoy. Formato YYYY-MM-DD
-        String fechaVencimiento = JOptionPane.showInputDialog(this, 
-                "Ingrese la fecha de vencimiento del lote (YYYY-MM-DD):", 
-                "2026-12-31");
-        
-        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) return; // Cancelado
+        // 2. FECHA DE VENCIMIENTO
+        String fechaVencimiento = JOptionPane.showInputDialog(this, "Fecha de vencimiento del lote (YYYY-MM-DD):", "2026-12-31");
+        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) return;
 
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar ingreso al almacén y generar compra?", "Confirmar", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar recepción y descontar del presupuesto?", "Confirmar", JOptionPane.YES_NO_OPTION);
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // --- INICIO DE LA TRANSACCIÓN MAESTRA ---
+        // --- INICIO DE LA TRANSACCIÓN ---
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
         String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // <--- ¡TU CONTRASEÑA AQUÍ!
@@ -400,17 +492,17 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
         try {
             con = DriverManager.getConnection(url, usuario, password);
-            con.setAutoCommit(false); // ¡Modo Transacción Activado!
+            con.setAutoCommit(false); // Transacción iniciada
 
-            // DATOS FIJOS (Para este ejemplo)
+            // DATOS FIJOS
             int idSucursal = 1; 
-            String idEmpleado = "11000001"; // Aquí iría el usuario logueado
-            
-            // A. OBTENER DATOS DEL PEDIDO ORIGINAL
-            String sqlPedidoInfo = "SELECT id_pedido, id_proveedor FROM pedido WHERE codigo = ?";
-            PreparedStatement psPedInfo = con.prepareStatement(sqlPedidoInfo);
-            psPedInfo.setString(1, codigoPedido);
-            ResultSet rsPed = psPedInfo.executeQuery();
+            String idEmpleado = "11000001"; // ID REAL DEL ADMIN
+
+            // A. OBTENER ID PEDIDO
+            String sqlPed = "SELECT id_pedido, id_proveedor FROM pedido WHERE codigo = ?";
+            PreparedStatement psPed = con.prepareStatement(sqlPed);
+            psPed.setString(1, codigoPedido);
+            ResultSet rsPed = psPed.executeQuery();
             
             int idPedido = 0;
             String idProveedor = "";
@@ -419,20 +511,65 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 idProveedor = rsPed.getString("id_proveedor");
             }
 
-            // B. CREAR LA CABECERA DE COMPRA (FINANZAS)
-            // Creamos la compra con total 0, luego la actualizaremos
-            String sqlInsertCompra = "INSERT INTO compra (fecha_hora, total, id_proveedor, id_empleado, id_sucursal, estado) VALUES (NOW(), 0, ?, ?, ?, 'Registrada')";
+            // =================================================================
+            // B. --- VALIDACIÓN DE PRESUPUESTO (ESTO ES LO QUE FALTABA) ---
+            // =================================================================
+            
+            // 1. Calculamos cuánto costará el pedido ANTES de procesarlo
+            String sqlCalcTotal = "SELECT SUM(d.cantidad * p.precio_compra) as total_pedido " +
+                                  "FROM detalle_pedido d " +
+                                  "INNER JOIN producto p ON d.id_producto = p.id_producto " +
+                                  "WHERE d.id_pedido = ?";
+            PreparedStatement psCalc = con.prepareStatement(sqlCalcTotal);
+            psCalc.setInt(1, idPedido);
+            ResultSet rsCalc = psCalc.executeQuery();
+            
+            double montoTotalPedido = 0;
+            if (rsCalc.next()) {
+                montoTotalPedido = rsCalc.getDouble("total_pedido");
+            }
+
+            // 2. Revisamos cuánto dinero tiene la sucursal
+            String sqlPresupuesto = "SELECT presupuesto FROM sucursal WHERE id_sucursal = ?";
+            PreparedStatement psCheckMoney = con.prepareStatement(sqlPresupuesto);
+            psCheckMoney.setInt(1, idSucursal);
+            ResultSet rsMoney = psCheckMoney.executeQuery();
+            
+            double saldoActual = 0;
+            if (rsMoney.next()) {
+                saldoActual = rsMoney.getDouble("presupuesto");
+            }
+
+            // 3. EL BLOQUEO: Si no hay dinero, lanzamos error y paramos todo
+            if (saldoActual < montoTotalPedido) {
+                throw new Exception("FONDOS INSUFICIENTES.\nSaldo actual: S/ " + saldoActual + "\nCosto del pedido: S/ " + montoTotalPedido);
+            }
+
+            // 4. COBRAR: Restamos el dinero
+            String sqlRestarDinero = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = ?";
+            PreparedStatement psPay = con.prepareStatement(sqlRestarDinero);
+            psPay.setDouble(1, montoTotalPedido);
+            psPay.setInt(2, idSucursal);
+            psPay.executeUpdate();
+
+            // =================================================================
+            // FIN DE LA VALIDACIÓN - AHORA SIGUE EL PROCESO NORMAL
+            // =================================================================
+
+            // C. CREAR COMPRA (Ya pagada)
+            String sqlInsertCompra = "INSERT INTO compra (fecha_hora, total, id_proveedor, id_empleado, id_sucursal, estado) VALUES (NOW(), ?, ?, ?, ?, 'Pagada')";
             PreparedStatement psCompra = con.prepareStatement(sqlInsertCompra, Statement.RETURN_GENERATED_KEYS);
-            psCompra.setString(1, idProveedor);
-            psCompra.setString(2, idEmpleado);
-            psCompra.setInt(3, idSucursal);
+            psCompra.setDouble(1, montoTotalPedido);
+            psCompra.setString(2, idProveedor);
+            psCompra.setString(3, idEmpleado);
+            psCompra.setInt(4, idSucursal);
             psCompra.executeUpdate();
             
             ResultSet rsKeyCompra = psCompra.getGeneratedKeys();
             int idCompraGenerada = 0;
             if (rsKeyCompra.next()) idCompraGenerada = rsKeyCompra.getInt(1);
 
-            // C. PROCESAR CADA ITEM (INVENTARIO + DETALLE COMPRA + KARDEX)
+            // D. PROCESAR ITEMS (Stock, Kardex, Detalle)
             String sqlItems = "SELECT d.id_producto, d.cantidad, p.precio_compra " +
                               "FROM detalle_pedido d " +
                               "INNER JOIN producto p ON d.id_producto = p.id_producto " +
@@ -441,17 +578,10 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             psItems.setInt(1, idPedido);
             ResultSet rsItems = psItems.executeQuery();
 
-            double totalCompra = 0;
-
-            // Preparamos las sentencias dentro del bucle para eficiencia
             PreparedStatement psStockCheck = con.prepareStatement("SELECT stock_actual FROM inventario_sucursal WHERE id_producto=? AND id_sucursal=?");
             PreparedStatement psStockUpdate = con.prepareStatement("UPDATE inventario_sucursal SET stock_actual = stock_actual + ?, fecha_caducidad = ? WHERE id_producto=? AND id_sucursal=?");
             PreparedStatement psStockInsert = con.prepareStatement("INSERT INTO inventario_sucursal (id_producto, id_sucursal, stock_actual, fecha_caducidad) VALUES (?, ?, ?, ?)");
-            
-            // Kardex (Movimiento Inventario)
             PreparedStatement psKardex = con.prepareStatement("INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto, id_sucursal) VALUES (NOW(), 'ENTRADA COMPRA', ?, ?, ?, 'COMPLETADO', ?, ?)");
-            
-            // Detalle Compra (Finanzas)
             PreparedStatement psDetCompra = con.prepareStatement("INSERT INTO detalle_compra (id_compra, id_producto, cantidad, precio_compra, subtotal) VALUES (?, ?, ?, ?, ?)");
 
             while (rsItems.next()) {
@@ -459,9 +589,8 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 int cant = rsItems.getInt("cantidad");
                 double precio = rsItems.getDouble("precio_compra");
                 double subtotal = cant * precio;
-                totalCompra += subtotal;
 
-                // 1. GESTIÓN DE STOCK (INVENTARIO)
+                // Inventario
                 int stockAnterior = 0;
                 psStockCheck.setInt(1, idProd);
                 psStockCheck.setInt(2, idSucursal);
@@ -469,24 +598,21 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 
                 if (rsStock.next()) {
                     stockAnterior = rsStock.getInt("stock_actual");
-                    // Update
                     psStockUpdate.setInt(1, cant);
                     psStockUpdate.setDate(2, java.sql.Date.valueOf(fechaVencimiento));
                     psStockUpdate.setInt(3, idProd);
                     psStockUpdate.setInt(4, idSucursal);
                     psStockUpdate.executeUpdate();
                 } else {
-                    // Insert
                     psStockInsert.setInt(1, idProd);
                     psStockInsert.setInt(2, idSucursal);
                     psStockInsert.setInt(3, cant);
                     psStockInsert.setDate(4, java.sql.Date.valueOf(fechaVencimiento));
                     psStockInsert.executeUpdate();
                 }
-                
                 int stockNuevo = stockAnterior + cant;
 
-                // 2. REGISTRO EN KARDEX (AUDITORÍA)
+                // Kardex
                 psKardex.setInt(1, cant);
                 psKardex.setInt(2, stockAnterior);
                 psKardex.setInt(3, stockNuevo);
@@ -494,7 +620,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 psKardex.setInt(5, idSucursal);
                 psKardex.executeUpdate();
 
-                // 3. REGISTRO EN DETALLE COMPRA (FINANZAS)
+                // Detalle Compra
                 psDetCompra.setInt(1, idCompraGenerada);
                 psDetCompra.setInt(2, idProd);
                 psDetCompra.setInt(3, cant);
@@ -503,31 +629,24 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 psDetCompra.executeUpdate();
             }
 
-            // D. ACTUALIZAR EL TOTAL DE LA COMPRA Y EL ESTADO DEL PEDIDO
-            String sqlUpdateTotal = "UPDATE compra SET total = ? WHERE id_compra = ?";
-            PreparedStatement psUpTotal = con.prepareStatement(sqlUpdateTotal);
-            psUpTotal.setDouble(1, totalCompra);
-            psUpTotal.setInt(2, idCompraGenerada);
-            psUpTotal.executeUpdate();
-
+            // E. FINALIZAR PEDIDO
             String sqlUpdatePedido = "UPDATE pedido SET estado = 'Recibido' WHERE id_pedido = ?";
             PreparedStatement psUpPed = con.prepareStatement(sqlUpdatePedido);
             psUpPed.setInt(1, idPedido);
             psUpPed.executeUpdate();
 
-            // E. CONFIRMAR TODO (COMMIT)
-            con.commit();
+            con.commit(); // Confirmar todo
             
-            JOptionPane.showMessageDialog(this, "¡Recepción Exitosa!\n\n"
-                    + "- Stock Actualizado\n"
-                    + "- Kardex Registrado\n"
-                    + "- Compra #" + idCompraGenerada + " generada por S/ " + totalCompra);
+            double nuevoSaldo = saldoActual - montoTotalPedido;
+            JOptionPane.showMessageDialog(this, "¡Recepción y Pago Exitoso!\n\n"
+                    + "Monto pagado: S/ " + String.format("%.2f", montoTotalPedido) + "\n"
+                    + "Nuevo Saldo Sucursal: S/ " + String.format("%.2f", nuevoSaldo));
             
-            mostrarDatos(); // Refrescar tabla
+            mostrarDatos();
 
         } catch (Exception e) {
             try { if (con != null) con.rollback(); } catch (SQLException ex) {}
-            JOptionPane.showMessageDialog(this, "Error Crítico: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error de Transacción", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         } finally {
             try { if (con != null) con.close(); } catch (SQLException ex) {}
@@ -558,8 +677,216 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             ventana.setVisible(true);
             // TODO: Aquí llamaremos a tu ventana JDialog con los productos
     }//GEN-LAST:event_tblPedidosMouseClicked
-   }
+}
+    private void tblComprasMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblComprasMouseClicked
+      int fila = tblCompras.getSelectedRow();
+        if (fila == -1) return;
+        
+        int idCompra = Integer.parseInt(tblCompras.getValueAt(fila, 0).toString());
+        mostrarDetalleDeCompra(idCompra);  // TODO add your handling code here:
+    }//GEN-LAST:event_tblComprasMouseClicked
+
+    private void btnAnularActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAnularActionPerformed
+    int fila = tblCompras.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione una compra para anular.");
+            return;
+        }
+        
+        // Validación: Verificar que la celda no sea nula (a veces pasa con clics en vacío)
+        if (tblCompras.getValueAt(fila, 0) == null) return;
+
+        String idCompra = tblCompras.getValueAt(fila, 0).toString();
+        String estado = tblCompras.getValueAt(fila, 4).toString();
+        
+        if ("ANULADA".equals(estado)) {
+            JOptionPane.showMessageDialog(this, "Esta compra ya está anulada.");
+            return;
+        }
+        
+        // Confirmación de seguridad
+        int confirm = JOptionPane.showConfirmDialog(this, 
+                "¿Seguro que desea ANULAR la compra #" + idCompra + "?\n" +
+                "Se devolverá el dinero a caja y se restará el stock.", 
+                "Confirmar Anulación", JOptionPane.YES_NO_OPTION);
+                
+        if (confirm == JOptionPane.YES_OPTION) {
+            anularCompra(idCompra); 
+            mostrarHistorialCompras();
+            ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
+        }     // TODO add your handling code here:
+    }//GEN-LAST:event_btnAnularActionPerformed
+   private void mostrarDetalleDeCompra(int idCompra) {
+        DefaultTableModel modelo = (DefaultTableModel) tblDetalleCompra.getModel();
+        modelo.setRowCount(0);
+        modelo.setColumnIdentifiers(new Object[]{"Producto", "Cantidad", "P. Unitario", "Subtotal"});
+        
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+
+        String sql = "SELECT p.nombre, d.cantidad, d.precio_compra, d.subtotal " +
+                     "FROM detalle_compra d " +
+                     "INNER JOIN producto p ON d.id_producto = p.id_producto " +
+                     "WHERE d.id_compra = ?";
+
+        try {
+            Connection con = DriverManager.getConnection(url, usuario, password);
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, idCompra);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                modelo.addRow(new Object[]{
+                    rs.getString("nombre"),
+                    rs.getInt("cantidad"),
+                    rs.getDouble("precio_compra"),
+                    rs.getDouble("subtotal")
+                });
+            }
+            con.close();
+        } catch (SQLException e) {
+            System.out.println("Error detalle: " + e);
+        }
+    }
+   private void anularCompra(String codigoCompra) { // O id_compra
+        String motivo = JOptionPane.showInputDialog(this, "Ingrese el motivo de la anulación:");
+        if (motivo == null || motivo.trim().isEmpty()) return;
+
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+
+        Connection con = null;
+
+        try {
+            con = DriverManager.getConnection(url, usuario, password);
+            con.setAutoCommit(false);
+
+            // 1. OBTENER ID COMPRA, SUCURSAL Y TOTAL
+            // Asumimos que buscaremos por el ID interno, si usas código en compra, ajusta el WHERE
+            String sqlInfo = "SELECT id_compra, id_sucursal, total, estado FROM compra WHERE id_compra = ?";
+            PreparedStatement psInfo = con.prepareStatement(sqlInfo);
+            psInfo.setInt(1, Integer.parseInt(codigoCompra)); 
+            ResultSet rsInfo = psInfo.executeQuery();
+
+            if (!rsInfo.next()) {
+                JOptionPane.showMessageDialog(this, "Compra no encontrada.");
+                return;
+            }
+
+            int idCompra = rsInfo.getInt("id_compra");
+            int idSucursal = rsInfo.getInt("id_sucursal");
+            double totalDevolucion = rsInfo.getDouble("total");
+            String estado = rsInfo.getString("estado");
+
+            if ("ANULADA".equals(estado)) {
+                JOptionPane.showMessageDialog(this, "Esta compra ya fue anulada.");
+                return;
+            }
+
+            // 2. OBTENER ITEMS Y VALIDAR STOCK (EL PASO CRÍTICO)
+            String sqlDetalle = "SELECT id_producto, cantidad FROM detalle_compra WHERE id_compra = ?";
+            PreparedStatement psDet = con.prepareStatement(sqlDetalle);
+            psDet.setInt(1, idCompra);
+            ResultSet rsDet = psDet.executeQuery();
+
+            // Guardamos los items en memoria para procesarlos luego
+            // Usamos una lista temporal o re-ejecutamos el resultset (para simplificar, re-ejecutamos abajo)
+            
+            // VERIFICACIÓN DE STOCK
+            while (rsDet.next()) {
+                int idProd = rsDet.getInt("id_producto");
+                int cantComprada = rsDet.getInt("cantidad");
+
+                // Consultar stock actual
+                String sqlStock = "SELECT stock_actual FROM inventario_sucursal WHERE id_producto = ? AND id_sucursal = ?";
+                PreparedStatement psStockCheck = con.prepareStatement(sqlStock);
+                psStockCheck.setInt(1, idProd);
+                psStockCheck.setInt(2, idSucursal);
+                ResultSet rsStock = psStockCheck.executeQuery();
+
+                int stockActual = 0;
+                if (rsStock.next()) stockActual = rsStock.getInt("stock_actual");
+
+                if (stockActual < cantComprada) {
+                    throw new Exception("No se puede anular: El producto ID " + idProd + " ya fue vendido.\n"
+                            + "Stock actual: " + stockActual + " | Se intenta devolver: " + cantComprada);
+                }
+            }
+
+            // 3. SI PASÓ LA VALIDACIÓN: PROCEDEMOS A REVERTIR TODO
+            
+            // A. DEVOLVER DINERO A LA CAJA DE LA SUCURSAL (PRESUPUESTO)
+            String sqlReembolso = "UPDATE sucursal SET presupuesto = presupuesto + ? WHERE id_sucursal = ?";
+            PreparedStatement psMoney = con.prepareStatement(sqlReembolso);
+            psMoney.setDouble(1, totalDevolucion);
+            psMoney.setInt(2, idSucursal);
+            psMoney.executeUpdate();
+
+            // B. RESTAR EL STOCK (SALIDA HACIA PROVEEDOR)
+            // Volvemos a recorrer los items
+            rsDet = psDet.executeQuery(); // Ejecutamos query de nuevo para reiniciar cursor
+            
+            String sqlUpdateStock = "UPDATE inventario_sucursal SET stock_actual = stock_actual - ? WHERE id_producto = ? AND id_sucursal = ?";
+            PreparedStatement psUpStock = con.prepareStatement(sqlUpdateStock);
+            
+            String sqlKardex = "INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto, id_sucursal) VALUES (NOW(), 'SALIDA POR ANULACION', ?, ?, ?, ?, ?, ?)";
+            PreparedStatement psKardex = con.prepareStatement(sqlKardex);
+
+            while (rsDet.next()) {
+                int idProd = rsDet.getInt("id_producto");
+                int cant = rsDet.getInt("cantidad");
+
+                // Obtener stock previo para el kardex
+                // (Podríamos optimizar esto, pero por claridad lo consultamos)
+                PreparedStatement psGetS = con.prepareStatement("SELECT stock_actual FROM inventario_sucursal WHERE id_producto=? AND id_sucursal=?");
+                psGetS.setInt(1, idProd);
+                psGetS.setInt(2, idSucursal);
+                ResultSet rsS = psGetS.executeQuery();
+                rsS.next();
+                int stockAnt = rsS.getInt("stock_actual");
+                int stockNuevo = stockAnt - cant;
+
+                // Restar Inventario
+                psUpStock.setInt(1, cant);
+                psUpStock.setInt(2, idProd);
+                psUpStock.setInt(3, idSucursal);
+                psUpStock.executeUpdate();
+
+                // Registrar en Kardex
+                psKardex.setInt(1, cant);
+                psKardex.setInt(2, stockAnt);
+                psKardex.setInt(3, stockNuevo);
+                psKardex.setString(4, "MOTIVO: " + motivo);
+                psKardex.setInt(5, idProd);
+                psKardex.setInt(6, idSucursal);
+                psKardex.executeUpdate();
+            }
+
+            // C. CAMBIAR ESTADO DE LA COMPRA
+            // Ojo: En tu tabla 'compra' no vi columna 'motivo', 
+            // así que solo cambiamos estado o podrías guardar el motivo en auditoría.
+            String sqlEstado = "UPDATE compra SET estado = 'ANULADA' WHERE id_compra = ?";
+            PreparedStatement psEst = con.prepareStatement(sqlEstado);
+            psEst.setInt(1, idCompra);
+            psEst.executeUpdate();
+
+            // D. REGISTRAR EN MOVIMIENTO DE CAJA (Opcional pero recomendado si usas esa tabla)
+            // INSERT INTO movimiento_caja ... (Tipo: INGRESO/REEMBOLSO)
+
+            con.commit();
+            JOptionPane.showMessageDialog(this, "Compra anulada correctamente.\nDinero devuelto y stock retirado.");
+
+        } catch (Exception e) {
+            try { if (con != null) con.rollback(); } catch (SQLException ex) {}
+            JOptionPane.showMessageDialog(this, "Error al anular: " + e.getMessage());
+        } finally {
+            try { if (con != null) con.close(); } catch (SQLException ex) {}
+        }
+    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnAnular;
     private javax.swing.JButton btnRecepcion;
     private javax.swing.JComboBox<String> cboEstado;
     private javax.swing.JComboBox<String> cboProveedor;
@@ -567,12 +894,15 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable jTable1;
+    private javax.swing.JTable tblCompras;
+    private javax.swing.JTable tblDetalleCompra;
     private javax.swing.JTable tblPedidos;
     private javax.swing.JTextField txtBuscar;
     // End of variables declaration//GEN-END:variables

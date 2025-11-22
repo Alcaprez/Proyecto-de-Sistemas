@@ -23,33 +23,55 @@ public class DialogoDetalle extends javax.swing.JDialog {
     private void cargarProductos() {
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // Tu clave
 
         DefaultTableModel modelo = (DefaultTableModel) tblDetalle.getModel();
         modelo.setRowCount(0);
-        // Definimos las columnas si no las has hecho visualmente
-        modelo.setColumnIdentifiers(new Object[]{"Producto", "Cantidad"});
+        
+        // 1. AHORA TENEMOS 4 COLUMNAS
+        modelo.setColumnIdentifiers(new Object[]{"Producto", "Cantidad", "P. Unitario", "Subtotal"});
 
-        // SQL: Unimos detalle_pedido con producto y pedido
-        String sql = "SELECT pr.nombre, d.cantidad " +
+        // 2. SQL ACTUALIZADO: Traemos también el precio_compra
+        String sql = "SELECT pr.nombre, d.cantidad, pr.precio_compra " +
                      "FROM detalle_pedido d " +
                      "INNER JOIN producto pr ON d.id_producto = pr.id_producto " +
                      "INNER JOIN pedido p ON d.id_pedido = p.id_pedido " +
                      "WHERE p.codigo = ?";
 
+        double totalGeneral = 0.0; // Acumulador para la suma final
+
         try {
             Connection con = DriverManager.getConnection(url, usuario, password);
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, codigoPedido); // Pasamos el código (ej: P-001)
+            ps.setString(1, codigoPedido);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                int cantidad = rs.getInt("cantidad");
+                double precio = rs.getDouble("precio_compra"); // Precio de la base de datos
+                
+                // 3. CALCULAMOS EL SUBTOTAL
+                double subtotal = cantidad * precio;
+                
+                // 4. SUMAMOS AL TOTAL GENERAL
+                totalGeneral += subtotal;
+
+                // Agregamos la fila con formato de moneda (2 decimales)
                 modelo.addRow(new Object[]{
-                    rs.getString("nombre"),   // Nombre del producto
-                    rs.getInt("cantidad")     // Cantidad
+                    nombre,
+                    cantidad,
+                    String.format("S/ %.2f", precio),
+                    String.format("S/ %.2f", subtotal)
                 });
             }
             con.close();
+            
+            // 5. MOSTRAMOS EL TOTAL EN LA ETIQUETA (Asegúrate de haber creado lblTotal)
+            if (lblTotal != null) { // Validación por si olvidaste crear el label
+                lblTotal.setText("Monto Total: S/ " + String.format("%.2f", totalGeneral));
+            }
+
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Error al cargar detalle: " + e);
         }
@@ -62,6 +84,7 @@ public class DialogoDetalle extends javax.swing.JDialog {
         tblDetalle = new javax.swing.JTable();
         jLabel1 = new javax.swing.JLabel();
         BotonCerrar = new javax.swing.JButton();
+        lblTotal = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -97,10 +120,17 @@ public class DialogoDetalle extends javax.swing.JDialog {
             }
         });
 
+        lblTotal.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        lblTotal.setText("Total: S/ 0.00");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addGap(0, 0, Short.MAX_VALUE)
+                .addComponent(BotonCerrar, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(339, 339, 339))
             .addGroup(layout.createSequentialGroup()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
@@ -108,21 +138,22 @@ public class DialogoDetalle extends javax.swing.JDialog {
                         .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(277, 277, 277)
-                        .addComponent(jLabel1)))
+                        .addComponent(jLabel1))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(276, 276, 276)
+                        .addComponent(lblTotal)))
                 .addContainerGap(138, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addComponent(BotonCerrar, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(314, 314, 314))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(27, Short.MAX_VALUE)
+                .addContainerGap(19, Short.MAX_VALUE)
                 .addComponent(jLabel1)
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 151, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(186, 186, 186)
+                .addGap(61, 61, 61)
+                .addComponent(lblTotal, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(93, 93, 93)
                 .addComponent(BotonCerrar, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(54, 54, 54))
         );
@@ -141,6 +172,7 @@ public class DialogoDetalle extends javax.swing.JDialog {
     private javax.swing.JButton BotonCerrar;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblTotal;
     private javax.swing.JTable tblDetalle;
     // End of variables declaration//GEN-END:variables
 }

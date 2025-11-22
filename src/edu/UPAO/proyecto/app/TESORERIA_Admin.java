@@ -39,7 +39,7 @@ private void mostrarDatosTesoreria() {
                 // ---------------------------------------------------------
                 String sqlSaldo = "SELECT presupuesto FROM sucursal WHERE id_sucursal = ?";
                 PreparedStatement psSaldo = con.prepareStatement(sqlSaldo);
-                psSaldo.setInt(1, id_ucursal);
+                psSaldo.setInt(1, idSucursal);
                 ResultSet rsSaldo = psSaldo.executeQuery();
 
                 if (rsSaldo.next()) {
