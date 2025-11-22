@@ -194,7 +194,7 @@ public class VentaDAO {
 
             int idSucursal = venta.getIdSucursal();
             int idMetodoPago = obtenerIdMetodoPago(venta.getMetodoPago());
-            int idCaja = obtenerIdCajaActiva();
+            int idCaja = obtenerIdCajaActiva(idSucursal);
 
             // 2. INSERTAR VENTA
             String sqlVenta = "INSERT INTO venta (fecha_hora, total, id_cliente, id_empleado, id_metodo_pago, id_caja, id_sucursal) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -410,42 +410,35 @@ public class VentaDAO {
         }
     }
 
-    // MÉTODO MEJORADO: OBTENER ID DE CAJA ACTIVA
-    private int obtenerIdCajaActiva() throws SQLException {
-        String sql = "SELECT id_caja FROM caja WHERE estado = 'ABIERTA' LIMIT 1";
+    private int obtenerIdCajaActiva(int idSucursal) throws SQLException {
+        // ✅ AHORA FILTRAMOS POR SUCURSAL PARA EVITAR ERRORES
+        String sql = "SELECT id_caja FROM caja WHERE estado = 'ABIERTA' AND id_sucursal = ? ORDER BY id_caja DESC LIMIT 1";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idSucursal);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                int idCaja = rs.getInt("id_caja");
-                System.out.println("✅ Caja activa encontrada: " + idCaja);
-                return idCaja;
+                return rs.getInt("id_caja");
             } else {
-                // Si no hay caja activa, crear una automáticamente
-                System.out.println("⚠️ No hay caja activa. Creando una nueva...");
-                return crearCajaAutomaticamente();
+                System.out.println("⚠️ No hay caja abierta para sucursal " + idSucursal + ". Creando una...");
+                return crearCajaAutomaticamente(idSucursal); // Pasamos la sucursal
             }
         }
     }
 
-    private int crearCajaAutomaticamente() throws SQLException {
-        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal) VALUES (NOW(), 0.00, 0.00, 'ABIERTA', 1)";
+    private int crearCajaAutomaticamente(int idSucursal) throws SQLException {
+        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal) VALUES (NOW(), 0.00, 0.00, 'ABIERTA', ?)";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            int affectedRows = stmt.executeUpdate();
-
-            if (affectedRows == 0) {
-                throw new SQLException("No se pudo crear la caja automáticamente");
-            }
+            stmt.setInt(1, idSucursal); // ✅ Usamos la sucursal correcta
+            stmt.executeUpdate();
 
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    int idCaja = generatedKeys.getInt(1);
-                    System.out.println("✅ Caja creada automáticamente con ID: " + idCaja);
-                    return idCaja;
+                    return generatedKeys.getInt(1);
                 } else {
-                    throw new SQLException("No se pudo obtener el ID de la caja creada");
+                    throw new SQLException("No se pudo crear la caja automática.");
                 }
             }
         }

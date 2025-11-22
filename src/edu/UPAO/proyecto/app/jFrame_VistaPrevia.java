@@ -237,6 +237,7 @@ public class jFrame_VistaPrevia extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_AbrirPDFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_AbrirPDFActionPerformed
+        abrirPDF();
     }//GEN-LAST:event_btn_AbrirPDFActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed

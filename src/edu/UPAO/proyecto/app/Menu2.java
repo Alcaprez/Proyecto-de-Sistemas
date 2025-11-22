@@ -110,7 +110,9 @@ public class Menu2 extends javax.swing.JFrame {
         inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
         txtCupon.setEnabled(false);
-
+        for (java.awt.event.ActionListener al : tb_reportes.getActionListeners()) {
+            tb_reportes.removeActionListener(al);
+        }
         // Configurar spinners
         spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         sp_item.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
@@ -123,8 +125,6 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private void configurarListeners() {
-        btn_validar.addActionListener(e -> onValidarCupon());
-
         // Mouse wheel para spinners
         sp_item.addMouseWheelListener(e -> {
             int rot = e.getWheelRotation();
@@ -552,7 +552,7 @@ public class Menu2 extends javax.swing.JFrame {
         jButton11.setBackground(new java.awt.Color(110, 149, 106));
         jButton11.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         jButton11.setForeground(new java.awt.Color(255, 255, 255));
-        jButton11.setText("REPORTAR PRODUCTO");
+        jButton11.setText("GESTIONAR CAJA");
         jButton11.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton11ActionPerformed(evt);
@@ -1240,7 +1240,8 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_SKUActionPerformed
 
     private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
-
+        GestionCajaFrame cajaFrame = new GestionCajaFrame(this.idSucursal);
+        cajaFrame.setVisible(true);
     }//GEN-LAST:event_jButton11ActionPerformed
 
     private void btn_agregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarActionPerformed
@@ -1298,8 +1299,7 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_ventasActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
-        jFrame_añadirProducto1.setVisible(true);
+
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton1ComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jButton1ComponentMoved

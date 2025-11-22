@@ -54,42 +54,12 @@ public class VentaService {
         return errores;
     }
 
-    // Registrar una nueva venta con validaciones
-    public boolean registrarVenta(int cajeroId, List<DetalleVenta> detalles, String metodoPago) {
-        List<String> errores = validarVenta(detalles, metodoPago);
 
-        if (!errores.isEmpty()) {
-            System.out.println("❌ No se pudo registrar la venta. Errores:");
-            errores.forEach(e -> System.out.println(" - " + e));
-            return false;
-        }
-
-        ventaDAO.registrarVenta(cajeroId, detalles, metodoPago);
-        System.out.println("✅ Venta registrada correctamente.");
-        return true;
-    }
 
     // Listar todas las ventas
     public List<Venta> listarVentas() {
         return ventaDAO.listar();
     }
 
-    // Buscar una venta por su ID
-    public Venta buscarPorId(int idVenta) {
-        return ventaDAO.buscarPorId(idVenta);
-    }
 
-    // Eliminar una venta
-    public boolean eliminarVenta(int idVenta) {
-        return ventaDAO.eliminarVenta(idVenta);
-    }
-
-    // Obtener el total de una venta específica
-    public double obtenerTotalVenta(int idVenta) {
-        Venta v = ventaDAO.buscarPorId(idVenta);
-        if (v != null) {
-            return v.calcularTotal();
-        }
-        return 0.0;
-    }
 }
