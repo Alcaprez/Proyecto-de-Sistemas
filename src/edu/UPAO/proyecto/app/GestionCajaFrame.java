@@ -38,13 +38,13 @@ public class GestionCajaFrame extends JFrame {
     public GestionCajaFrame(int idSucursal) {
         this.idSucursal = idSucursal;
         this.cajaDAO = new CajaDAO();
-        
+
         initUI(); // Construir interfaz (Layout Nulo corregido)
-        
+
         setLocationRelativeTo(null);
         setTitle("Gestión de Caja Acumulada - Sucursal " + idSucursal);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        
+
         cargarDatos();
         agregarListeners();
     }
@@ -52,14 +52,14 @@ public class GestionCajaFrame extends JFrame {
     private void initUI() {
         setSize(400, 560);
         setResizable(false);
-        
+
         mainPanel = new JPanel();
         mainPanel.setLayout(null);
         mainPanel.setBackground(new Color(245, 245, 245));
         setContentPane(mainPanel);
 
         lblEstado = new JLabel("CARGANDO...");
-        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 18)); 
+        lblEstado.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblEstado.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblEstado.setBounds(20, 20, 360, 30);
         mainPanel.add(lblEstado);
@@ -77,7 +77,7 @@ public class GestionCajaFrame extends JFrame {
         lblSaldoAcumuladoTitulo = new JLabel("Saldo Acumulado (Histórico):");
         lblSaldoAcumuladoTitulo.setBounds(30, 90, 200, 20);
         mainPanel.add(lblSaldoAcumuladoTitulo);
-        
+
         txtSaldoAcumulado = new JTextField();
         txtSaldoAcumulado.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSaldoAcumulado.setBounds(30, 110, 330, 40);
@@ -97,11 +97,11 @@ public class GestionCajaFrame extends JFrame {
         panelDetalles.add(lblVentasTitulo);
 
         lblVentas = new JLabel("S/ 0.00");
-        lblVentas.setFont(new Font("Segoe UI", Font.BOLD, 14)); 
+        lblVentas.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblVentas.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblVentas.setBounds(170, 30, 140, 20);
         panelDetalles.add(lblVentas);
-        
+
         separador = new JSeparator();
         separador.setBounds(20, 60, 290, 10);
         panelDetalles.add(separador);
@@ -112,7 +112,7 @@ public class GestionCajaFrame extends JFrame {
         panelDetalles.add(lblTotalEsperadoTitulo);
 
         lblTotalEsperado = new JLabel("S/ 0.00");
-        lblTotalEsperado.setFont(new Font("Segoe UI", Font.BOLD, 20)); 
+        lblTotalEsperado.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTotalEsperado.setForeground(new Color(0, 102, 204));
         lblTotalEsperado.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lblTotalEsperado.setBounds(170, 70, 140, 25);
@@ -121,9 +121,9 @@ public class GestionCajaFrame extends JFrame {
         lblConteoTitulo = new JLabel("DINERO FÍSICO (Conteo):");
         lblConteoTitulo.setBounds(20, 110, 250, 20);
         panelDetalles.add(lblConteoTitulo);
-        
+
         txtSaldoReal = new JTextField();
-        txtSaldoReal.setFont(new Font("Segoe UI", Font.BOLD, 14)); 
+        txtSaldoReal.setFont(new Font("Segoe UI", Font.BOLD, 14));
         txtSaldoReal.setBackground(new Color(255, 255, 204));
         txtSaldoReal.setBounds(20, 130, 290, 40);
         panelDetalles.add(txtSaldoReal);
@@ -133,12 +133,12 @@ public class GestionCajaFrame extends JFrame {
         panelDetalles.add(lblDiferenciaTitulo);
 
         lblDiferencia = new JLabel("...");
-        lblDiferencia.setFont(new Font("Segoe UI", Font.BOLD, 16)); 
+        lblDiferencia.setFont(new Font("Segoe UI", Font.BOLD, 16));
         lblDiferencia.setBounds(100, 190, 200, 20);
         panelDetalles.add(lblDiferencia);
 
         btnAccion = new JButton("ACCIÓN");
-        btnAccion.setFont(new Font("Segoe UI", Font.BOLD, 14)); 
+        btnAccion.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnAccion.setForeground(Color.WHITE);
         btnAccion.setBounds(30, 430, 330, 50);
         btnAccion.addActionListener(e -> procesarAccion());
@@ -148,11 +148,10 @@ public class GestionCajaFrame extends JFrame {
     private void cargarDatos() {
         // 1. Verificar si hay caja abierta
         cajaActual = cajaDAO.obtenerCajaAbierta(idSucursal);
-        
+
         // 2. CALCULAR EL GRAN TOTAL HISTÓRICO (ESTA ES LA CLAVE)
         // Suma todas las ventas de la historia de la sucursal, ignorando cierres.
-        granTotalHistorico = cajaDAO.obtenerVentasTotalesHistoricas(idSucursal);
-        
+        granTotalHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
         // Mostrar siempre el total histórico como referencia
         txtSaldoAcumulado.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
 
@@ -161,30 +160,30 @@ public class GestionCajaFrame extends JFrame {
             lblEstado.setText("CAJA CERRADA");
             lblEstado.setForeground(Color.RED);
             panelDetalles.setVisible(false);
-            
+
             btnAccion.setText("INICIAR TURNO");
-            btnAccion.setBackground(new Color(0, 153, 51)); 
+            btnAccion.setBackground(new Color(0, 153, 51));
             lblInstruccion.setText("Saldo acumulado actual:");
-            
+
         } else {
             // --- CIERRE / GESTIÓN ---
             lblEstado.setText("TURNO ABIERTO");
             lblEstado.setForeground(new Color(0, 153, 51));
             panelDetalles.setVisible(true);
-            
+
             // Mostrar ventas de ESTA sesión solo como informativo
             double ventasSesion = cajaDAO.obtenerTotalVentasSesion(cajaActual.getIdCaja());
             lblVentas.setText("S/ " + String.format("%.2f", ventasSesion));
-            
+
             // EL TOTAL ESPERADO ES EL GRAN TOTAL HISTÓRICO
             lblTotalEsperado.setText("S/ " + String.format("%.2f", granTotalHistorico));
-            
+
             // Pre-llenar con el total histórico para facilitar el cierre
             txtSaldoReal.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
             calcularDiferencia();
-            
+
             btnAccion.setText("CERRAR TURNO");
-            btnAccion.setBackground(new Color(204, 0, 0)); 
+            btnAccion.setBackground(new Color(204, 0, 0));
             lblInstruccion.setText("Dinero total que debe haber:");
         }
     }
@@ -207,15 +206,15 @@ public class GestionCajaFrame extends JFrame {
             // CERRAR
             try {
                 double saldoReal = Double.parseDouble(txtSaldoReal.getText().replace(",", "."));
-                
-                int confirm = JOptionPane.showConfirmDialog(this, 
-                        "¿Cerrar turno con S/ " + saldoReal + "?", 
+
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "¿Cerrar turno con S/ " + saldoReal + "?",
                         "Confirmar Cierre", JOptionPane.YES_NO_OPTION);
-                
+
                 if (confirm == JOptionPane.YES_OPTION) {
                     if (cajaDAO.cerrarCaja(cajaActual.getIdCaja(), saldoReal)) {
                         JOptionPane.showMessageDialog(this, "Turno cerrado.");
-                        this.dispose(); 
+                        this.dispose();
                     }
                 }
             } catch (NumberFormatException e) {
@@ -223,7 +222,7 @@ public class GestionCajaFrame extends JFrame {
             }
         }
     }
-    
+
     private void calcularDiferencia() {
         try {
             String textoReal = txtSaldoReal.getText().replace(",", ".");
@@ -234,9 +233,9 @@ public class GestionCajaFrame extends JFrame {
             double real = Double.parseDouble(textoReal);
             // Diferencia = Lo que cuento físicamente - El total histórico que debería haber
             double diferencia = real - granTotalHistorico;
-            
+
             lblDiferencia.setText("S/ " + String.format("%.2f", diferencia));
-            
+
             if (Math.abs(diferencia) < 0.1) {
                 lblDiferencia.setForeground(new Color(0, 153, 51)); // Verde
                 lblDiferencia.setText("CUADRADO");
@@ -249,12 +248,20 @@ public class GestionCajaFrame extends JFrame {
             lblDiferencia.setText("Error");
         }
     }
-    
+
     private void agregarListeners() {
         txtSaldoReal.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { calcularDiferencia(); }
-            public void removeUpdate(DocumentEvent e) { calcularDiferencia(); }
-            public void changedUpdate(DocumentEvent e) { calcularDiferencia(); }
+            public void insertUpdate(DocumentEvent e) {
+                calcularDiferencia();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                calcularDiferencia();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                calcularDiferencia();
+            }
         });
     }
 }

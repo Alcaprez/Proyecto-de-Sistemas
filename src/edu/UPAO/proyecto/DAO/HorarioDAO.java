@@ -37,6 +37,36 @@ public class HorarioDAO {
         }
         return horario;
     }
+    
+    // ✅ MÉTODO NUEVO: Obtener horario filtrando por día de la semana
+    public HorarioEmpleado obtenerHorarioPorDia(String idEmpleado, String diaSemana) {
+        // Asegúrate de que tu tabla tenga la columna 'dia_semana'
+        String sql = "SELECT * FROM horario_empleado WHERE id_empleado = ? AND dia_semana = ?";
+        HorarioEmpleado horario = null;
+
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, idEmpleado);
+            ps.setString(2, diaSemana);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                Time sqlEntrada = rs.getTime("hora_entrada");
+                Time sqlSalida = rs.getTime("hora_salida");
+
+                horario = new HorarioEmpleado(
+                        rs.getString("id_empleado"),
+                        "Empleado", // Puedes hacer otro JOIN si necesitas el nombre real
+                        sqlEntrada != null ? sqlEntrada.toLocalTime() : null,
+                        sqlSalida != null ? sqlSalida.toLocalTime() : null
+                );
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error obteniendo horario por día: " + e.getMessage());
+        }
+        return horario;
+    }
 
     // ✅ MÉTODO PARA GUARDAR (Aquí sí va el INSERT)
     public void guardarOActualizarHorario(HorarioEmpleado horario) {

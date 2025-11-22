@@ -347,6 +347,21 @@ public class LoginjFrame extends javax.swing.JFrame {
         Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
 
         if (usuarioAutenticado != null) {
+            String rol = usuarioAutenticado.getCargo().toUpperCase();
+
+            if (rol.equals("CAJERO")) {
+                boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
+
+                if (!enTurno) {
+                    JOptionPane.showMessageDialog(this,
+                            "⛔ ACCESO DENEGADO POR HORARIO\n\n"
+                            + "No te encuentras dentro de tu turno asignado.\n"
+                            + "Por favor, verifica tu horario o contacta al supervisor.",
+                            "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
+                    return; // 🛑 DETIENE EL PROCESO AQUÍ
+                }
+            }
+            // ============================================================
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
             abrirPanelSegunRol(usuarioAutenticado);

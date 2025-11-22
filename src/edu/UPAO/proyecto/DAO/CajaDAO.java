@@ -5,6 +5,7 @@ import edu.UPAO.proyecto.Modelo.Caja;
 import java.sql.*;
 
 public class CajaDAO {
+
     private Connection conexion;
 
     public CajaDAO() {
@@ -31,8 +32,44 @@ public class CajaDAO {
         return 0.0;
     }
 
-    // --- MÉTODOS ESTÁNDAR NECESARIOS ---
+    public double obtenerSaldoAcumuladoHistorico(int idSucursal) {
+        // 1. Sumar todas las VENTAS históricas de la sucursal
+        String sqlVentas = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_sucursal = ?";
 
+        // 2. Sumar todos los RETIROS/GASTOS históricos de la caja (movimiento_caja)
+        // Asumimos que 'SALIDA' es el tipo para retiros de dinero
+        String sqlRetiros = "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja "
+                + "WHERE id_sucursal = ? AND tipo IN ('SALIDA', 'RETIRO', 'GASTO')";
+
+        double totalVentas = 0;
+        double totalRetiros = 0;
+
+        try {
+            // Calcular Ventas
+            PreparedStatement ps1 = conexion.prepareStatement(sqlVentas);
+            ps1.setInt(1, idSucursal);
+            ResultSet rs1 = ps1.executeQuery();
+            if (rs1.next()) {
+                totalVentas = rs1.getDouble(1);
+            }
+
+            // Calcular Retiros
+            PreparedStatement ps2 = conexion.prepareStatement(sqlRetiros);
+            ps2.setInt(1, idSucursal);
+            ResultSet rs2 = ps2.executeQuery();
+            if (rs2.next()) {
+                totalRetiros = rs2.getDouble(1);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error calculando saldo histórico: " + e.getMessage());
+        }
+
+        // El dinero que DEBERÍA haber físicamente es: (Lo que entró - Lo que salió)
+        return totalVentas - totalRetiros;
+    }
+
+    // --- MÉTODOS ESTÁNDAR NECESARIOS ---
     public Caja obtenerCajaAbierta(int idSucursal) {
         String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
@@ -44,11 +81,12 @@ public class CajaDAO {
                 c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
                 // IMPORTANTE: Aunque la BD tenga un saldo inicial guardado, 
                 // nosotros usaremos el cálculo histórico en la interfaz.
-                c.setSaldoInicial(rs.getDouble("saldo_inicial")); 
+                c.setSaldoInicial(rs.getDouble("saldo_inicial"));
                 c.setEstado(rs.getString("estado"));
                 return c;
             }
-        } catch (SQLException e) {}
+        } catch (SQLException e) {
+        }
         return null;
     }
 
@@ -58,7 +96,9 @@ public class CajaDAO {
             stmt.setDouble(1, saldoInicial);
             stmt.setInt(2, idSucursal);
             return stmt.executeUpdate() > 0;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     public boolean cerrarCaja(int idCaja, double saldoFinal) {
@@ -67,16 +107,41 @@ public class CajaDAO {
             stmt.setDouble(1, saldoFinal);
             stmt.setInt(2, idCaja);
             return stmt.executeUpdate() > 0;
-        } catch (SQLException e) { return false; }
+        } catch (SQLException e) {
+            return false;
+        }
     }
-    
+
     public double obtenerTotalVentasSesion(int idCaja) {
         String sql = "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja WHERE id_caja = ? AND tipo = 'VENTA'";
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idCaja);
             ResultSet rs = stmt.executeQuery();
-            if (rs.next()) return rs.getDouble(1);
-        } catch (SQLException e) {}
+            if (rs.next()) {
+                return rs.getDouble(1);
+            }
+        } catch (SQLException e) {
+        }
         return 0.0;
+    }
+
+    // Ahora recibe idEmpleado y turno
+    public boolean abrirCaja(int idSucursal, double saldoInicial, String idEmpleado, String turno) {
+        // Buscamos el total histórico real para usarlo como base si es necesario, 
+        // o usamos el saldoInicial que viene del cierre anterior (tu lógica de 'Caja Acumulada').
+
+        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal, id_empleado, turno) "
+                + "VALUES (NOW(), ?, 0, 'ABIERTA', ?, ?, ?)";
+
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setDouble(1, saldoInicial);
+            stmt.setInt(2, idSucursal);
+            stmt.setString(3, idEmpleado); // <--- Nuevo
+            stmt.setString(4, turno);      // <--- Nuevo
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error abriendo caja: " + e.getMessage());
+            return false;
+        }
     }
 }

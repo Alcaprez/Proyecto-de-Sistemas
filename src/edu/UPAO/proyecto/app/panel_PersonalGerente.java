@@ -65,6 +65,17 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         });
     }
 
+    private void configurarComboTurno() {
+        // Si lo agregaste visualmente, solo asegúrate de que tenga estos items
+        // Si es manual, añádelo al panelForm donde corresponda
+        cb_turno = new javax.swing.JComboBox<>();
+        cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"MAÑANA", "TARDE", "NOCHE"}));
+
+        // [!] IMPORTANTE: Debes añadir cbTurno a tu panelForm visualmente o mediante código
+        // Ejemplo: panelForm.add(cbTurno, new org.netbeans.lib.awtextra.AbsoluteConstraints(X, Y, Width, Height));
+        // Te sugiero colocarlo debajo o al lado de "Sueldo".
+    }
+
     private void cargarEmpleadosEnTabla() {
         // 1. Configurar el modelo de la tabla
         DefaultTableModel modelo = (DefaultTableModel) tablaEmpleados.getModel();
@@ -201,23 +212,22 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     }
 
     private int obtenerIdSucursalPorNombre(String nombreSucursal) {
-      String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
-    
-    try (Connection cn = new Conexion().establecerConexion(); 
-         PreparedStatement ps = cn.prepareStatement(sql)) {
+        String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
 
-        ps.setString(1, nombreSucursal);
-        
-        try (ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("id_sucursal");
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, nombreSucursal);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id_sucursal");
+                }
             }
+        } catch (SQLException e) {
+            System.err.println("Error buscando ID sucursal: " + e.getMessage());
         }
-    } catch (SQLException e) {
-        System.err.println("Error buscando ID sucursal: " + e.getMessage());
-    }
-    // Si falla, devuelve 1 (Por eso se te ponía siempre en Tienda Central)
-    return 1; 
+        // Si falla, devuelve 1 (Por eso se te ponía siempre en Tienda Central)
+        return 1;
     }
 
     private void activarBusqueda() {
@@ -240,26 +250,30 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             }
         });
     }
-private void llenarFormularioDesdeTabla() {
-    int fila = tablaEmpleados.getSelectedRow();
-    if (fila >= 0) {
-        // Obtenemos datos de la tabla (ojo con el orden de tus columnas)
-        txtIdEmpleado.setText(tablaEmpleados.getValueAt(fila, 0).toString());
-        txtNombres.setText(tablaEmpleados.getValueAt(fila, 1).toString());
-        txtApellidos.setText(tablaEmpleados.getValueAt(fila, 2).toString());
-        txtDni.setText(tablaEmpleados.getValueAt(fila, 3).toString());
-        txtTelefono.setText(tablaEmpleados.getValueAt(fila, 4).toString());
-        txtCorreo.setText(tablaEmpleados.getValueAt(fila, 5).toString());
-        
-        // Seleccionar combos (Nombre exacto)
-        cbTiendaP.setSelectedItem(tablaEmpleados.getValueAt(fila, 6).toString());
-        cbCargo.setSelectedItem(tablaEmpleados.getValueAt(fila, 7).toString());
-        
-        // Sueldo y Estado
-        txtSueldo.setText(tablaEmpleados.getValueAt(fila, 8).toString());
-        cbEstado.setSelectedItem(tablaEmpleados.getValueAt(fila, 9).toString());
+
+    private void llenarFormularioDesdeTabla() {
+        int fila = tablaEmpleados.getSelectedRow();
+        if (fila >= 0) {
+            txtIdEmpleado.setText(tablaEmpleados.getValueAt(fila, 0).toString());
+            txtNombres.setText(tablaEmpleados.getValueAt(fila, 1).toString());
+            txtApellidos.setText(tablaEmpleados.getValueAt(fila, 2).toString());
+            txtDni.setText(tablaEmpleados.getValueAt(fila, 3).toString());
+            txtTelefono.setText(tablaEmpleados.getValueAt(fila, 4).toString());
+            txtCorreo.setText(tablaEmpleados.getValueAt(fila, 5).toString());
+
+            cbTiendaP.setSelectedItem(tablaEmpleados.getValueAt(fila, 6).toString());
+            cbCargo.setSelectedItem(tablaEmpleados.getValueAt(fila, 7).toString());
+            txtSueldo.setText(tablaEmpleados.getValueAt(fila, 8).toString());
+            cbEstado.setSelectedItem(tablaEmpleados.getValueAt(fila, 9).toString());
+
+            // ✅ NUEVO: Seleccionar el turno correcto
+            // Asumiendo que agregaste el horario en la columna 10 al cargar la tabla
+            if (tablaEmpleados.getColumnCount() > 10) {
+                cb_turno.setSelectedItem(tablaEmpleados.getValueAt(fila, 10).toString());
+            }
+        }
     }
-}
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -316,6 +330,8 @@ private void llenarFormularioDesdeTabla() {
         btnLimpiar = new javax.swing.JButton();
         btnActualizar = new javax.swing.JButton();
         btnAgregar = new javax.swing.JButton();
+        lblTienda1 = new javax.swing.JLabel();
+        cb_turno = new javax.swing.JComboBox<>();
         panelLista = new javax.swing.JPanel();
         panelListaTop = new javax.swing.JPanel();
         scrollEmpleados = new javax.swing.JScrollPane();
@@ -553,6 +569,12 @@ private void llenarFormularioDesdeTabla() {
             }
         });
 
+        lblTienda1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblTienda1.setForeground(new java.awt.Color(0, 0, 0));
+        lblTienda1.setText("TURNO:");
+
+        cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
         javax.swing.GroupLayout panelFormLayout = new javax.swing.GroupLayout(panelForm);
         panelForm.setLayout(panelFormLayout);
         panelFormLayout.setHorizontalGroup(
@@ -579,12 +601,7 @@ private void llenarFormularioDesdeTabla() {
                             .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(panelFormLayout.createSequentialGroup()
-                                .addGap(18, 18, 18)
-                                .addComponent(lblTienda)
-                                .addGap(18, 18, 18)
-                                .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(panelFormLayout.createSequentialGroup()
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
                                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(panelFormLayout.createSequentialGroup()
                                         .addGap(18, 18, 18)
@@ -594,18 +611,28 @@ private void llenarFormularioDesdeTabla() {
                                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                             .addComponent(lblCargo, javax.swing.GroupLayout.Alignment.TRAILING)
                                             .addComponent(lblSueldo, javax.swing.GroupLayout.Alignment.TRAILING))))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(cbEstado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(cbCargo, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED))
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGap(18, 18, 18)
+                                .addComponent(lblTienda)
+                                .addGap(16, 16, 16)))
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addComponent(cbTiendaP, 0, 132, Short.MAX_VALUE)
+                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(cbCargo, 0, 132, Short.MAX_VALUE)
+                                .addComponent(cbEstado, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(txtSueldo))))
                     .addGroup(panelFormLayout.createSequentialGroup()
                         .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(50, 50, 50)
-                        .addComponent(lblIdEmpleado)
                         .addGap(18, 18, 18)
-                        .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(335, 335, 335)
+                        .addComponent(lblTienda1)
+                        .addGap(18, 18, 18)
+                        .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(27, 27, 27)
+                .addComponent(lblIdEmpleado)
+                .addGap(18, 18, 18)
+                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(186, 186, 186)
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(btnActualizar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -617,7 +644,11 @@ private void llenarFormularioDesdeTabla() {
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(panelFormLayout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(btnLimpiar)
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(btnLimpiar)
+                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(lblIdEmpleado)
+                                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(6, 6, 6)
                         .addComponent(btnActualizar)
                         .addGap(6, 6, 6)
@@ -630,12 +661,12 @@ private void llenarFormularioDesdeTabla() {
                                     .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(lblApellidos)))
                             .addGroup(panelFormLayout.createSequentialGroup()
-                                .addGap(3, 3, 3)
+                                .addGap(2, 2, 2)
                                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(lblIdEmpleado)
-                                    .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(lblNombres))
+                                    .addComponent(lblNombres)
+                                    .addComponent(lblTienda1)
+                                    .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(lblTienda)
@@ -766,6 +797,8 @@ private void llenarFormularioDesdeTabla() {
         String rol = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
         String sucursalNombre = cbTiendaP.getSelectedItem().toString();
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+
         int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
 
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
@@ -819,8 +852,13 @@ private void llenarFormularioDesdeTabla() {
                 ps.setInt(3, idSucursal);
                 ps.setString(4, rol);
                 ps.setString(5, estado);
-                ps.setDouble(6, sueldo);       // ← YA NO MARCA ERROR
-                ps.setString(7, "MAÑANA");
+
+                sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
+                ps.setDouble(6, sueldo);
+
+                // ✅ CORRECCIÓN: Usamos la variable, NO el texto fijo
+                ps.setString(7, turnoSeleccionado);
+
                 ps.executeUpdate();
             }
 
@@ -867,57 +905,62 @@ private void llenarFormularioDesdeTabla() {
     }//GEN-LAST:event_btnLimpiarActionPerformed
 
     private void btnActualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarActionPerformed
-     String idEmp = txtIdEmpleado.getText();
-    
-    if (idEmp.isEmpty()) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Selecciona un empleado de la tabla primero.");
-        return;
-    }
+        String idEmp = txtIdEmpleado.getText();
 
-    // Recolectar datos
-    String correo = txtCorreo.getText();
-    String telefono = txtTelefono.getText();
-    String sucursalNombre = cbTiendaP.getSelectedItem().toString(); // Ojo: cbTiendaP
-    String cargo = cbCargo.getSelectedItem().toString();
-    String estado = cbEstado.getSelectedItem().toString();
-    double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
-    
-    int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
-
-    // SQL UPDATE
-    String sql = "UPDATE empleado SET id_sucursal=?, rol=?, estado=?, sueldo=?, horario='MAÑANA' WHERE id_empleado=?";
-    String sqlPersona = "UPDATE persona SET correo=?, telefono=? WHERE dni=?";
-
-    try (Connection cn = new Conexion().establecerConexion()) {
-        cn.setAutoCommit(false); // Transacción
-        
-        // 1. Actualizar datos de empleado (Cargo, Tienda, Sueldo)
-        try (PreparedStatement ps = cn.prepareStatement(sql)) {
-            ps.setInt(1, idSucursal);
-            ps.setString(2, cargo);
-            ps.setString(3, estado);
-            ps.setDouble(4, sueldo);
-            ps.setString(5, idEmp);
-            ps.executeUpdate();
+        if (idEmp.isEmpty()) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Selecciona un empleado de la tabla primero.");
+            return;
         }
-        
-        // 2. Actualizar datos de contacto (Persona)
-        try (PreparedStatement ps2 = cn.prepareStatement(sqlPersona)) {
-            ps2.setString(1, correo);
-            ps2.setString(2, telefono);
-            ps2.setString(3, txtDni.getText());
-            ps2.executeUpdate();
+
+        // Recolectar datos
+        String correo = txtCorreo.getText();
+        String telefono = txtTelefono.getText();
+        String sucursalNombre = cbTiendaP.getSelectedItem().toString(); // Ojo: cbTiendaP
+        String cargo = cbCargo.getSelectedItem().toString();
+        String estado = cbEstado.getSelectedItem().toString();
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+        double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
+
+        int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
+
+        // SQL UPDATE
+        String sql = "UPDATE empleado SET id_sucursal=?, rol=?, estado=?, sueldo=?, horario=? WHERE id_empleado=?";
+        String sqlPersona = "UPDATE persona SET correo=?, telefono=? WHERE dni=?";
+
+        try (Connection cn = new Conexion().establecerConexion()) {
+            cn.setAutoCommit(false); // Transacción
+
+            // 1. Actualizar datos de empleado (Cargo, Tienda, Sueldo)
+            try (PreparedStatement ps = cn.prepareStatement(sql)) {
+                ps.setInt(1, idSucursal);
+                ps.setString(2, cargo);
+                ps.setString(3, estado);
+                ps.setDouble(4, sueldo);
+
+                // ✅ ASIGNAR TURNO
+                ps.setString(5, turnoSeleccionado);
+
+                ps.setString(6, txtIdEmpleado.getText()); // ID es el 6to parámetro ahora
+                ps.executeUpdate();
+            }
+
+            // 2. Actualizar datos de contacto (Persona)
+            try (PreparedStatement ps2 = cn.prepareStatement(sqlPersona)) {
+                ps2.setString(1, correo);
+                ps2.setString(2, telefono);
+                ps2.setString(3, txtDni.getText());
+                ps2.executeUpdate();
+            }
+
+            cn.commit(); // Guardar cambios
+            javax.swing.JOptionPane.showMessageDialog(this, "Empleado actualizado correctamente.");
+            cargarEmpleadosEnTabla(); // Refrescar tabla
+            btnLimpiarActionPerformed(null); // Limpiar formulario
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
         }
-        
-        cn.commit(); // Guardar cambios
-        javax.swing.JOptionPane.showMessageDialog(this, "Empleado actualizado correctamente.");
-        cargarEmpleadosEnTabla(); // Refrescar tabla
-        btnLimpiarActionPerformed(null); // Limpiar formulario
-        
-    } catch (SQLException e) {
-        e.printStackTrace();
-        javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
-    }
     }//GEN-LAST:event_btnActualizarActionPerformed
 
 
@@ -935,6 +978,7 @@ private void llenarFormularioDesdeTabla() {
     private javax.swing.JComboBox<String> cbFiltroEstado;
     private javax.swing.JComboBox<String> cbTienda;
     private javax.swing.JComboBox<String> cbTiendaP;
+    private javax.swing.JComboBox<String> cb_turno;
     private javax.swing.JButton jButton1;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;
@@ -958,6 +1002,7 @@ private void llenarFormularioDesdeTabla() {
     private javax.swing.JLabel lblTardanzasValor;
     private javax.swing.JLabel lblTelefono;
     private javax.swing.JLabel lblTienda;
+    private javax.swing.JLabel lblTienda1;
     private javax.swing.JLabel lblTotalEmpleadosTitulo;
     private javax.swing.JLabel lblTtotalEmpleadosValor;
     private javax.swing.JPanel panelCenter;
