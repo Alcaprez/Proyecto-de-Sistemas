@@ -797,6 +797,21 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
 
+        if (rol.equalsIgnoreCase("CAJERO")) {
+            EmpleadoDAO daoValidacion = new EmpleadoDAO();
+            int cantidadActual = daoValidacion.contarCajerosPorTurno(idSucursal, turnoSeleccionado);
+            
+            if (cantidadActual >= 3) {
+                javax.swing.JOptionPane.showMessageDialog(this,
+                        "⚠️ Límite alcanzado:\n" +
+                        "Ya existen 3 cajeros activos en el turno " + turnoSeleccionado + " para la tienda " + sucursalNombre + ".\n" +
+                        "No se puede agregar más personal en este horario.",
+                        "Cupo Lleno",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                return; // 🛑 DETIENE EL PROCESO AQUÍ
+            }
+        }
+        
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this,
                     "Completa al menos Nombres, Apellidos y DNI",
@@ -902,57 +917,75 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
     private void btnActualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnActualizarActionPerformed
         String idEmp = txtIdEmpleado.getText();
-
+    
         if (idEmp.isEmpty()) {
             javax.swing.JOptionPane.showMessageDialog(this, "Selecciona un empleado de la tabla primero.");
             return;
         }
 
-        // Recolectar datos
+        // 1. Recolectar datos del formulario
         String correo = txtCorreo.getText();
         String telefono = txtTelefono.getText();
-        String sucursalNombre = cbTiendaP.getSelectedItem().toString(); // Ojo: cbTiendaP
+        String sucursalNombre = cbTiendaP.getSelectedItem().toString(); 
         String cargo = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
-        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+        
+        // Asegúrate que este sea el nombre correcto de tu ComboBox de turno
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString(); 
+        
         double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
-
         int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
 
-        // SQL UPDATE
-        String sql = "UPDATE empleado SET id_sucursal=?, rol=?, estado=?, sueldo=?, horario=? WHERE id_empleado=?";
+        // ============================================================
+        // ✅ VALIDACIÓN: Límite de 3 Cajeros (Excluyendo al actual)
+        // ============================================================
+        if (cargo.equalsIgnoreCase("CAJERO") && estado.equals("ACTIVO")) {
+            EmpleadoDAO daoValidacion = new EmpleadoDAO();
+            // Verificamos si hay espacio en el turno destino
+            int cantidad = daoValidacion.contarCajerosPorTurnoExcluyendo(idSucursal, turnoSeleccionado, idEmp);
+            
+            if (cantidad >= 3) {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "⚠️ Cupo lleno:\nYa existen 3 cajeros activos en el turno " + turnoSeleccionado + ".\n" +
+                    "No se puede mover a este empleado a ese horario.",
+                    "Límite Alcanzado", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return; // 🛑 Detiene la actualización
+            }
+        }
+        // ============================================================
+
+        // Consultas SQL
+        String sqlEmpleado = "UPDATE empleado SET id_sucursal=?, rol=?, estado=?, sueldo=?, horario=? WHERE id_empleado=?";
         String sqlPersona = "UPDATE persona SET correo=?, telefono=? WHERE dni=?";
 
         try (Connection cn = new Conexion().establecerConexion()) {
-            cn.setAutoCommit(false); // Transacción
-
-            // 1. Actualizar datos de empleado (Cargo, Tienda, Sueldo)
-            try (PreparedStatement ps = cn.prepareStatement(sql)) {
+            cn.setAutoCommit(false); // Iniciar Transacción
+            
+            // 2. Actualizar datos de EMPLEADO (Incluyendo Turno)
+            try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
                 ps.setInt(1, idSucursal);
                 ps.setString(2, cargo);
                 ps.setString(3, estado);
                 ps.setDouble(4, sueldo);
-
-                // ✅ ASIGNAR TURNO
-                ps.setString(5, turnoSeleccionado);
-
-                ps.setString(6, txtIdEmpleado.getText()); // ID es el 6to parámetro ahora
+                ps.setString(5, turnoSeleccionado); // ✅ Guardamos el turno seleccionado
+                ps.setString(6, idEmp);
                 ps.executeUpdate();
             }
-
-            // 2. Actualizar datos de contacto (Persona)
+            
+            // 3. Actualizar datos de CONTACTO
             try (PreparedStatement ps2 = cn.prepareStatement(sqlPersona)) {
                 ps2.setString(1, correo);
                 ps2.setString(2, telefono);
                 ps2.setString(3, txtDni.getText());
                 ps2.executeUpdate();
             }
-
-            cn.commit(); // Guardar cambios
+            
+            cn.commit(); // Confirmar cambios
             javax.swing.JOptionPane.showMessageDialog(this, "Empleado actualizado correctamente.");
-            cargarEmpleadosEnTabla(); // Refrescar tabla
+            
+            cargarEmpleadosEnTabla(); // Refrescar tabla visual
             btnLimpiarActionPerformed(null); // Limpiar formulario
-
+            
         } catch (SQLException e) {
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
