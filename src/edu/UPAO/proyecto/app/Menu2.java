@@ -77,37 +77,35 @@ public class Menu2 extends javax.swing.JFrame {
             }
         }).start();
     }
-    
-    
-    
+
     public void finalizarVenta() {
         // 1. Limpiar campos de texto
         txtBuscarCodigo.setText("");
         txtCupon.setText("");
         txtObservaciones.setText("");
-        
+
         // 2. Reiniciar etiquetas y spinners
         lbl_subtotal.setText("Subtotal: S/ 0.00");
         lbl_descuento.setText("Descuento: S/ 0.00");
         resultadoTotal.setText("S/ 0.00");
         spCantidad.setValue(1);
-        
+
         // 3. Vaciar la tabla del carrito
         javax.swing.table.DefaultTableModel modeloCarrito = (javax.swing.table.DefaultTableModel) miniTabla.getModel();
         modeloCarrito.setRowCount(0);
-        
+
         // 4. Desactivar controles opcionales
         rb_cupon.setSelected(false);
         txtCupon.setEnabled(false);
         rb_observacion.setSelected(false);
         txtObservaciones.setEnabled(false);
-        
+
         // 5. 🔥 RECARGAR EL STOCK DE LA TABLA DE PRODUCTOS (Actualizar vista)
-        cargarProductosEnTabla(); 
-        
+        cargarProductosEnTabla();
+
         System.out.println("🔄 Venta finalizada: Interfaz limpia y stock actualizado.");
     }
-    
+
     private void inicializarComponentes() {
         inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
@@ -363,7 +361,6 @@ public class Menu2 extends javax.swing.JFrame {
         jSeparator1 = new javax.swing.JSeparator();
         btn_ventas = new javax.swing.JButton();
         btn_inicio = new javax.swing.JButton();
-        panel_contenido = new javax.swing.JInternalFrame();
         panelFormulario = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
         btn_agregar = new javax.swing.JButton();
@@ -498,19 +495,6 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
-        panel_contenido.setVisible(true);
-
-        javax.swing.GroupLayout panel_contenidoLayout = new javax.swing.GroupLayout(panel_contenido.getContentPane());
-        panel_contenido.getContentPane().setLayout(panel_contenidoLayout);
-        panel_contenidoLayout.setHorizontalGroup(
-            panel_contenidoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        panel_contenidoLayout.setVerticalGroup(
-            panel_contenidoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -530,10 +514,6 @@ public class Menu2 extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(647, Short.MAX_VALUE))
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(panel_contenido)
-                .addGap(17, 17, 17))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -545,9 +525,7 @@ public class Menu2 extends javax.swing.JFrame {
                     .addComponent(btn_inicio, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_ventas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(panel_contenido, javax.swing.GroupLayout.PREFERRED_SIZE, 2, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(107, 107, 107)
+                .addGap(115, 115, 115)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(685, 685, 685))
         );
@@ -979,21 +957,6 @@ public class Menu2 extends javax.swing.JFrame {
         return j == patron.length();
     }
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
-        jFrame_añadirProducto1.setVisible(true);
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
-        jFrame_Asistncias jFrame_Asistncias1;
-        jFrame_Asistncias1 = new jFrame_Asistncias();
-        jFrame_Asistncias1.setVisible(true);
-    }//GEN-LAST:event_tb_entradaActionPerformed
-
-    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tb_reportesActionPerformed
-
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
         int confirmacion = JOptionPane.showConfirmDialog(
                 this,
@@ -1325,22 +1288,33 @@ public class Menu2 extends javax.swing.JFrame {
         System.out.println("✅ Producto agregado - Stock: " + producto.getStock());
     }//GEN-LAST:event_btn_agregarActionPerformed
 
+    private void btn_inicioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_inicioActionPerformed
+
+    }//GEN-LAST:event_btn_inicioActionPerformed
+
+    private void btn_ventasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventasActionPerformed
+        HistorialVentasFrame historial = new HistorialVentasFrame(this.idEmpleado);
+        historial.setVisible(true);
+    }//GEN-LAST:event_btn_ventasActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
+        jFrame_añadirProducto1.setVisible(true);
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     private void jButton1ComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jButton1ComponentMoved
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ComponentMoved
 
-    private void btn_inicioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_inicioActionPerformed
+    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
+        jFrame_Asistncias jFrame_Asistncias1;
+        jFrame_Asistncias1 = new jFrame_Asistncias();
+        jFrame_Asistncias1.setVisible(true);
+    }//GEN-LAST:event_tb_entradaActionPerformed
 
-        jPanel2.setSize(1380, 43);        jPanel2.setSize(1380, 43);    }//GEN-LAST:event_btn_inicioActionPerformed
-
-    private void btn_ventasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventasActionPerformed
-        panel_contenido.setSize(1380, 661);
-        jPanel2.setSize(1380, 700);
-        panel_contenido.setClosable(false);
-        panel_contenido.setMaximizable(false);
-        panel_contenido.setIconifiable(false);
-
-    }//GEN-LAST:event_btn_ventasActionPerformed
+    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tb_reportesActionPerformed
 
     /**
      * @param args the command line arguments
@@ -1404,7 +1378,6 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JTable miniTabla;
     private javax.swing.JPanel panel;
     private javax.swing.JPanel panelFormulario;
-    private javax.swing.JInternalFrame panel_contenido;
     private javax.swing.JRadioButton rb_cupon;
     private javax.swing.JRadioButton rb_observacion;
     private javax.swing.JLabel resultadoTotal;
