@@ -144,4 +144,80 @@ public class CajaDAO {
             return false;
         }
     }
+    
+    // ✅ CORRECCIÓN: Buscar caja abierta ESPECÍFICA del empleado en esa sucursal
+    public Caja obtenerCajaAbiertaPorUsuario(int idSucursal, String idEmpleado) {
+        String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
+        
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setInt(1, idSucursal);
+            stmt.setString(2, idEmpleado); // Filtramos por TU usuario
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                Caja c = new Caja();
+                c.setIdCaja(rs.getInt("id_caja"));
+                c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
+                c.setSaldoInicial(rs.getDouble("saldo_inicial"));
+                c.setEstado(rs.getString("estado"));
+                // c.setIdEmpleado(rs.getString("id_empleado")); // Si tienes este campo en tu modelo
+                return c;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscando caja de usuario: " + e.getMessage());
+        }
+        return null; // Retorna null si ESTE empleado no tiene caja (permitiendo abrir una nueva)
+    }
+    
+    // ✅ Método para el Arqueo: Calcula cuánto dinero debería haber según el sistema
+    public double calcularSaldoTeorico(int idCaja) {
+        double saldoInicial = 0;
+        double totalMovimientos = 0;
+
+        // 1. Obtener saldo inicial
+        String sqlIni = "SELECT saldo_inicial FROM caja WHERE id_caja = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sqlIni)) {
+            ps.setInt(1, idCaja);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                saldoInicial = rs.getDouble("saldo_inicial");
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        // 2. Sumar movimientos (VENTAS + INGRESOS - GASTOS - DEVOLUCIONES)
+        // Asumiendo que los movimientos de SALIDA ya se guardaron como negativos o los restamos aquí.
+        // Si en tu tabla guardas todo positivo y usas el campo 'tipo', ajusta la lógica:
+        String sqlMovs = "SELECT tipo, monto FROM movimiento_caja WHERE id_caja = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sqlMovs)) {
+            ps.setInt(1, idCaja);
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String tipo = rs.getString("tipo").toUpperCase();
+                double monto = rs.getDouble("monto");
+                
+                if (tipo.contains("SALIDA") || tipo.contains("GASTO") || tipo.contains("DEVOLUCION")) {
+                    totalMovimientos -= monto;
+                } else {
+                    totalMovimientos += monto; // VENTAS, INGRESOS
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        return saldoInicial + totalMovimientos;
+    }
+
+    // ✅ Método Actualizado: Cerrar Caja con datos del Arqueo
+    public boolean cerrarCajaConArqueo(int idCaja, double saldoFinalReal, double diferencia, String observaciones) {
+        String sql = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
+        // Podrías guardar la diferencia en otra tabla 'arqueo' si quisieras, por ahora cerramos la caja.
+        
+        try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
+            stmt.setDouble(1, saldoFinalReal);
+            stmt.setInt(2, idCaja);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error cerrando caja: " + e.getMessage());
+            return false;
+        }
+    }
 }

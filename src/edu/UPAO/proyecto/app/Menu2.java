@@ -11,8 +11,11 @@ import javax.swing.table.DefaultTableModel;
 import edu.UPAO.proyecto.ProductoController;
 import edu.UPAO.proyecto.PromocionController;
 import edu.UPAO.proyecto.Modelo.Producto;
+import java.awt.Frame;
+import java.awt.Window;
 import java.util.ArrayList;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -34,8 +37,26 @@ public class Menu2 extends javax.swing.JFrame {
         setTitle("Sistema Kuyay - Menú Principal");
 
         inicializarComponentes();
-        btn_inicio.doClick();
+        btn_cuenta.doClick();
         verificarStockCajero(idEmpleado);
+    }
+
+    private int obtenerIdCajaAbierta() {
+        int idCaja = -1;
+        String sql = "SELECT id_caja FROM caja WHERE id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
+
+        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, this.idEmpleado); // Usamos el ID del empleado logueado
+            java.sql.ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                idCaja = rs.getInt("id_caja");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al buscar caja abierta: " + e.getMessage());
+        }
+        return idCaja;
     }
 
     private void verificarStockCajero(String idEmpleado) {
@@ -357,10 +378,10 @@ public class Menu2 extends javax.swing.JFrame {
         jPanel2 = new javax.swing.JPanel();
         tb_reportes = new javax.swing.JToggleButton();
         tb_entrada = new javax.swing.JToggleButton();
-        jButton1 = new javax.swing.JButton();
+        btn_devolver = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
         btn_ventas = new javax.swing.JButton();
-        btn_inicio = new javax.swing.JButton();
+        btn_cuenta = new javax.swing.JButton();
         panelFormulario = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
         btn_agregar = new javax.swing.JButton();
@@ -467,17 +488,17 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
-        jButton1.setBackground(new java.awt.Color(113, 153, 143));
-        jButton1.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
-        jButton1.setText("R- PRODUCTOS");
-        jButton1.addComponentListener(new java.awt.event.ComponentAdapter() {
+        btn_devolver.setBackground(new java.awt.Color(113, 153, 143));
+        btn_devolver.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_devolver.setText("HACER DEVOLUCION");
+        btn_devolver.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentMoved(java.awt.event.ComponentEvent evt) {
-                jButton1ComponentMoved(evt);
+                btn_devolverComponentMoved(evt);
             }
         });
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        btn_devolver.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                btn_devolverActionPerformed(evt);
             }
         });
 
@@ -488,10 +509,10 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
-        btn_inicio.setText("iNICIO");
-        btn_inicio.addActionListener(new java.awt.event.ActionListener() {
+        btn_cuenta.setText("MI CUENTA");
+        btn_cuenta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_inicioActionPerformed(evt);
+                btn_cuentaActionPerformed(evt);
             }
         });
 
@@ -504,7 +525,7 @@ public class Menu2 extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 426, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(btn_inicio, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btn_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(tb_reportes, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
@@ -512,7 +533,7 @@ public class Menu2 extends javax.swing.JFrame {
                         .addGap(26, 26, 26)
                         .addComponent(btn_ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(btn_devolver, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(647, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
@@ -522,9 +543,9 @@ public class Menu2 extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tb_reportes, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(tb_entrada, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
-                    .addComponent(btn_inicio, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_ventas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(btn_devolver, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(115, 115, 115)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(685, 685, 685))
@@ -958,24 +979,77 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-        int confirmacion = JOptionPane.showConfirmDialog(
-                this,
-                "¿Está seguro que desea cerrar sesión?",
-                "Cerrar Sesión",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
+Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja)", "Cancelar"};
+        
+        int seleccion = JOptionPane.showOptionDialog(this,
+            "¿Qué desea hacer?\n\n" +
+            "• Cerrar Sesión: La caja queda ABIERTA. Use esto para descansos.\n" +
+            "• Finalizar Turno: Se realizará el ARQUEO y se CERRARÁ la caja.",
+            "Control de Salida",
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[2]);
 
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            // ✅ Volver al login
-            LoginjFrame login = new LoginjFrame();
-            login.setVisible(true);
-
-            // ✅ Cerrar el panel de gerente
-            this.dispose();
+        if (seleccion == 0) { 
+            // --- OPCIÓN 1: SOLO SALIR (Caja queda abierta) ---
+            System.out.println("Sesión pausada. Caja sigue abierta.");
+            irALogin();
+            
+        } else if (seleccion == 1) {
+            // --- OPCIÓN 2: FINALIZAR TURNO (Obliga Arqueo) ---
+            int idCaja = obtenerIdCajaAbierta();
+            
+            if (idCaja == -1) {
+                // Si por alguna razón no tiene caja (ej. error sistema), lo dejamos salir
+                JOptionPane.showMessageDialog(this, "No se detectó caja abierta. Saliendo...");
+                irALogin();
+            } else {
+                // Abrir ventana OBLIGATORIA de Arqueo
+                DialogoArqueoCaja dialogo = new DialogoArqueoCaja(this, true, idCaja);
+                dialogo.setVisible(true);
+                
+                // Solo salimos si el arqueo fue exitoso
+                if (dialogo.cajaCerradaExito) {
+                    irALogin();
+                } else {
+                    // Si canceló el arqueo, no hacemos nada (se queda en el menú)
+                }
+            }
         }
     }//GEN-LAST:event_btn_salirActionPerformed
 
+    private void irALogin() {
+        LoginjFrame login = new LoginjFrame();
+        login.setVisible(true);
+        this.dispose();
+    }
+    
+    private void cerrarCajaAutomatica() {
+        try {
+            edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+            
+            // 1. Buscar mi caja abierta
+            int idCaja = obtenerIdCajaAbierta(); // Método que ya creamos en la respuesta anterior
+            
+            if (idCaja != -1) {
+                // 2. Calcular saldo final real
+                double saldoFinal = cajaDAO.obtenerSaldoAcumuladoHistorico(this.idSucursal);
+                
+                // 3. Cerrar en BD
+                boolean exito = cajaDAO.cerrarCaja(idCaja, saldoFinal);
+                
+                if (exito) {
+                    System.out.println("✅ CAJA CERRADA CORRECTAMENTE. Saldo Final: " + saldoFinal);
+                    JOptionPane.showMessageDialog(this, "Turno finalizado. Caja cerrada con: S/ " + saldoFinal);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al cerrar caja automática: " + e.getMessage());
+        }
+    }
+    
     private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
         String texto = txtBuscarCodigo.getText().trim().toLowerCase();
         if (texto.isEmpty()) {
@@ -1289,22 +1363,45 @@ public class Menu2 extends javax.swing.JFrame {
         System.out.println("✅ Producto agregado - Stock: " + producto.getStock());
     }//GEN-LAST:event_btn_agregarActionPerformed
 
-    private void btn_inicioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_inicioActionPerformed
+    private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
 
-    }//GEN-LAST:event_btn_inicioActionPerformed
+    }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_ventasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventasActionPerformed
         HistorialVentasFrame historial = new HistorialVentasFrame(this.idEmpleado);
         historial.setVisible(true);
     }//GEN-LAST:event_btn_ventasActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void btn_devolverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_devolverActionPerformed
+       int idCajaActual = obtenerIdCajaAbierta();
 
-    }//GEN-LAST:event_jButton1ActionPerformed
+        // 2. Validamos que exista una caja abierta
+        if (idCajaActual == -1) {
+            JOptionPane.showMessageDialog(this, 
+                "No tienes una caja abierta actualmente.\nNo se pueden realizar devoluciones de dinero.", 
+                "Caja Cerrada", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-    private void jButton1ComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jButton1ComponentMoved
+        // 3. Abrimos la ventana de devoluciones pasándole todos los datos
+        DialogoDevolucionVenta dialogo = new DialogoDevolucionVenta(
+            this,               // Ventana padre (Menu2)
+            true,               // Modal (bloquea la ventana de atrás)
+            idCajaActual,       // ID Caja recuperado de la BD
+            this.idSucursal,    // ID Sucursal que ya tenías en Menu2
+            this.idEmpleado     // ID Empleado que ya tenías en Menu2
+        );
+        
+        dialogo.setVisible(true);
+        
+        // Opcional: Recargar productos por si hubo devolución a stock
+        cargarProductosEnTabla();
+    }//GEN-LAST:event_btn_devolverActionPerformed
+
+    private void btn_devolverComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_btn_devolverComponentMoved
         // TODO add your handling code here:
-    }//GEN-LAST:event_jButton1ComponentMoved
+    }//GEN-LAST:event_btn_devolverComponentMoved
 
     private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
         jFrame_Asistncias jFrame_Asistncias1;
@@ -1351,12 +1448,12 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JButton btn_agregar;
     private javax.swing.JButton btn_buscar;
     private javax.swing.JButton btn_cancelar;
+    private javax.swing.JButton btn_cuenta;
+    private javax.swing.JButton btn_devolver;
     private javax.swing.JButton btn_eliminarItem;
-    private javax.swing.JButton btn_inicio;
     private javax.swing.JButton btn_salir;
     private javax.swing.JButton btn_validar;
     private javax.swing.JButton btn_ventas;
-    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton11;
     private javax.swing.JButton jButton12;
     private javax.swing.JLabel jLabel1;

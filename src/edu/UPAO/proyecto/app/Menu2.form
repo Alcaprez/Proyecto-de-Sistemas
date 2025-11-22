@@ -128,7 +128,7 @@
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Component id="jSeparator1" alignment="0" min="-2" pref="426" max="-2" attributes="0"/>
                       <Group type="102" alignment="0" attributes="0">
-                          <Component id="btn_inicio" min="-2" pref="122" max="-2" attributes="0"/>
+                          <Component id="btn_cuenta" min="-2" pref="122" max="-2" attributes="0"/>
                           <EmptySpace type="separate" max="-2" attributes="0"/>
                           <Component id="tb_reportes" min="-2" pref="127" max="-2" attributes="0"/>
                           <EmptySpace type="separate" max="-2" attributes="0"/>
@@ -136,7 +136,7 @@
                           <EmptySpace min="-2" pref="26" max="-2" attributes="0"/>
                           <Component id="btn_ventas" min="-2" pref="124" max="-2" attributes="0"/>
                           <EmptySpace type="separate" max="-2" attributes="0"/>
-                          <Component id="jButton1" min="-2" pref="136" max="-2" attributes="0"/>
+                          <Component id="btn_devolver" min="-2" pref="136" max="-2" attributes="0"/>
                       </Group>
                   </Group>
                   <EmptySpace pref="647" max="32767" attributes="0"/>
@@ -150,9 +150,9 @@
                   <Group type="103" groupAlignment="3" attributes="0">
                       <Component id="tb_reportes" alignment="3" pref="30" max="32767" attributes="0"/>
                       <Component id="tb_entrada" alignment="3" pref="30" max="32767" attributes="0"/>
-                      <Component id="btn_inicio" alignment="3" max="32767" attributes="0"/>
+                      <Component id="btn_cuenta" alignment="3" max="32767" attributes="0"/>
                       <Component id="btn_ventas" alignment="3" max="32767" attributes="0"/>
-                      <Component id="jButton1" alignment="3" max="32767" attributes="0"/>
+                      <Component id="btn_devolver" alignment="3" max="32767" attributes="0"/>
                   </Group>
                   <EmptySpace min="-2" pref="115" max="-2" attributes="0"/>
                   <Component id="jSeparator1" min="-2" pref="0" max="-2" attributes="0"/>
@@ -190,7 +190,7 @@
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="tb_entradaActionPerformed"/>
           </Events>
         </Component>
-        <Component class="javax.swing.JButton" name="jButton1">
+        <Component class="javax.swing.JButton" name="btn_devolver">
           <Properties>
             <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="8f" green="99" red="71" type="rgb"/>
@@ -198,11 +198,11 @@
             <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
               <Font name="Dialog" size="12" style="1"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="R- PRODUCTOS"/>
+            <Property name="text" type="java.lang.String" value="HACER DEVOLUCION"/>
           </Properties>
           <Events>
-            <EventHandler event="componentMoved" listener="java.awt.event.ComponentListener" parameters="java.awt.event.ComponentEvent" handler="jButton1ComponentMoved"/>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jButton1ActionPerformed"/>
+            <EventHandler event="componentMoved" listener="java.awt.event.ComponentListener" parameters="java.awt.event.ComponentEvent" handler="btn_devolverComponentMoved"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_devolverActionPerformed"/>
           </Events>
         </Component>
         <Component class="javax.swing.JSeparator" name="jSeparator1">
@@ -215,12 +215,12 @@
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_ventasActionPerformed"/>
           </Events>
         </Component>
-        <Component class="javax.swing.JButton" name="btn_inicio">
+        <Component class="javax.swing.JButton" name="btn_cuenta">
           <Properties>
-            <Property name="text" type="java.lang.String" value="iNICIO"/>
+            <Property name="text" type="java.lang.String" value="MI CUENTA"/>
           </Properties>
           <Events>
-            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_inicioActionPerformed"/>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="btn_cuentaActionPerformed"/>
           </Events>
         </Component>
       </SubComponents>

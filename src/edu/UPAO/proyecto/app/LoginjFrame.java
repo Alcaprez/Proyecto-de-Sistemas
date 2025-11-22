@@ -350,18 +350,41 @@ public class LoginjFrame extends javax.swing.JFrame {
             String rol = usuarioAutenticado.getCargo().toUpperCase();
 
             if (rol.equals("CAJERO")) {
+                // 1. Validación de Horario (Existente)
                 boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
-
                 if (!enTurno) {
                     JOptionPane.showMessageDialog(this,
-                            "⛔ ACCESO DENEGADO POR HORARIO\n\n"
-                            + "No te encuentras dentro de tu turno asignado.\n"
-                            + "Por favor, verifica tu horario o contacta al supervisor.",
+                            "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.",
                             "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
-                    return; // 🛑 DETIENE EL PROCESO AQUÍ
+                    return;
                 }
+
+                // 2. 👇 LÓGICA REAL PARA OBTENER EL ID DE LA SUCURSAL 👇
+                String nombreSucursal = cb_sucursales.getSelectedItem().toString();
+                int idSucursalReal = -1;
+
+                try {
+                    SucursalDAO sucursalDAO = new SucursalDAO();
+                    // Aquí llamamos al método que acabamos de crear en el Paso 1
+                    idSucursalReal = sucursalDAO.obtenerIdPorNombre(nombreSucursal);
+                } catch (Exception e) {
+                    System.err.println("Error buscando sucursal: " + e.getMessage());
+                }
+
+                // Validamos que se haya encontrado la sucursal
+                if (idSucursalReal == -1) {
+                    JOptionPane.showMessageDialog(this, "Error crítico: No se pudo identificar la sucursal seleccionada en la BD.");
+                    return;
+                }
+
+                System.out.println("🏢 Sucursal detectada: " + nombreSucursal + " (ID: " + idSucursalReal + ")");
+
+                // 3. 👇 ABRIR CAJA AUTOMÁTICAMENTE CON EL ID REAL 👇
+                gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
+
+                // 4. Abrir Menú (Pasando el ID de Sucursal si tu Menu2 lo soporta, o dejando que lo busque solo)
+                // Menu2 menuPrincipal = new Menu2(idEmpleado); ...
             }
-            // ============================================================
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
             abrirPanelSegunRol(usuarioAutenticado);
@@ -409,9 +432,36 @@ public class LoginjFrame extends javax.swing.JFrame {
         });
     }
 
-    /**
-     * @param args the command line arguments
-     */
+    private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
+        edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+
+        // 1. ✅ CORRECCIÓN AQUÍ: Verificar si ESTE USUARIO ya tiene caja abierta
+        // Antes usabas 'obtenerCajaAbierta(idSucursal)' y encontraba la de otros o las vacías.
+        edu.UPAO.proyecto.Modelo.Caja cajaActual = cajaDAO.obtenerCajaAbiertaPorUsuario(idSucursal, idEmpleado);
+
+        if (cajaActual == null) {
+            System.out.println("🔄 No tienes caja abierta. Iniciando apertura automática para " + idEmpleado + "...");
+
+            // 2. Calcular el saldo histórico para iniciar
+            double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
+
+            // 3. Determinar turno
+            java.time.LocalTime hora = java.time.LocalTime.now();
+            String turno = (hora.getHour() < 14) ? "MAÑANA" : "TARDE";
+
+            // 4. Abrir la caja en BD asignándola a TI
+            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoHistorico, idEmpleado, turno);
+
+            if (exito) {
+                System.out.println("✅ CAJA CREADA CORRECTAMENTE. Saldo Inicial: S/ " + saldoHistorico);
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al intentar abrir la caja automáticamente.", "Error BD", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + "). Accediendo...");
+        }
+    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;
