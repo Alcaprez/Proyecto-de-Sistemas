@@ -29,7 +29,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
         initComponents(); // Inicia los componentes visuales
 
         // Configuración inicial de la ventana
-        panel_Rentabilidad panel_Rentabilidad1 = new panel_Rentabilidad();
+        panel_Tesoreria panel_Rentabilidad1 = new panel_Tesoreria();
         MostrarPanel(panel_Rentabilidad1);
         this.setResizable(false);
         setLocationRelativeTo(null);
@@ -301,7 +301,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
-        panel_Rentabilidad panel_Rentabilidad1 = new panel_Rentabilidad();
+        panel_Tesoreria panel_Rentabilidad1 = new panel_Tesoreria();
         MostrarPanel(panel_Rentabilidad1);
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 

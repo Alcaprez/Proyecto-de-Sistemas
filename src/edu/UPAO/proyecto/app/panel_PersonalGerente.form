@@ -498,11 +498,9 @@
                                   </Group>
                                   <Group type="103" groupAlignment="1" max="-2" attributes="0">
                                       <Component id="cbTiendaP" pref="132" max="32767" attributes="0"/>
-                                      <Group type="103" groupAlignment="0" max="-2" attributes="0">
-                                          <Component id="cbCargo" alignment="0" pref="132" max="32767" attributes="0"/>
-                                          <Component id="cbEstado" alignment="0" max="32767" attributes="0"/>
-                                          <Component id="txtSueldo" alignment="0" max="32767" attributes="0"/>
-                                      </Group>
+                                      <Component id="cbCargo" alignment="0" pref="132" max="32767" attributes="0"/>
+                                      <Component id="cbEstado" alignment="0" max="32767" attributes="0"/>
+                                      <Component id="txtSueldo" alignment="0" max="32767" attributes="0"/>
                                   </Group>
                               </Group>
                               <Group type="102" attributes="0">
@@ -532,12 +530,12 @@
                           <Group type="103" groupAlignment="0" attributes="0">
                               <Group type="102" attributes="0">
                                   <EmptySpace min="10" pref="10" max="-2" attributes="0"/>
-                                  <Group type="103" groupAlignment="3" attributes="0">
-                                      <Component id="btnLimpiar" alignment="3" min="-2" max="-2" attributes="0"/>
-                                      <Group type="103" alignment="3" groupAlignment="3" attributes="0">
+                                  <Group type="103" groupAlignment="0" attributes="0">
+                                      <Group type="103" alignment="0" groupAlignment="3" attributes="0">
                                           <Component id="lblIdEmpleado" alignment="3" min="-2" max="-2" attributes="0"/>
                                           <Component id="txtIdEmpleado" alignment="3" min="-2" max="-2" attributes="0"/>
                                       </Group>
+                                      <Component id="btnLimpiar" min="-2" max="-2" attributes="0"/>
                                   </Group>
                                   <EmptySpace min="6" pref="6" max="-2" attributes="0"/>
                                   <Component id="btnActualizar" min="-2" max="-2" attributes="0"/>
