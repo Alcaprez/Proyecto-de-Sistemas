@@ -22,6 +22,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
     public panel_PersonalGerente() {
         initComponents();
+        configurarComboTurno();
         cargarEmpleadosEnTabla();
         cargarCombosSucursales();
         activarBusqueda();
@@ -66,14 +67,9 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     }
 
     private void configurarComboTurno() {
-        // Si lo agregaste visualmente, solo asegúrate de que tenga estos items
-        // Si es manual, añádelo al panelForm donde corresponda
-        cb_turno = new javax.swing.JComboBox<>();
-        cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"MAÑANA", "TARDE", "NOCHE"}));
-
-        // [!] IMPORTANTE: Debes añadir cbTurno a tu panelForm visualmente o mediante código
-        // Ejemplo: panelForm.add(cbTurno, new org.netbeans.lib.awtextra.AbsoluteConstraints(X, Y, Width, Height));
-        // Te sugiero colocarlo debajo o al lado de "Sueldo".
+       if (cb_turno != null) {
+            cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "MAÑANA", "TARDE", "NOCHE" }));
+        }
     }
 
     private void cargarEmpleadosEnTabla() {
