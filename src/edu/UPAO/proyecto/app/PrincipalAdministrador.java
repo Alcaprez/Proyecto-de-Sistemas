@@ -293,9 +293,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
         // 1. Creamos la instancia de tu panel de pedidos
-        // (Asegúrate de que 'FormularioPedidos' sea el nombre exacto de tu archivo Java del panel anterior)
         COMPRAS_Admin panelCompras = new COMPRAS_Admin();
-
         // 2. Llamamos a tu función para mostrarlo en el área blanca
         MostrarPanel(panelCompras);
     }//GEN-LAST:event_btn_comprasActionPerformed

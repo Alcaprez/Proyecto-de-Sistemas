@@ -12,12 +12,15 @@ import javax.swing.table.DefaultTableCellRenderer;
 public class COMPRAS_Admin extends javax.swing.JPanel {
 
     public COMPRAS_Admin() {
-    initComponents();
-        try { jTabbedPane1.setSelectedIndex(0); } catch (Exception e) {}
-        
+        initComponents();
+        try {
+            jTabbedPane1.setSelectedIndex(0);
+        } catch (Exception e) {
+        }
+
         // 1. Llenamos las listas desplegables
-        llenarFiltros(); 
-        
+        llenarFiltros();
+
         // 2. Mostramos la tabla inicial
         mostrarDatos();
 
@@ -51,28 +54,30 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 mostrarDatos();
             }
         });
+
+        configurarTablaRecepcion();
     }
-private void mostrarHistorialCompras() {
+
+    private void mostrarHistorialCompras() {
         DefaultTableModel modelo = (DefaultTableModel) tblCompras.getModel();
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Proveedor", "Total", "Estado"});
-        
+
         // Ajuste de anchos para que se vea profesional
         tblCompras.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID pequeño
         tblCompras.getColumnModel().getColumn(1).setPreferredWidth(120); // Fecha
         tblCompras.getColumnModel().getColumn(2).setPreferredWidth(250); // Proveedor grande
-        
+
         // Ocultamos la columna ID visualmente si quieres, pero la necesitamos
-        
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
         // Traemos las compras que NO estén ya anuladas
-        String sql = "SELECT c.id_compra, c.fecha_hora, p.Razon_Social, c.total, c.estado " +
-                     "FROM compra c " +
-                     "INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor " +
-                     "ORDER BY c.fecha_hora DESC";
+        String sql = "SELECT c.id_compra, c.fecha_hora, p.Razon_Social, c.total, c.estado "
+                + "FROM compra c "
+                + "INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor "
+                + "ORDER BY c.fecha_hora DESC";
 
         try {
             Connection con = DriverManager.getConnection(url, usuario, password);
@@ -93,18 +98,19 @@ private void mostrarHistorialCompras() {
             System.out.println("Error cargando compras: " + e);
         }
     }
+
     private void mostrarDatos() {
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
         DefaultTableModel modelo = (DefaultTableModel) tblPedidos.getModel();
         modelo.setRowCount(0);
 
         // 1. Construimos la consulta BASE
         String sql = "SELECT p.codigo, pr.Razon_Social, p.fecha_pedido, p.fecha_comprometida, p.estado "
-                   + "FROM pedido p "
-                   + "INNER JOIN proveedor pr ON p.id_proveedor = pr.id_proveedor "
-                   + "WHERE 1=1 "; // Truco para agregar condiciones con AND fácilmente
+                + "FROM pedido p "
+                + "INNER JOIN proveedor pr ON p.id_proveedor = pr.id_proveedor "
+                + "WHERE 1=1 "; // Truco para agregar condiciones con AND fácilmente
 
         // 2. Filtro por PROVEEDOR
         String provSeleccionado = (cboProveedor.getSelectedItem() != null) ? cboProveedor.getSelectedItem().toString() : "Todos";
@@ -191,6 +197,7 @@ private void mostrarHistorialCompras() {
             }
         });
     }
+
     private void llenarFiltros() {
         // 1. Configurar Combo de ESTADOS (Manual)
         cboEstado.removeAllItems();
@@ -206,7 +213,7 @@ private void mostrarHistorialCompras() {
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
         try {
             Connection con = DriverManager.getConnection(url, usuario, password);
@@ -222,6 +229,36 @@ private void mostrarHistorialCompras() {
             System.out.println("Error llenando combos: " + e);
         }
     }
+// --- CONFIGURACIÓN DE LA TABLA DE RECEPCIÓN (CORREGIDO) ---
+
+    private void configurarTablaRecepcion() {
+        DefaultTableModel modelo = new DefaultTableModel(
+                new Object[][]{},
+                new String[]{"ID Prod", "Producto", "Cant. Solicitada", "Cant. Recibida", "Costo Unit.", "Subtotal"}
+        ) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // Solo editar Cantidad Recibida (3) y Costo (4)
+                return column == 3 || column == 4;
+            }
+        };
+
+        // --- CORRECCIÓN DEL BUG DE BUCLE INFINITO ---
+        modelo.addTableModelListener(e -> {
+            // Solo si es una actualización de celdas (no inserción de filas nuevas)
+            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+                int columna = e.getColumn();
+                // Solo recalculamos si el usuario tocó la CANTIDAD (3) o el COSTO (4)
+                // Si el sistema actualiza el SUBTOTAL (5), NO hacemos nada para evitar el bucle.
+                if (columna == 3 || columna == 4) {
+                }
+            }
+        });
+    }
+
+    
+
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -245,6 +282,7 @@ private void mostrarHistorialCompras() {
         tblCompras = new javax.swing.JTable();
         btnAnular = new javax.swing.JButton();
         jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
 
         setLayout(new java.awt.BorderLayout());
 
@@ -319,15 +357,14 @@ private void mostrarHistorialCompras() {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(88, 88, 88)
-                .addComponent(btnRecepcion)
-                .addGap(20, 20, 20))
-            .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(19, 19, 19)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 840, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 840, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, Short.MAX_VALUE)
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btnRecepcion, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(cboProveedor, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -343,15 +380,13 @@ private void mostrarHistorialCompras() {
                             .addGroup(jPanel3Layout.createSequentialGroup()
                                 .addGap(51, 51, 51)
                                 .addComponent(txtBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 196, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap(133, Short.MAX_VALUE))
+                .addContainerGap())
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(53, 53, 53)
+                .addGap(17, 17, 17)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
-                    .addComponent(btnRecepcion)
                     .addComponent(jLabel1)
                     .addComponent(jLabel2)
                     .addComponent(jLabel3))
@@ -361,8 +396,13 @@ private void mostrarHistorialCompras() {
                     .addComponent(cboEstado)
                     .addComponent(txtBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 444, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jButton1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(btnRecepcion))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 444, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(47, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("COMPRAR", jPanel3);
@@ -411,37 +451,43 @@ private void mostrarHistorialCompras() {
 
         jLabel4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel4.setText("Seleccione un pedido y devuelvalo");
+        jLabel4.setText("Devoluciones hechas");
+
+        jLabel5.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel5.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel5.setText("Seleccione un pedido y devuelvalo");
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap(32, Short.MAX_VALUE)
+                .addGap(24, 24, 24)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 413, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 413, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 930, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 930, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(30, 30, 30))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(431, 431, 431))))
+                            .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 728, Short.MAX_VALUE)
+                            .addComponent(jScrollPane3))
+                        .addGap(28, 28, 28)
+                        .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(89, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addGap(51, 51, 51)
+                .addGap(37, 37, 37)
+                .addComponent(jLabel5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(27, 27, 27)
                 .addComponent(jLabel4)
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(50, 50, 50)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(29, 29, 29)
-                .addComponent(btnAnular, javax.swing.GroupLayout.PREFERRED_SIZE, 47, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(50, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(162, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", jPanel2);
@@ -451,18 +497,18 @@ private void mostrarHistorialCompras() {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-     // 1. Creamos la ventana del formulario (null porque no tenemos Frame padre directo, true para que sea Modal)
+        // 1. Creamos la ventana del formulario (null porque no tenemos Frame padre directo, true para que sea Modal)
         DialogoNuevoPedido ventana = new DialogoNuevoPedido(null, true);
-        
+
         // 2. La hacemos visible (El programa se "pausa" aquí hasta que cierres la ventana)
         ventana.setVisible(true);
-        
+
         // 3. ¡TRUCO! Al cerrarse la ventana, recargamos la tabla para ver el nuevo pedido
         mostrarDatos();
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void btnRecepcionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRecepcionActionPerformed
-     // 1. VERIFICAR SELECCIÓN
+        // 1. VERIFICAR SELECCIÓN
         int fila = tblPedidos.getSelectedRow();
         if (fila == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un pedido de la tabla.");
@@ -479,10 +525,14 @@ private void mostrarHistorialCompras() {
 
         // 2. FECHA DE VENCIMIENTO
         String fechaVencimiento = JOptionPane.showInputDialog(this, "Fecha de vencimiento del lote (YYYY-MM-DD):", "2026-12-31");
-        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) return;
+        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) {
+            return;
+        }
 
         int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar recepción y descontar del presupuesto?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         // --- INICIO DE LA TRANSACCIÓN ---
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
@@ -496,7 +546,7 @@ private void mostrarHistorialCompras() {
             con.setAutoCommit(false); // Transacción iniciada
 
             // DATOS FIJOS
-            int idSucursal = 1; 
+            int idSucursal = 1;
             String idEmpleado = "11000001"; // ID REAL DEL ADMIN
 
             // A. OBTENER ID PEDIDO
@@ -504,7 +554,7 @@ private void mostrarHistorialCompras() {
             PreparedStatement psPed = con.prepareStatement(sqlPed);
             psPed.setString(1, codigoPedido);
             ResultSet rsPed = psPed.executeQuery();
-            
+
             int idPedido = 0;
             String idProveedor = "";
             if (rsPed.next()) {
@@ -515,16 +565,15 @@ private void mostrarHistorialCompras() {
             // =================================================================
             // B. --- VALIDACIÓN DE PRESUPUESTO (ESTO ES LO QUE FALTABA) ---
             // =================================================================
-            
             // 1. Calculamos cuánto costará el pedido ANTES de procesarlo
-            String sqlCalcTotal = "SELECT SUM(d.cantidad * p.precio_compra) as total_pedido " +
-                                  "FROM detalle_pedido d " +
-                                  "INNER JOIN producto p ON d.id_producto = p.id_producto " +
-                                  "WHERE d.id_pedido = ?";
+            String sqlCalcTotal = "SELECT SUM(d.cantidad * p.precio_compra) as total_pedido "
+                    + "FROM detalle_pedido d "
+                    + "INNER JOIN producto p ON d.id_producto = p.id_producto "
+                    + "WHERE d.id_pedido = ?";
             PreparedStatement psCalc = con.prepareStatement(sqlCalcTotal);
             psCalc.setInt(1, idPedido);
             ResultSet rsCalc = psCalc.executeQuery();
-            
+
             double montoTotalPedido = 0;
             if (rsCalc.next()) {
                 montoTotalPedido = rsCalc.getDouble("total_pedido");
@@ -535,7 +584,7 @@ private void mostrarHistorialCompras() {
             PreparedStatement psCheckMoney = con.prepareStatement(sqlPresupuesto);
             psCheckMoney.setInt(1, idSucursal);
             ResultSet rsMoney = psCheckMoney.executeQuery();
-            
+
             double saldoActual = 0;
             if (rsMoney.next()) {
                 saldoActual = rsMoney.getDouble("presupuesto");
@@ -556,7 +605,6 @@ private void mostrarHistorialCompras() {
             // =================================================================
             // FIN DE LA VALIDACIÓN - AHORA SIGUE EL PROCESO NORMAL
             // =================================================================
-
             // C. CREAR COMPRA (Ya pagada)
             String sqlInsertCompra = "INSERT INTO compra (fecha_hora, total, id_proveedor, id_empleado, id_sucursal, estado) VALUES (NOW(), ?, ?, ?, ?, 'Pagada')";
             PreparedStatement psCompra = con.prepareStatement(sqlInsertCompra, Statement.RETURN_GENERATED_KEYS);
@@ -565,16 +613,18 @@ private void mostrarHistorialCompras() {
             psCompra.setString(3, idEmpleado);
             psCompra.setInt(4, idSucursal);
             psCompra.executeUpdate();
-            
+
             ResultSet rsKeyCompra = psCompra.getGeneratedKeys();
             int idCompraGenerada = 0;
-            if (rsKeyCompra.next()) idCompraGenerada = rsKeyCompra.getInt(1);
+            if (rsKeyCompra.next()) {
+                idCompraGenerada = rsKeyCompra.getInt(1);
+            }
 
             // D. PROCESAR ITEMS (Stock, Kardex, Detalle)
-            String sqlItems = "SELECT d.id_producto, d.cantidad, p.precio_compra " +
-                              "FROM detalle_pedido d " +
-                              "INNER JOIN producto p ON d.id_producto = p.id_producto " +
-                              "WHERE d.id_pedido = ?";
+            String sqlItems = "SELECT d.id_producto, d.cantidad, p.precio_compra "
+                    + "FROM detalle_pedido d "
+                    + "INNER JOIN producto p ON d.id_producto = p.id_producto "
+                    + "WHERE d.id_pedido = ?";
             PreparedStatement psItems = con.prepareStatement(sqlItems);
             psItems.setInt(1, idPedido);
             ResultSet rsItems = psItems.executeQuery();
@@ -596,7 +646,7 @@ private void mostrarHistorialCompras() {
                 psStockCheck.setInt(1, idProd);
                 psStockCheck.setInt(2, idSucursal);
                 ResultSet rsStock = psStockCheck.executeQuery();
-                
+
                 if (rsStock.next()) {
                     stockAnterior = rsStock.getInt("stock_actual");
                     psStockUpdate.setInt(1, cant);
@@ -637,20 +687,30 @@ private void mostrarHistorialCompras() {
             psUpPed.executeUpdate();
 
             con.commit(); // Confirmar todo
-            
+
             double nuevoSaldo = saldoActual - montoTotalPedido;
             JOptionPane.showMessageDialog(this, "¡Recepción y Pago Exitoso!\n\n"
                     + "Monto pagado: S/ " + String.format("%.2f", montoTotalPedido) + "\n"
                     + "Nuevo Saldo Sucursal: S/ " + String.format("%.2f", nuevoSaldo));
-            
+
             mostrarDatos();
 
         } catch (Exception e) {
-            try { if (con != null) con.rollback(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.rollback();
+                }
+            } catch (SQLException ex) {
+            }
             JOptionPane.showMessageDialog(this, "Error: " + e.getMessage(), "Error de Transacción", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         } finally {
-            try { if (con != null) con.close(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.close();
+                }
+            } catch (SQLException ex) {
+            }
         }
     }//GEN-LAST:event_btnRecepcionActionPerformed
 
@@ -678,62 +738,67 @@ private void mostrarHistorialCompras() {
             ventana.setVisible(true);
             // TODO: Aquí llamaremos a tu ventana JDialog con los productos
     }//GEN-LAST:event_tblPedidosMouseClicked
-}
+    }
     private void tblComprasMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblComprasMouseClicked
-      int fila = tblCompras.getSelectedRow();
-        if (fila == -1) return;
-        
+        int fila = tblCompras.getSelectedRow();
+        if (fila == -1) {
+            return;
+        }
+
         int idCompra = Integer.parseInt(tblCompras.getValueAt(fila, 0).toString());
         mostrarDetalleDeCompra(idCompra);  // TODO add your handling code here:
     }//GEN-LAST:event_tblComprasMouseClicked
 
     private void btnAnularActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAnularActionPerformed
-  int fila = tblCompras.getSelectedRow();
-    
-    if (fila == -1) {
-        JOptionPane.showMessageDialog(this, "Seleccione una compra para devolver.");
-        return;
-    }
-    
-    // Validación: Verificar que la celda no sea nula
-    if (tblCompras.getValueAt(fila, 0) == null) return;
+        int fila = tblCompras.getSelectedRow();
 
-    String idCompra = tblCompras.getValueAt(fila, 0).toString();
-    String estado = tblCompras.getValueAt(fila, 4).toString();
-    
-    // CAMBIO 1: Validamos si ya dice "DEVUELTA" (o ANULADA por compatibilidad)
-    if ("DEVUELTA".equals(estado) || "ANULADA".equals(estado)) {
-        JOptionPane.showMessageDialog(this, "Esta compra ya ha sido devuelta anteriormente.");
-        return;
-    }
-    
-    // CAMBIO 2: Textos actualizados a "Devolución"
-    int confirm = JOptionPane.showConfirmDialog(this, 
-            "¿Seguro que desea DEVOLVER la compra #" + idCompra + " al proveedor?\n" +
-            "Se recuperará el dinero en caja y se retirará el stock del almacén.", 
-            "Confirmar Devolución", JOptionPane.YES_NO_OPTION);
-            
-    if (confirm == JOptionPane.YES_OPTION) {
-        // Llamamos al método de lógica (sigue siendo el mismo, solo cambiaremos el SQL adentro)
-        anularCompra(idCompra); 
-        
-        mostrarHistorialCompras();
-        ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
-    }     // TODO add your handling code here:
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione una compra para devolver.");
+            return;
+        }
+
+        // Validación: Verificar que la celda no sea nula
+        if (tblCompras.getValueAt(fila, 0) == null) {
+            return;
+        }
+
+        String idCompra = tblCompras.getValueAt(fila, 0).toString();
+        String estado = tblCompras.getValueAt(fila, 4).toString();
+
+        // CAMBIO 1: Validamos si ya dice "DEVUELTA" (o ANULADA por compatibilidad)
+        if ("DEVUELTA".equals(estado) || "ANULADA".equals(estado)) {
+            JOptionPane.showMessageDialog(this, "Esta compra ya ha sido devuelta anteriormente.");
+            return;
+        }
+
+        // CAMBIO 2: Textos actualizados a "Devolución"
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Seguro que desea DEVOLVER la compra #" + idCompra + " al proveedor?\n"
+                + "Se recuperará el dinero en caja y se retirará el stock del almacén.",
+                "Confirmar Devolución", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Llamamos al método de lógica (sigue siendo el mismo, solo cambiaremos el SQL adentro)
+            anularCompra(idCompra);
+
+            mostrarHistorialCompras();
+            ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
+        }     // TODO add your handling code here:
     }//GEN-LAST:event_btnAnularActionPerformed
-   private void mostrarDetalleDeCompra(int idCompra) {
+
+    private void mostrarDetalleDeCompra(int idCompra) {
         DefaultTableModel modelo = (DefaultTableModel) tblDetalleCompra.getModel();
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"Producto", "Cantidad", "P. Unitario", "Subtotal"});
-        
+
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
-        String sql = "SELECT p.nombre, d.cantidad, d.precio_compra, d.subtotal " +
-                     "FROM detalle_compra d " +
-                     "INNER JOIN producto p ON d.id_producto = p.id_producto " +
-                     "WHERE d.id_compra = ?";
+        String sql = "SELECT p.nombre, d.cantidad, d.precio_compra, d.subtotal "
+                + "FROM detalle_compra d "
+                + "INNER JOIN producto p ON d.id_producto = p.id_producto "
+                + "WHERE d.id_compra = ?";
 
         try {
             Connection con = DriverManager.getConnection(url, usuario, password);
@@ -754,13 +819,16 @@ private void mostrarHistorialCompras() {
             System.out.println("Error detalle: " + e);
         }
     }
-   private void anularCompra(String codigoCompra) { // O id_compra
+
+    private void anularCompra(String codigoCompra) { // O id_compra
         String motivo = JOptionPane.showInputDialog(this, "Ingrese el motivo de la anulación:");
-        if (motivo == null || motivo.trim().isEmpty()) return;
+        if (motivo == null || motivo.trim().isEmpty()) {
+            return;
+        }
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
         Connection con = null;
 
@@ -772,7 +840,7 @@ private void mostrarHistorialCompras() {
             // Asumimos que buscaremos por el ID interno, si usas código en compra, ajusta el WHERE
             String sqlInfo = "SELECT id_compra, id_sucursal, total, estado FROM compra WHERE id_compra = ?";
             PreparedStatement psInfo = con.prepareStatement(sqlInfo);
-            psInfo.setInt(1, Integer.parseInt(codigoCompra)); 
+            psInfo.setInt(1, Integer.parseInt(codigoCompra));
             ResultSet rsInfo = psInfo.executeQuery();
 
             if (!rsInfo.next()) {
@@ -798,7 +866,6 @@ private void mostrarHistorialCompras() {
 
             // Guardamos los items en memoria para procesarlos luego
             // Usamos una lista temporal o re-ejecutamos el resultset (para simplificar, re-ejecutamos abajo)
-            
             // VERIFICACIÓN DE STOCK
             while (rsDet.next()) {
                 int idProd = rsDet.getInt("id_producto");
@@ -812,7 +879,9 @@ private void mostrarHistorialCompras() {
                 ResultSet rsStock = psStockCheck.executeQuery();
 
                 int stockActual = 0;
-                if (rsStock.next()) stockActual = rsStock.getInt("stock_actual");
+                if (rsStock.next()) {
+                    stockActual = rsStock.getInt("stock_actual");
+                }
 
                 if (stockActual < cantComprada) {
                     throw new Exception("No se puede anular: El producto ID " + idProd + " ya fue vendido.\n"
@@ -821,7 +890,6 @@ private void mostrarHistorialCompras() {
             }
 
             // 3. SI PASÓ LA VALIDACIÓN: PROCEDEMOS A REVERTIR TODO
-            
             // A. DEVOLVER DINERO A LA CAJA DE LA SUCURSAL (PRESUPUESTO)
             String sqlReembolso = "UPDATE sucursal SET presupuesto = presupuesto + ? WHERE id_sucursal = ?";
             PreparedStatement psMoney = con.prepareStatement(sqlReembolso);
@@ -832,10 +900,10 @@ private void mostrarHistorialCompras() {
             // B. RESTAR EL STOCK (SALIDA HACIA PROVEEDOR)
             // Volvemos a recorrer los items
             rsDet = psDet.executeQuery(); // Ejecutamos query de nuevo para reiniciar cursor
-            
+
             String sqlUpdateStock = "UPDATE inventario_sucursal SET stock_actual = stock_actual - ? WHERE id_producto = ? AND id_sucursal = ?";
             PreparedStatement psUpStock = con.prepareStatement(sqlUpdateStock);
-            
+
             String sqlKardex = "INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto, id_sucursal) VALUES (NOW(), 'SALIDA POR ANULACION', ?, ?, ?, ?, ?, ?)";
             PreparedStatement psKardex = con.prepareStatement(sqlKardex);
 
@@ -879,15 +947,24 @@ private void mostrarHistorialCompras() {
 
             // D. REGISTRAR EN MOVIMIENTO DE CAJA (Opcional pero recomendado si usas esa tabla)
             // INSERT INTO movimiento_caja ... (Tipo: INGRESO/REEMBOLSO)
-
             con.commit();
             JOptionPane.showMessageDialog(this, "Compra anulada correctamente.\nDinero devuelto y stock retirado.");
 
         } catch (Exception e) {
-            try { if (con != null) con.rollback(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.rollback();
+                }
+            } catch (SQLException ex) {
+            }
             JOptionPane.showMessageDialog(this, "Error al anular: " + e.getMessage());
         } finally {
-            try { if (con != null) con.close(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.close();
+                }
+            } catch (SQLException ex) {
+            }
         }
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -900,6 +977,7 @@ private void mostrarHistorialCompras() {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane2;
