@@ -1,5 +1,7 @@
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.CajaDAO;
+import edu.UPAO.proyecto.Modelo.Caja;
 import java.awt.Color;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -310,79 +312,102 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }
 
     private void verificarAperturaAutomatica() {
+        // A. BUSCAMOS LA CAJA ACTIVA USANDO TU DAO
+        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1); // Sucursal 1
+
+        if (cajaActual == null) {
+            // Si no hay caja abierta, avisamos visualmente
+            lblSaldoChica.setText("CERRADA");
+            lblSaldoChica.setForeground(java.awt.Color.RED);
+            return;
+        } else {
+            lblSaldoChica.setForeground(new java.awt.Color(255, 255, 255)); // Color normal
+        }
+
+        int idCaja = cajaActual.getIdCaja();
+
+        // B. VERIFICAR SI YA SE HIZO LA APERTURA HOY EN ESA CAJA
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            // A. ¿Ya existe una APERTURA hoy?
-            String sqlCheck = "SELECT COUNT(*) FROM movimiento_caja WHERE tipo = 'APERTURA' AND DATE(fecha_hora) = CURDATE() AND id_sucursal = 1";
+            String sqlCheck = "SELECT COUNT(*) FROM movimiento_caja WHERE tipo = 'APERTURA' AND id_caja = ?";
             PreparedStatement psCheck = con.prepareStatement(sqlCheck);
+            psCheck.setInt(1, idCaja);
             ResultSet rsCheck = psCheck.executeQuery();
 
             if (rsCheck.next() && rsCheck.getInt(1) > 0) {
-                // Ya se abrió hoy, no hacemos nada.
-                return;
+                return; // Ya se inyectó el dinero a esta caja
             }
 
-            // B. Si no se ha abierto, procedemos con el 5%
-            // 1. Consultar Presupuesto Actual (Caja Grande)
+            // C. PROCEDEMOS CON EL 5% (Si es nueva)
             String sqlPresu = "SELECT presupuesto FROM sucursal WHERE id_sucursal = 1";
-            PreparedStatement psPresu = con.prepareStatement(sqlPresu);
-            ResultSet rsPresu = psPresu.executeQuery();
+            ResultSet rsPresu = con.prepareStatement(sqlPresu).executeQuery();
 
             double presupuestoActual = 0;
             if (rsPresu.next()) {
                 presupuestoActual = rsPresu.getDouble("presupuesto");
             }
 
-            if (presupuestoActual <= 0) {
-                return; // No hay dinero para sacar
+            if (presupuestoActual > 0) {
+                double montoApertura = presupuestoActual * 0.05;
+
+                // 1. Restar de Bóveda
+                String sqlResta = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = 1";
+                PreparedStatement psResta = con.prepareStatement(sqlResta);
+                psResta.setDouble(1, montoApertura);
+                psResta.executeUpdate();
+
+                // 2. Sumar a Caja Chica (USANDO EL ID REAL)
+                String sqlSuma = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('APERTURA', ?, NOW(), 'Apertura Automática (5% Bóveda)', 1, 'ACTIVO', ?)";
+                PreparedStatement psSuma = con.prepareStatement(sqlSuma);
+                psSuma.setDouble(1, montoApertura);
+                psSuma.setInt(2, idCaja); // <--- AQUÍ ESTÁ LA SOLUCIÓN
+                psSuma.executeUpdate();
+
+                JOptionPane.showMessageDialog(this, "<html><b>¡CAJA #" + idCaja + " DETECTADA!</b><br>"
+                        + "Se ha transferido el 5% del presupuesto (S/ " + String.format("%.2f", montoApertura) + ")<br>"
+                        + "para iniciar el turno.</html>");
+
+                actualizarSaldos();
             }
-            // 2. Calcular el 5%
-            double montoApertura = presupuestoActual * 0.05;
-
-            // 3. TRANSACCIÓN: Restar de Grande -> Sumar a Chica
-            String sqlResta = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = 1";
-            PreparedStatement psResta = con.prepareStatement(sqlResta);
-            psResta.setDouble(1, montoApertura);
-            psResta.executeUpdate();
-
-            String sqlSuma = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado) VALUES ('APERTURA', ?, NOW(), 'Apertura Automática (5% Bóveda)', 1, 'ACTIVO')";
-            PreparedStatement psSuma = con.prepareStatement(sqlSuma);
-            psSuma.setDouble(1, montoApertura);
-            psSuma.executeUpdate();
-
-            JOptionPane.showMessageDialog(this, "<html><b>¡CAJA ABIERTA AUTOMÁTICAMENTE!</b><br>"
-                    + "Se ha transferido el 5% del presupuesto (S/ " + String.format("%.2f", montoApertura) + ")<br>"
-                    + "para iniciar las operaciones del día.</html>");
-
         } catch (SQLException e) {
-            System.out.println("Error en apertura automática: " + e);
+            System.out.println("Error apertura auto: " + e);
         }
     }
-    private void actualizarSaldos() {
+
+   private void actualizarSaldos() {
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             
-            // 1. CAJA GRANDE (Presupuesto en BD)
+            // 1. CAJA GRANDE (Bóveda) - Lee directo de la tabla sucursal
             String sqlGrande = "SELECT presupuesto FROM sucursal WHERE id_sucursal = 1";
             ResultSet rsG = con.prepareStatement(sqlGrande).executeQuery();
             if (rsG.next()) {
                 lblSaldoGrande.setText("S/ " + String.format("%.2f", rsG.getDouble("presupuesto")));
             }
 
-            // 2. CAJA CHICA (Calculado: Entradas - Salidas de HOY)
-            // Sumamos: APERTURA + VENTA + INGRESO + REPOSICION
-            // Restamos: GASTO + PAGO + COMPRA + CIERRE + RETIRO
-            String sqlChica = "SELECT " +
-                              "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - " +
-                              "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'COMPRA', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) " +
-                              "as saldo_dia FROM movimiento_caja WHERE DATE(fecha_hora) = CURDATE() AND id_sucursal = 1";
+            // 2. CAJA CHICA (El dinero del cajón)
+            // CORRECCIÓN: Excluimos el tipo 'COMPRA' porque ese dinero sale de Bóveda, no del cajón.
+            // Solo restamos: GASTOS (Luz, Agua...), PAGOS, RETIROS (Cierres)
             
-            ResultSet rsC = con.prepareStatement(sqlChica).executeQuery();
-            double saldoChica = 0;
-            if (rsC.next()) {
-                saldoChica = rsC.getDouble("saldo_dia");
-                lblSaldoChica.setText("S/ " + String.format("%.2f", saldoChica));
+            Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+            
+            if (cajaActual != null) {
+                String sqlChica = "SELECT " +
+                                  "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - " +
+                                  "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) " + // <--- OJO: Aquí quitamos 'COMPRA'
+                                  "as saldo_caja FROM movimiento_caja WHERE id_caja = ?";
+                
+                PreparedStatement psC = con.prepareStatement(sqlChica);
+                psC.setInt(1, cajaActual.getIdCaja());
+                ResultSet rsC = psC.executeQuery();
+                
+                double saldo = 0.0;
+                if (rsC.next()) saldo = rsC.getDouble("saldo_caja");
+                
+                lblSaldoChica.setText("S/ " + String.format("%.2f", saldo));
+            } else {
+                lblSaldoChica.setText("CERRADA");
             }
 
-            // 3. TOTAL DE HOY (Ventas Brutas)
+            // 3. TOTAL DE HOY (Solo Ventas)
             String sqlVentas = "SELECT SUM(monto) FROM movimiento_caja WHERE tipo = 'VENTA' AND DATE(fecha_hora) = CURDATE() AND id_sucursal = 1";
             ResultSet rsV = con.prepareStatement(sqlVentas).executeQuery();
             if (rsV.next()) {
@@ -393,28 +418,31 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             System.out.println("Error saldos: " + e);
         }
     }
+
     private void cargarTablaMovimientos() {
         DefaultTableModel modelo = (DefaultTableModel) tblMovimientosCaja.getModel();
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"HORA", "TIPO", "DESCRIPCIÓN", "MONTO"});
-        
-        // Traemos solo lo de HOY
-        String sql = "SELECT fecha_hora, tipo, descripcion, monto FROM movimiento_caja WHERE DATE(fecha_hora) = CURDATE() AND id_sucursal = 1 ORDER BY fecha_hora DESC";
+
+       Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+        if (cajaActual == null) {
+            return; // Si está cerrada no mostramos nada reciente
+        }
+        String sql = "SELECT fecha_hora, tipo, descripcion, monto FROM movimiento_caja WHERE id_caja = ? ORDER BY fecha_hora DESC";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            ResultSet rs = con.prepareStatement(sql).executeQuery();
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, cajaActual.getIdCaja());
+            ResultSet rs = ps.executeQuery();
+
             while (rs.next()) {
-                String hora = new java.text.SimpleDateFormat("HH:mm").format(rs.getTimestamp("fecha_hora"));
-                modelo.addRow(new Object[]{
-                    hora,
-                    rs.getString("tipo"),
-                    rs.getString("descripcion"),
-                    "S/ " + rs.getDouble("monto")
-                });
+                String hora = new SimpleDateFormat("HH:mm").format(rs.getTimestamp("fecha_hora"));
+                modelo.addRow(new Object[]{hora, rs.getString("tipo"), rs.getString("descripcion"), "S/ " + rs.getDouble("monto")});
             }
-        } catch (SQLException e) {}
+        } catch (SQLException e) {
+        }
     }
-    
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -833,7 +861,6 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jLabel15.setText("Monto del dia a pasar:");
 
         txtMontoTransferencia.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        txtMontoTransferencia.setText("jTextField1");
 
         btnPasarGrande.setText("PASAR A  CAJA GRANDE");
         btnPasarGrande.addActionListener(new java.awt.event.ActionListener() {
@@ -934,9 +961,9 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(46, 46, 46)
                 .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 90, Short.MAX_VALUE)
-                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 421, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(60, 60, 60))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 44, Short.MAX_VALUE)
+                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 521, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap())
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -965,90 +992,150 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnPasarGrandeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasarGrandeActionPerformed
-       try {
-            double monto = Double.parseDouble(txtMontoTransferencia.getText());
-            if (monto <= 0) return;
+        // 1. BUSCAR LA CAJA ACTUAL (Usando la instancia correcta)
+        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+        
+        if (cajaActual == null) {
+            JOptionPane.showMessageDialog(this, "No hay caja abierta para cerrar.");
+            return;
+        }
 
-            // 1. Restar de Caja Chica (Insertar RETIRO)
-            // ... aquí deberíamos validar si hay saldo en chica primero, pero asumiremos que el admin sabe ...
+        int idCaja = cajaActual.getIdCaja();
+        double saldoDelDia = 0.0;
+
+        // 2. CALCULAR CUÁNTO DINERO HAY REALMENTE
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+            String sqlSaldo = "SELECT " +
+                              "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - " +
+                              "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'COMPRA', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) " +
+                              "as saldo_actual FROM movimiento_caja WHERE id_caja = ?";
             
-            Connection con = DriverManager.getConnection(url, usuario, password);
+            PreparedStatement ps = con.prepareStatement(sqlSaldo);
+            ps.setInt(1, idCaja);
+            ResultSet rs = ps.executeQuery();
             
-            String sqlRetiro = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado) VALUES ('RETIRO', ?, NOW(), 'Transferencia a Bóveda', 1, 'ACTIVO')";
+            if (rs.next()) {
+                saldoDelDia = rs.getDouble("saldo_actual");
+            }
+            
+            if (saldoDelDia <= 0) {
+                JOptionPane.showMessageDialog(this, "No hay dinero en caja para transferir.");
+                return;
+            }
+
+            // 3. LA ALERTA (Lo que pediste)
+            int confirm = JOptionPane.showConfirmDialog(this, 
+                    "<html>El saldo acumulado del día es: <font color='blue' size='5'><b>S/ " + String.format("%.2f", saldoDelDia) + "</b></font><br><br>" +
+                    "¿Desea mover este dinero a la <b>Bóveda (Caja Grande)</b> y cerrar el turno?</html>", 
+                    "Transferencia a Bóveda", JOptionPane.YES_NO_OPTION);
+            
+            if (confirm != JOptionPane.YES_OPTION) return;
+
+            // 4. EJECUTAR EL MOVIMIENTO
+            
+            // A. Sacar de Caja Chica (Registrar SALIDA)
+            String sqlRetiro = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('CIERRE', ?, NOW(), 'Transferencia de Ganancia del Día a Bóveda', 1, 'ACTIVO', ?)";
             PreparedStatement psRet = con.prepareStatement(sqlRetiro);
-            psRet.setDouble(1, monto);
+            psRet.setDouble(1, saldoDelDia);
+            psRet.setInt(2, idCaja);
             psRet.executeUpdate();
 
-            // 2. Sumar a Caja Grande (Update Sucursal)
-            String sqlSumarGrande = "UPDATE sucursal SET presupuesto = presupuesto + ? WHERE id_sucursal = 1";
-            PreparedStatement psUp = con.prepareStatement(sqlSumarGrande);
-            psUp.setDouble(1, monto);
+            // B. Meter en Bóveda (Sumar Presupuesto)
+            String sqlBoveda = "UPDATE sucursal SET presupuesto = presupuesto + ? WHERE id_sucursal = 1";
+            PreparedStatement psUp = con.prepareStatement(sqlBoveda);
+            psUp.setDouble(1, saldoDelDia);
             psUp.executeUpdate();
+            
+            // C. Cerrar la Caja en la BD (Para que mañana se cree una nueva)
+            String sqlCerrar = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
+            PreparedStatement psClose = con.prepareStatement(sqlCerrar);
+            psClose.setDouble(1, saldoDelDia);
+            psClose.setInt(2, idCaja);
+            psClose.executeUpdate();
 
-            con.close();
-            JOptionPane.showMessageDialog(this, "Dinero guardado en Bóveda exitosamente.");
-            txtMontoTransferencia.setText("");
+            JOptionPane.showMessageDialog(this, "¡Transferencia Exitosa!\nEl dinero está seguro en la Bóveda.");
+            
+            // Actualizar pantalla
+            lblSaldoChica.setText("CERRADA");
+            lblSaldoChica.setForeground(java.awt.Color.RED);
             actualizarSaldos();
             cargarTablaMovimientos();
 
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: Verifique el monto.");
+        } catch (SQLException e) {
+            System.out.println("Error al transferir: " + e);
         }
     }//GEN-LAST:event_btnPasarGrandeActionPerformed
 
     private void btnPasarChicaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasarChicaActionPerformed
-       try {
+        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+        if (cajaActual == null) {
+            JOptionPane.showMessageDialog(this, "No hay caja abierta para recibir el dinero.");
+            return;
+        }
+
+        try {
             double monto = Double.parseDouble(txtMontoTransferencia.getText());
-            if (monto <= 0) return;
+            if (monto <= 0) {
+                return;
+            }
 
-            Connection con = DriverManager.getConnection(url, usuario, password);
-            
-            // 1. Restar de Caja Grande
-            String sqlRestarGrande = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = 1";
-            PreparedStatement psUp = con.prepareStatement(sqlRestarGrande);
-            psUp.setDouble(1, monto);
-            psUp.executeUpdate();
+            try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+                // 1. Restar de Bóveda
+                String sqlRestarGrande = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = 1";
+                PreparedStatement psUp = con.prepareStatement(sqlRestarGrande);
+                psUp.setDouble(1, monto);
+                psUp.executeUpdate();
 
-            // 2. Sumar a Caja Chica (Insertar REPOSICION)
-            String sqlIngreso = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado) VALUES ('REPOSICION', ?, NOW(), 'Reposición Manual desde Bóveda', 1, 'ACTIVO')";
-            PreparedStatement psIng = con.prepareStatement(sqlIngreso);
-            psIng.setDouble(1, monto);
-            psIng.executeUpdate();
+                // 2. Sumar a Caja Chica (REPOSICION)
+                String sqlIngreso = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('REPOSICION', ?, NOW(), 'Reposición Manual desde Bóveda', 1, 'ACTIVO', ?)";
+                PreparedStatement psIng = con.prepareStatement(sqlIngreso);
+                psIng.setDouble(1, monto);
+                psIng.setInt(2, cajaActual.getIdCaja()); // ID Real
+                psIng.executeUpdate();
 
-            con.close();
-            JOptionPane.showMessageDialog(this, "Efectivo agregado a Caja Chica.");
-            txtMontoTransferencia.setText("");
-            actualizarSaldos();
-            cargarTablaMovimientos();
-
+                JOptionPane.showMessageDialog(this, "Efectivo agregado a Caja Chica.");
+                txtMontoTransferencia.setText("");
+                actualizarSaldos();
+                cargarTablaMovimientos();
+                cargarListadoFacturas();
+            }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error: Verifique el monto.");
         }
     }//GEN-LAST:event_btnPasarChicaActionPerformed
 
     private void btnGenerarPagoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGenerarPagoActionPerformed
-       try {
+        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+        if (cajaActual == null) {
+            JOptionPane.showMessageDialog(this, "No hay caja abierta para registrar el pago.");
+            return;
+        }
+
+        try {
             double monto = Double.parseDouble(txtMontoTransferencia.getText());
-            if (monto <= 0) return;
-            
+            if (monto <= 0) {
+                return;
+            }
+
             String motivo = JOptionPane.showInputDialog("Motivo del pago/gasto:");
-            if (motivo == null || motivo.isEmpty()) return;
+            if (motivo == null || motivo.isEmpty()) {
+                return;
+            }
 
-            Connection con = DriverManager.getConnection(url, usuario, password);
-            
-            // Insertar GASTO (Resta automáticamente del saldo calculado de caja chica)
-            String sqlGasto = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado) VALUES ('GASTO', ?, NOW(), ?, 1, 'ACTIVO')";
-            PreparedStatement psG = con.prepareStatement(sqlGasto);
-            psG.setDouble(1, monto);
-            psG.setString(2, motivo);
-            psG.executeUpdate();
+            try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+                String sqlGasto = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('GASTO', ?, NOW(), ?, 1, 'ACTIVO', ?)";
+                PreparedStatement psG = con.prepareStatement(sqlGasto);
+                psG.setDouble(1, monto);
+                psG.setString(2, motivo);
+                psG.setInt(3, cajaActual.getIdCaja()); // ID Real
+                psG.executeUpdate();
 
-            con.close();
-            JOptionPane.showMessageDialog(this, "Pago registrado correctamente.");
-            txtMontoTransferencia.setText("");
-            actualizarSaldos();
-            cargarTablaMovimientos();
-
+                JOptionPane.showMessageDialog(this, "Pago registrado correctamente.");
+                txtMontoTransferencia.setText("");
+                actualizarSaldos();
+                cargarTablaMovimientos();
+                cargarListadoFacturas();
+            }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Error: Verifique el monto.");
         }
