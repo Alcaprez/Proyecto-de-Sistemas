@@ -1,112 +1,151 @@
 package edu.UPAO.proyecto.app;
 
 import java.awt.Color;
-import java.sql.*; // Asegúrate de tener estos imports arriba
-import javax.swing.table.DefaultTableModel;
+import java.sql.*;
+import java.text.SimpleDateFormat;
 import javax.swing.JOptionPane;
-
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.JLabel;
 public class TESORERIA_Admin extends javax.swing.JPanel {
+// --- 1. TUS CREDENCIALES DE RAILWAY ---
+    private final String URL = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+    private final String USUARIO = "root";
+    private final String PASSWORD = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
+    // ID de Sucursal (Fijo en 1 para este ejemplo)
+    private final int ID_SUCURSAL = 1;
+
+    // Componentes de la Interfaz
+    private JLabel lblIngresosVal, lblGastosVal, lblSaldoVal;
+    private JTable tablaMovimientos;
     public TESORERIA_Admin() {
-        initComponents();
-        mostrarDatosTesoreria();
+       initComponents();
+        cargarDatosDesdeBD();
     }
-    private void initComponents() {
-        // ... Asegúrate de que tus componentes se llamen:
-        // lblPresupuesto (El JLabel del dinero grande)
-        // tablaMovimientos (El JTable)
-    }
-private void mostrarDatosTesoreria() {
-        // 1. Datos de Conexión (Los que me pasaste)
-        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
-        String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; // ⚠️ Pon aquí la contraseña real de tu BD Railway si tiene una
-        
-        DefaultTableModel modelo = (DefaultTableModel) tablaMovimientos.getModel();
-        modelo.setRowCount(0); // Limpiar tabla
+    private JPanel crearTarjeta(String titulo, JLabel lblValor, Color bg, Color fg, String emoji) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(bg);
+        card.setBorder(new EmptyBorder(20, 20, 20, 20));
 
+        // Titulo pequeño arriba
+        JLabel lblTit = new JLabel(titulo.toUpperCase());
+        lblTit.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblTit.setForeground(fg);
+        
+        // Icono
+        JLabel lblIcon = new JLabel(emoji);
+        lblIcon.setFont(new Font("Segoe UI", Font.PLAIN, 28));
+        
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(lblTit, BorderLayout.WEST);
+        topPanel.add(lblIcon, BorderLayout.EAST);
+
+        // Valor grande en el centro
+        lblValor.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        lblValor.setForeground(fg.darker());
+
+        card.add(topPanel, BorderLayout.NORTH);
+        card.add(lblValor, BorderLayout.CENTER);
+
+        return card;
+    }
+// ========================================================================
+    // PARTE B: BACKEND (CONEXIÓN A TU BASE DE DATOS)
+    // ========================================================================
+    private void cargarDatosDesdeBD() {
         Connection con = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
 
         try {
-            // Cargamos el Driver (opcional en versiones nuevas, pero seguro ponerlo)
+            // 1. Conectar
             Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(url, usuario, password);
+            con = DriverManager.getConnection(URL, USUARIO, PASSWORD);
 
             if (con != null) {
                 
-                // ---------------------------------------------------------
-                // PASO A: OBTENER EL DINERO ACTUAL (Presupuesto de Sucursal)
-                // ---------------------------------------------------------
-                String sqlSaldo = "SELECT presupuesto FROM sucursal WHERE id_sucursal = ?";
-                PreparedStatement psSaldo = con.prepareStatement(sqlSaldo);
-                psSaldo.setInt(1, idSucursal);
-                ResultSet rsSaldo = psSaldo.executeQuery();
-
-                if (rsSaldo.next()) {
-                    double dinero = rsSaldo.getDouble("presupuesto");
-                    
-                    // Mostrar en el Label Grande
-                    lblPresupuesto.setText(String.format("S/ %.2f", dinero));
-
-                    // Lógica de Colores (Semáforo)
-                    if (dinero < 500) {
-                        lblPresupuesto.setForeground(Color.RED); // Alerta si hay poco dinero
-                    } else {
-                        lblPresupuesto.setForeground(new Color(0, 100, 0)); // Verde si está bien
-                    }
-                }
-                rsSaldo.close();
-                psSaldo.close();
-
-                // ---------------------------------------------------------
-                // PASO B: LLENAR LA TABLA DE MOVIMIENTOS
-                // ---------------------------------------------------------
-                String sqlTabla = "SELECT fecha_hora, descripcion, tipo, monto " 
-                                + "FROM movimiento_caja " 
-                                + "WHERE id_sucursal = ? "
-                                + "ORDER BY fecha_hora DESC LIMIT 50"; 
+                // --- CONSULTA 1: INGRESOS HOY (Tabla VENTA) ---
+                // Usamos la tabla 'venta' que dijiste que facilitaba todo
+                String sqlVentas = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_sucursal = ? AND DATE(fecha_hora) = CURDATE()";
+                ps = con.prepareStatement(sqlVentas);
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+                double ventasHoy = 0;
+                if (rs.next()) ventasHoy = rs.getDouble(1);
                 
-                PreparedStatement psTabla = con.prepareStatement(sqlTabla);
-                psTabla.setInt(1, idSucursal);
-                ResultSet rsTabla = psTabla.executeQuery();
+                // Sumamos también 'INGRESO' manual de movimiento_caja si hubiera
+                ps = con.prepareStatement("SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja WHERE id_sucursal = ? AND tipo = 'INGRESO' AND DATE(fecha_hora) = CURDATE()");
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+                double otrosIngresos = 0;
+                if (rs.next()) otrosIngresos = rs.getDouble(1);
 
-                while (rsTabla.next()) {
-                    Object[] fila = new Object[4];
-                    fila[0] = rsTabla.getString("fecha_hora");
-                    fila[1] = rsTabla.getString("descripcion");
+                lblIngresosVal.setText(String.format("S/ %.2f", ventasHoy + otrosIngresos));
+
+                // --- CONSULTA 2: GASTOS HOY (Tabla COMPRA + Caja Chica) ---
+                ps = con.prepareStatement("SELECT COALESCE(SUM(total), 0) FROM compra WHERE id_sucursal = ? AND DATE(fecha_hora) = CURDATE()");
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+                double comprasHoy = 0;
+                if (rs.next()) comprasHoy = rs.getDouble(1);
+
+                ps = con.prepareStatement("SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja WHERE id_sucursal = ? AND tipo = 'GASTO' AND DATE(fecha_hora) = CURDATE()");
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+                double gastosCaja = 0;
+                if (rs.next()) gastosCaja = rs.getDouble(1);
+
+                lblGastosVal.setText(String.format("S/ %.2f", comprasHoy + gastosCaja));
+
+                // --- CONSULTA 3: SALDO (Tabla SUCURSAL) ---
+                ps = con.prepareStatement("SELECT presupuesto FROM sucursal WHERE id_sucursal = ?");
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+                if (rs.next()) {
+                    double saldo = rs.getDouble("presupuesto");
+                    lblSaldoVal.setText(String.format("S/ %.2f", saldo));
+                }
+
+                // --- CONSULTA 4: LLENAR TABLA (Historial movimiento_caja) ---
+                DefaultTableModel modelo = (DefaultTableModel) tablaMovimientos.getModel();
+                modelo.setRowCount(0); // Limpiar tabla
+
+                String sqlTabla = "SELECT fecha_hora, descripcion, tipo, monto FROM movimiento_caja WHERE id_sucursal = ? ORDER BY fecha_hora DESC LIMIT 50";
+                ps = con.prepareStatement(sqlTabla);
+                ps.setInt(1, ID_SUCURSAL);
+                rs = ps.executeQuery();
+
+                while (rs.next()) {
+                    Timestamp ts = rs.getTimestamp("fecha_hora");
+                    String fecha = (ts != null) ? ts.toString().substring(0, 10) : "";
+                    String hora = (ts != null) ? ts.toString().substring(11, 16) : "";
+                    String desc = rs.getString("descripcion");
+                    String tipo = rs.getString("tipo");
+                    double monto = rs.getDouble("monto");
+
+                    String montoStr = String.format("S/ %.2f", monto);
                     
-                    // Columna Tipo (Le ponemos un icono o texto simple)
-                    String tipo = rsTabla.getString("tipo");
-                    fila[2] = tipo; 
-
-                    // Formato de dinero
-                    double monto = rsTabla.getDouble("monto");
+                    // Poner signo negativo visualmente a los gastos
                     if (tipo.equals("GASTO") || tipo.equals("COMPRA")) {
-                        fila[3] = "- S/ " + String.format("%.2f", monto); // Negativo visual
+                        montoStr = "- " + montoStr;
                     } else {
-                        fila[3] = "+ S/ " + String.format("%.2f", monto); // Positivo visual
+                        montoStr = "+ " + montoStr;
                     }
 
-                    modelo.addRow(fila);
+                    modelo.addRow(new Object[]{fecha, hora, desc, tipo, montoStr});
                 }
-                rsTabla.close();
-                psTabla.close();
-                
-                // ---------------------------------------------------------
-                // PASO C: COLOREAR FILAS (Opcional - Requiere un Renderer)
-                // ---------------------------------------------------------
-                // pintarColoresTabla(); // Si tienes ese método, úsalo aquí
             }
 
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println("Error al conectar o consultar: " + e);
-            JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error BD Tesoreria: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error al conectar: " + e.getMessage());
         } finally {
-            try {
-                if (con != null) con.close(); // Cerrar conexión siempre
-            } catch (SQLException ex) {
-                System.out.println("Error al cerrar: " + ex);
-            }
+            // Cerrar recursos
+            try { if (rs != null) rs.close(); } catch (Exception e) {}
+            try { if (ps != null) ps.close(); } catch (Exception e) {}
+            try { if (con != null) con.close(); } catch (Exception e) {}
         }
     }
 
@@ -117,108 +156,25 @@ private void mostrarDatosTesoreria() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
-        jPanel4 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
-        lblPresupuesto = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
+        dateChooserFiltro = new com.toedter.calendar.JDateChooser();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        jLabel1 = new javax.swing.JLabel();
         jPanel5 = new javax.swing.JPanel();
-        jLabel4 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        lblIngresosTotal = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
+        jLabel3 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        tablaMovimientos = new javax.swing.JTable();
-        jLabel6 = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        jPanel4 = new javax.swing.JPanel();
 
         jTabbedPane1.setBackground(new java.awt.Color(204, 0, 255));
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
-        jPanel4.setBackground(new java.awt.Color(153, 153, 153));
-
-        jLabel2.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel2.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        jLabel2.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel2.setText("saldo corriente:");
-
-        lblPresupuesto.setBackground(new java.awt.Color(0, 0, 0));
-        lblPresupuesto.setFont(new java.awt.Font("Dialog", 0, 24)); // NOI18N
-        lblPresupuesto.setForeground(new java.awt.Color(0, 0, 0));
-
-        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
-        jPanel4.setLayout(jPanel4Layout);
-        jPanel4Layout.setHorizontalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lblPresupuesto)
-                    .addComponent(jLabel2))
-                .addContainerGap(130, Short.MAX_VALUE))
-        );
-        jPanel4Layout.setVerticalGroup(
-            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel4Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(lblPresupuesto, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(43, Short.MAX_VALUE))
-        );
-
-        jLabel3.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel3.setFont(new java.awt.Font("Dialog", 0, 24)); // NOI18N
-        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel3.setText("RESUMEN DE LA TESORERIA");
-
-        jPanel5.setBackground(new java.awt.Color(153, 153, 153));
-
-        jLabel4.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        jLabel4.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel4.setText("Ingresos de hoy:");
-
-        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
-        jPanel5.setLayout(jPanel5Layout);
-        jPanel5Layout.setHorizontalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addComponent(jLabel4)
-                .addContainerGap(121, Short.MAX_VALUE))
-        );
-        jPanel5Layout.setVerticalGroup(
-            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel5Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(101, Short.MAX_VALUE))
-        );
-
-        jPanel6.setBackground(new java.awt.Color(153, 153, 153));
-
-        jLabel5.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel5.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        jLabel5.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel5.setText("Gastos de hoy:");
-
-        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
-        jPanel6.setLayout(jPanel6Layout);
-        jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addComponent(jLabel5)
-                .addContainerGap(133, Short.MAX_VALUE))
-        );
-        jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(101, Short.MAX_VALUE))
-        );
-
-        tablaMovimientos.setModel(new javax.swing.table.DefaultTableModel(
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -229,55 +185,145 @@ private void mostrarDatosTesoreria() {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane2.setViewportView(tablaMovimientos);
+        jScrollPane1.setViewportView(jTable1);
 
-        jLabel6.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel6.setFont(new java.awt.Font("Dialog", 0, 24)); // NOI18N
-        jLabel6.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel6.setText("Movimientos recientes");
+        jLabel1.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel1.setText("Detalle de ingresos por ventas ");
+
+        jPanel5.setBackground(new java.awt.Color(0, 153, 0));
+
+        jLabel2.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel2.setText("INGRESO");
+
+        lblIngresosTotal.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        lblIngresosTotal.setText("$000");
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGap(16, 16, 16)
+                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblIngresosTotal)
+                    .addComponent(jLabel2))
+                .addContainerGap(79, Short.MAX_VALUE))
+        );
+        jPanel5Layout.setVerticalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGap(14, 14, 14)
+                .addComponent(jLabel2)
+                .addGap(28, 28, 28)
+                .addComponent(lblIngresosTotal)
+                .addContainerGap(30, Short.MAX_VALUE))
+        );
+
+        jPanel6.setBackground(new java.awt.Color(0, 153, 0));
+
+        jLabel3.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel3.setText("TICKET PROMEDIO");
+
+        jLabel5.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel5.setText("000");
+
+        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
+        jPanel6.setLayout(jPanel6Layout);
+        jPanel6Layout.setHorizontalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel3)
+                    .addComponent(jLabel5))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel6Layout.setVerticalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel5)
+                .addContainerGap(34, Short.MAX_VALUE))
+        );
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(18, Short.MAX_VALUE)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 1026, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(18, 18, 18)
+                .addGap(35, 35, 35)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel6)
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 346, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(90, 90, 90)
-                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(15, 15, 15))))
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 764, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(32, 32, 32)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(dateChooserFiltro, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap(26, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 59, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(56, 56, 56)
+                .addComponent(dateChooserFiltro, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 59, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(102, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 273, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(40, 40, 40)
+                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(176, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab("RESUMEN", jPanel1);
+        jTabbedPane1.addTab("REPORTE DE VENTAS", jPanel1);
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1037, Short.MAX_VALUE)
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 604, Short.MAX_VALUE)
+        );
+
+        jTabbedPane1.addTab("REPORTE DE GASTOS", jPanel2);
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1037, Short.MAX_VALUE)
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 604, Short.MAX_VALUE)
+        );
+
+        jTabbedPane1.addTab("FACTURAS", jPanel3);
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1037, Short.MAX_VALUE)
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 604, Short.MAX_VALUE)
+        );
+
+        jTabbedPane1.addTab("GESTION DE CAJA", jPanel4);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -298,18 +344,20 @@ private void mostrarDatosTesoreria() {
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private com.toedter.calendar.JDateChooser dateChooserFiltro;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
-    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JLabel lblPresupuesto;
-    private javax.swing.JTable tablaMovimientos;
+    private javax.swing.JTable jTable1;
+    private javax.swing.JLabel lblIngresosTotal;
     // End of variables declaration//GEN-END:variables
 }

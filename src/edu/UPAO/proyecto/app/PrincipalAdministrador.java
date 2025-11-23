@@ -282,7 +282,8 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
-
+        TESORERIA_Admin paneltesoreria = new TESORERIA_Admin();
+        MostrarPanel(paneltesoreria);
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
     private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
