@@ -96,6 +96,33 @@ public class AsistenciaDAO {
         }
     }
 
+    public void cerrarSesionesOlvidadas(String idEmpleado) {
+        // Esta consulta busca registros DONDE:
+        // 1. Sea de este empleado
+        // 2. La salida sea NULL (sigue abierta)
+        // 3. La fecha de entrada sea MENOR a HOY (es decir, ayer o antes)
+        String sql = "UPDATE asistencia SET "
+                + "fecha_hora_salida = CONCAT(DATE(fecha_hora_entrada), ' 23:59:59'), "
+                + // Lo cerramos al final de ESE día
+                "estado = 'CIERRE AUTOMÁTICO' "
+                + // Marcamos que fue un olvido
+                "WHERE id_empleado = ? "
+                + "AND fecha_hora_salida IS NULL "
+                + "AND DATE(fecha_hora_entrada) < CURDATE()";
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, idEmpleado);
+            int filas = ps.executeUpdate();
+
+            if (filas > 0) {
+                System.out.println("🧹 Se cerraron " + filas + " sesiones olvidadas de días anteriores.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error limpiando sesiones viejas: " + e.getMessage());
+        }
+    }
+
     private void insertarNuevaAsistencia(LocalDate fecha, String idEmpleado, LocalTime entrada, LocalTime salida, String estado) {
         String sql = "INSERT INTO asistencia (fecha_hora_entrada, fecha_hora_salida, id_empleado, id_sucursal, estado) VALUES (?, ?, ?, ?, ?)";
 
@@ -205,29 +232,86 @@ public class AsistenciaDAO {
             System.err.println("Error cerrando conexión: " + e.getMessage());
         }
     }
-    
+
+    public void registrarMarca(String idEmpleado, int idSucursal, String tipoMarca) {
+        // tipoMarca puede ser: "ENTRADA" o "SALIDA"
+
+        String sqlBuscarHoy = "SELECT id_asistencia FROM asistencia WHERE id_empleado = ? AND DATE(fecha_hora_entrada) = CURDATE()";
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement psBus = cn.prepareStatement(sqlBuscarHoy)) {
+
+            psBus.setString(1, idEmpleado);
+            ResultSet rs = psBus.executeQuery();
+
+            if (tipoMarca.equals("ENTRADA")) {
+                cerrarSesionesOlvidadas(idEmpleado);
+            }
+
+            if (rs.next()) {
+                // --- YA EXISTE UN REGISTRO DE HOY ---
+                int idAsistencia = rs.getInt("id_asistencia");
+
+                if (tipoMarca.equals("ENTRADA")) {
+                    // RE-INGRESO: Si vuelve del baño/almuerzo, borramos la salida anterior
+                    // para indicar que "sigue aquí".
+                    String sqlReingreso = "UPDATE asistencia SET fecha_hora_salida = NULL WHERE id_asistencia = ?";
+                    try (PreparedStatement psUpd = cn.prepareStatement(sqlReingreso)) {
+                        psUpd.setInt(1, idAsistencia);
+                        psUpd.executeUpdate();
+                        System.out.println("🕒 Re-ingreso marcado. Salida borrada temporalmente.");
+                    }
+
+                } else if (tipoMarca.equals("SALIDA")) {
+                    // PAUSA O FIN: Marcamos la hora actual. 
+                    // Si no vuelve, esta quedará como su hora final.
+                    String sqlSalida = "UPDATE asistencia SET fecha_hora_salida = NOW() WHERE id_asistencia = ?";
+                    try (PreparedStatement psUpd = cn.prepareStatement(sqlSalida)) {
+                        psUpd.setInt(1, idAsistencia);
+                        psUpd.executeUpdate();
+                        System.out.println("🕒 Salida marcada (Pausa o Fin) a las: " + java.time.LocalTime.now());
+                    }
+                }
+
+            } else {
+                // --- PRIMERA VEZ EN EL DÍA (Solo aplica para ENTRADA) ---
+                if (tipoMarca.equals("ENTRADA")) {
+                    String sqlInsert = "INSERT INTO asistencia (fecha_hora_entrada, id_empleado, id_sucursal, estado) VALUES (NOW(), ?, ?, 'RESPONSABLE')";
+                    // Nota: Podrías calcular si es TARDE comparando con HorarioDAO aquí mismo.
+
+                    try (PreparedStatement psIns = cn.prepareStatement(sqlInsert)) {
+                        psIns.setString(1, idEmpleado);
+                        psIns.setInt(2, idSucursal);
+                        psIns.executeUpdate();
+                        System.out.println("✅ Asistencia creada para el día.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error marcando asistencia: " + e.getMessage());
+        }
+    }
+
     public List<Object[]> listarAsistenciasDetalladas(String nombreSucursalFiltro) {
         List<Object[]> lista = new ArrayList<>();
-        
+
         // Construimos la consulta base
-        String sql = "SELECT a.fecha_hora_entrada, a.fecha_hora_salida, a.estado, " +
-                     "e.id_empleado, CONCAT(p.nombres, ' ', p.apellidos) AS nombre_completo, " +
-                     "e.rol, s.nombre_sucursal " +
-                     "FROM asistencia a " +
-                     "INNER JOIN empleado e ON a.id_empleado = e.id_empleado " +
-                     "INNER JOIN persona p ON e.dni = p.dni " +
-                     "INNER JOIN sucursal s ON a.id_sucursal = s.id_sucursal ";
+        String sql = "SELECT a.fecha_hora_entrada, a.fecha_hora_salida, a.estado, "
+                + "e.id_empleado, CONCAT(p.nombres, ' ', p.apellidos) AS nombre_completo, "
+                + "e.rol, s.nombre_sucursal "
+                + "FROM asistencia a "
+                + "INNER JOIN empleado e ON a.id_empleado = e.id_empleado "
+                + "INNER JOIN persona p ON e.dni = p.dni "
+                + "INNER JOIN sucursal s ON a.id_sucursal = s.id_sucursal ";
 
         // Aplicar filtro si no es "Todas"
         boolean filtrar = nombreSucursalFiltro != null && !nombreSucursalFiltro.equals("Todas las Sucursales");
         if (filtrar) {
             sql += "WHERE s.nombre_sucursal = ? ";
         }
-        
+
         sql += "ORDER BY a.fecha_hora_entrada DESC"; // Lo más reciente primero
 
-        try (Connection cn = new Conexion().establecerConexion();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
 
             if (filtrar) {
                 ps.setString(1, nombreSucursalFiltro);

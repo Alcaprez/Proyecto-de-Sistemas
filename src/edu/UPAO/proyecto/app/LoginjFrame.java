@@ -382,8 +382,9 @@ public class LoginjFrame extends javax.swing.JFrame {
                 // 3. 👇 ABRIR CAJA AUTOMÁTICAMENTE CON EL ID REAL 👇
                 gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
 
-                // 4. Abrir Menú (Pasando el ID de Sucursal si tu Menu2 lo soporta, o dejando que lo busque solo)
-                // Menu2 menuPrincipal = new Menu2(idEmpleado); ...
+                edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
+                asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
+                
             }
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());

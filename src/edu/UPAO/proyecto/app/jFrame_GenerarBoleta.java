@@ -25,7 +25,6 @@ import javax.swing.Timer;
 
 public class jFrame_GenerarBoleta extends javax.swing.JFrame {
 
-
     // Constructor que recibe carrito + totales listos
     private Menu2 menuPrincipal;  // ✅ Referencia a la ventana del cajero
     private DefaultTableModel modeloBoleta;
@@ -35,10 +34,10 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
     private String observaciones = "";
 
     // ✅ CONSTRUCTOR PRINCIPAL (El que usas desde Menu2)
-    public jFrame_GenerarBoleta(Menu2 menu, DefaultTableModel carritoClonado, 
-                                String subtotal, String descuento, String total, 
-                                String idEmpleado, int idSucursal, String observaciones) {
-        
+    public jFrame_GenerarBoleta(Menu2 menu, DefaultTableModel carritoClonado,
+            String subtotal, String descuento, String total,
+            String idEmpleado, int idSucursal, String observaciones) {
+
         initComponents();
         this.menuPrincipal = menu; // ✅ Guardamos referencia para actualizar stock luego
         this.modeloBoleta = carritoClonado;
@@ -79,7 +78,6 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         initComponents();
     }
 
-
     private void verificarMontoMovimientoCaja(double totalVenta) {
         try {
             System.out.println("🔍 VERIFICANDO MONTO MOVIMIENTO CAJA:");
@@ -108,10 +106,9 @@ public class jFrame_GenerarBoleta extends javax.swing.JFrame {
         }
     }
 
-
     @SuppressWarnings("unchecked")
 
-private void calcularTotales() {
+    private void calcularTotales() {
         double subtotal = 0.0;
         for (int i = 0; i < modeloBoleta.getRowCount(); i++) {
             Object val = modeloBoleta.getValueAt(i, 3); // Columna Subtotal
@@ -119,13 +116,14 @@ private void calcularTotales() {
                 subtotal += Double.parseDouble(String.valueOf(val));
             }
         }
-        
+
         // Recuperar descuento si existe
         double descuento = 0.0;
         try {
-             String descText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
-             descuento = Double.parseDouble(descText);
-        } catch(Exception e) {}
+            String descText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
+            descuento = Double.parseDouble(descText);
+        } catch (Exception e) {
+        }
 
         double baseImponible = (subtotal - descuento) / 1.18;
         double igv = baseImponible * 0.18;
@@ -136,7 +134,7 @@ private void calcularTotales() {
         lbl_igv.setText("IGV (18%): S/ " + String.format("%.2f", igv));
         lbl_total.setText("Total: S/ " + String.format("%.2f", total));
     }
-    
+
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
@@ -367,13 +365,15 @@ private void calcularTotales() {
     }//GEN-LAST:event_tf_dniActionPerformed
 
     private void btn_pagadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_pagadoActionPerformed
-if (!validarCampos()) return;
+        if (!validarCampos()) {
+            return;
+        }
 
         try {
             // 1. OBTENER DATOS
             String totalText = lbl_total.getText().replace("Total:", "").replace("S/", "").replace(",", ".").trim();
             double totalVenta = Double.parseDouble(totalText);
-            
+
             // Recalcular bases para guardar exacto
             double subtotalBase = totalVenta / 1.18;
             double igv = subtotalBase * 0.18;
@@ -420,17 +420,40 @@ if (!validarCampos()) return;
             int idVenta = ventaDAO.registrarVenta(venta);
 
             if (idVenta > 0) {
-                // 6. GENERAR COMPROBANTE Y PDF
+                // ===============================================================
+                // 🔥 EL TRUCO SIMPLE: AGREGAR EL DESCUENTO VISUALMENTE PARA EL PDF
+                // ===============================================================
+                try {
+                    // 1. Obtenemos el valor del descuento desde tu etiqueta
+                    String descText = lbl_descueto.getText().replace("Descuento:", "").replace("S/", "").trim();
+                    double descuentoVal = Double.parseDouble(descText);
+
+                    // 2. Si hay descuento, lo metemos a la lista de la venta como un "Item Falso"
+                    // Esto NO afecta a la base de datos porque ya se guardó arriba.
+                    // Solo afecta al PDF que se va a generar ahora.
+                    if (descuentoVal > 0) {
+                        Producto pDescuento = new Producto();
+                        pDescuento.setNombre(">> DESCUENTO CUPÓN <<"); // Nombre que saldrá en el PDF
+
+                        // Agregamos a la lista en memoria (Item, Cantidad 1, Precio Negativo)
+                        venta.getDetalleVenta().add(new DetalleVenta(pDescuento, 1, -descuentoVal));
+                    }
+                } catch (Exception ex) {
+                    System.out.println("No se pudo aplicar descuento visual: " + ex.getMessage());
+                }
+                // ===============================================================
+
+                // 6. GENERAR COMPROBANTE Y PDF (Tu código original)
+                // Al llamar a esto, el PDF leerá la lista que acabamos de modificar
                 generarComprobanteYVistaPrevia(venta, idVenta, dni, observaciones);
 
                 JOptionPane.showMessageDialog(this, "✅ Venta registrada correctamente!\nID: " + idVenta);
 
-                // 7. 🔥 ACTUALIZAR STOCK Y LIMPIAR MENU (Lo que pediste)
+                // 7. ACTUALIZAR STOCK Y LIMPIAR MENU
                 if (this.menuPrincipal != null) {
-                    this.menuPrincipal.finalizarVenta(); // Esto recarga la tabla con stock nuevo
+                    this.menuPrincipal.finalizarVenta();
                 }
 
-                // Cerrar esta ventana, queda abierta la vista previa
                 this.dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "❌ Error al guardar venta en BD.");
@@ -442,23 +465,22 @@ if (!validarCampos()) return;
         }
     }//GEN-LAST:event_btn_pagadoActionPerformed
 
-    
     private void generarComprobanteYVistaPrevia(Venta venta, int idVenta, String dni, String obs) {
         try {
             // Registrar comprobante en BD
             new ComprobanteDAO().registrarComprobante(idVenta, "BOLETA", venta);
-            
+
             // Generar PDF
             String numComprobante = String.format("B001-%08d", idVenta);
             String rutaPDF = GeneradorPDF.generarBoleta(venta, numComprobante);
 
             // Abrir Vista Previa pasando el menú para que el botón "Listo" también pueda actualizar
             jFrame_VistaPrevia vista = new jFrame_VistaPrevia(
-                this.menuPrincipal, // ✅ Pasamos la referencia
-                venta, 
-                dni, 
-                obs, 
-                rutaPDF
+                    this.menuPrincipal, // ✅ Pasamos la referencia
+                    venta,
+                    dni,
+                    obs,
+                    rutaPDF
             );
             vista.setVisible(true);
 
@@ -466,7 +488,7 @@ if (!validarCampos()) return;
             System.err.println("Error generando comprobante: " + e.getMessage());
         }
     }
-    
+
     private void btn_mostrarMaquinaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_mostrarMaquinaActionPerformed
         if (maquina == null || !maquina.isDisplayable()) {
             maquina = new jFram_MaquinaDePAgo();

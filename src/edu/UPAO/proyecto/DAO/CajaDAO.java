@@ -231,18 +231,72 @@ public class CajaDAO {
         return saldoInicial + totalMovimientos;
     }
 
-    // ✅ Método Actualizado: Cerrar Caja con datos del Arqueo
-    public boolean cerrarCajaConArqueo(int idCaja, double saldoFinalReal, double diferencia, String observaciones) {
-        String sql = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
-        // Podrías guardar la diferencia en otra tabla 'arqueo' si quisieras, por ahora cerramos la caja.
+// ✅ MÉTODO ACTUALIZADO: Cierra caja guardando la auditoría del descuadre
+    public boolean cerrarCajaConArqueo(int idCaja, double saldoReal, double diferencia, String observaciones) {
+        // 1. Primero calculamos cuánto decía el sistema (Saldo Real - Diferencia = Saldo Sistema)
+        //    Ejemplo: Si tengo 90 y me faltan -10, el sistema decía 100.
+        double saldoSistema = saldoReal - diferencia;
+
+        // 2. Actualizamos la caja con TODOS los datos
+        String sql = "UPDATE caja SET "
+                + "fecha_hora_cierre = NOW(), "
+                + "saldo_final = ?, "
+                + // Lo que contó el cajero (Dinero físico real)
+                "saldo_sistema = ?, "
+                + // Lo que debía haber
+                "diferencia = ?, "
+                + // El descuadre (Negativo es faltante)
+                "observacion = ?, "
+                + // Justificación
+                "estado = 'CERRADA' "
+                + "WHERE id_caja = ?";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setDouble(1, saldoFinalReal);
-            stmt.setInt(2, idCaja);
+            stmt.setDouble(1, saldoReal);
+            stmt.setDouble(2, saldoSistema);
+            stmt.setDouble(3, diferencia);
+            stmt.setString(4, observaciones);
+            stmt.setInt(5, idCaja);
+
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            System.err.println("Error cerrando caja: " + e.getMessage());
+            System.err.println("Error cerrando caja con arqueo: " + e.getMessage());
             return false;
         }
+    }
+
+    // ✅ REPORTE DE DESCUADRES (Para el Gerente)
+    public java.util.List<Object[]> listarCierresConDescuadre(int idSucursal) {
+        java.util.List<Object[]> lista = new java.util.ArrayList<>();
+
+        String sql = "SELECT c.fecha_hora_cierre, CONCAT(p.nombres, ' ', p.apellidos) as cajero, "
+                + "c.saldo_sistema, c.saldo_final, c.diferencia, c.observacion "
+                + "FROM caja c "
+                + "INNER JOIN empleado e ON c.id_empleado = e.id_empleado "
+                + "INNER JOIN persona p ON e.dni = p.dni "
+                + "WHERE c.id_sucursal = ? AND c.estado = 'CERRADA' "
+                + "AND c.diferencia != 0 "
+                + // Solo mostrar si hubo error
+                "ORDER BY c.fecha_hora_cierre DESC";
+
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idSucursal);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                lista.add(new Object[]{
+                    rs.getTimestamp("fecha_hora_cierre"),
+                    rs.getString("cajero"),
+                    rs.getDouble("saldo_sistema"), // Debía haber
+                    rs.getDouble("saldo_final"), // Hubo
+                    rs.getDouble("diferencia"), // Faltó/Sobró
+                    rs.getString("observacion")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return lista;
     }
 }

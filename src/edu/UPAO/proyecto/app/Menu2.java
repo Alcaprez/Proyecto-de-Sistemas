@@ -8,14 +8,9 @@ import java.util.Random;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
-import edu.UPAO.proyecto.ProductoController;
-import edu.UPAO.proyecto.PromocionController;
 import edu.UPAO.proyecto.Modelo.Producto;
-import java.awt.Frame;
-import java.awt.Window;
 import java.util.ArrayList;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -23,13 +18,16 @@ public class Menu2 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Menu2.class.getName());
     private String idEmpleado;
-    private int idSucursal; // 
+    private int idSucursal;
+
+    private int idCaja;
 
     public Menu2(String idEmpleado) {
         initComponents();
         //btn_validar.addActionListener(e -> onValidarCupon());
         this.idEmpleado = idEmpleado;
         this.idSucursal = obtenerSucursalEmpleado(idEmpleado);
+        this.idCaja = idCaja;
         System.out.println("Cajero - Empleado: " + this.idEmpleado + ", Sucursal: " + this.idSucursal);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -382,6 +380,7 @@ public class Menu2 extends javax.swing.JFrame {
         jSeparator1 = new javax.swing.JSeparator();
         btn_ventas = new javax.swing.JButton();
         btn_cuenta = new javax.swing.JButton();
+        btn_compras = new javax.swing.JButton();
         panelFormulario = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
         btn_agregar = new javax.swing.JButton();
@@ -491,6 +490,7 @@ public class Menu2 extends javax.swing.JFrame {
         btn_devolver.setBackground(new java.awt.Color(113, 153, 143));
         btn_devolver.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         btn_devolver.setText("HACER DEVOLUCION");
+        btn_devolver.setPreferredSize(new java.awt.Dimension(129, 30));
         btn_devolver.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentMoved(java.awt.event.ComponentEvent evt) {
                 btn_devolverComponentMoved(evt);
@@ -502,17 +502,37 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
+        btn_ventas.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         btn_ventas.setText("VENTAS");
+        btn_ventas.setPreferredSize(new java.awt.Dimension(58, 30));
         btn_ventas.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_ventasActionPerformed(evt);
             }
         });
 
+        btn_cuenta.setBackground(new java.awt.Color(186, 224, 186));
+        btn_cuenta.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         btn_cuenta.setText("MI CUENTA");
+        btn_cuenta.setPreferredSize(new java.awt.Dimension(76, 30));
         btn_cuenta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_cuentaActionPerformed(evt);
+            }
+        });
+
+        btn_compras.setBackground(new java.awt.Color(113, 153, 143));
+        btn_compras.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_compras.setText("COMPRAS");
+        btn_compras.setPreferredSize(new java.awt.Dimension(129, 30));
+        btn_compras.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentMoved(java.awt.event.ComponentEvent evt) {
+                btn_comprasComponentMoved(evt);
+            }
+        });
+        btn_compras.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_comprasActionPerformed(evt);
             }
         });
 
@@ -530,11 +550,13 @@ public class Menu2 extends javax.swing.JFrame {
                         .addComponent(tb_reportes, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(tb_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(26, 26, 26)
+                        .addGap(18, 18, 18)
                         .addComponent(btn_ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(btn_devolver, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(647, Short.MAX_VALUE))
+                        .addComponent(btn_devolver, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btn_compras, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(501, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -545,7 +567,8 @@ public class Menu2 extends javax.swing.JFrame {
                     .addComponent(tb_entrada, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_ventas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btn_devolver, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(btn_devolver, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(115, 115, 115)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(685, 685, 685))
@@ -1364,7 +1387,20 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
     }//GEN-LAST:event_btn_agregarActionPerformed
 
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
-
+// 1. Crear una ventana nueva (JFrame)
+        javax.swing.JFrame ventanaCuenta = new javax.swing.JFrame("Mi Cuenta - Kuyay");
+        
+        // 2. Crear tu panel pasándole el ID
+        panel_Cuenta miPanel = new panel_Cuenta(this.idEmpleado); // Usamos el ID que ya tiene Menu2
+        
+        // 3. Configurar la ventana
+        ventanaCuenta.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE); // Solo cerrar esta ventana, no toda la app
+        ventanaCuenta.setContentPane(miPanel); // Metemos el panel dentro
+        ventanaCuenta.pack(); // Ajustar tamaño automáticamente al contenido del panel
+        ventanaCuenta.setLocationRelativeTo(this); // Centrar sobre el menú
+        
+        // 4. Mostrar
+        ventanaCuenta.setVisible(true);
     }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_ventasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventasActionPerformed
@@ -1413,6 +1449,35 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
         // TODO add your handling code here:
     }//GEN-LAST:event_tb_reportesActionPerformed
 
+    private void btn_comprasComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_btn_comprasComponentMoved
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_comprasComponentMoved
+
+    private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
+    // 1. Validar si hay caja abierta (Reutilizando tu método existente)
+        int idCajaActual = obtenerIdCajaAbierta(); // O usar this.idCaja si ya lo guardaste en el constructor
+
+        if (idCajaActual == -1 || idCajaActual == 0) {
+            JOptionPane.showMessageDialog(this, 
+                "No hay caja abierta. No se puede sacar dinero.", 
+                "Error de Caja", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 2. Abrir la ventana de Gastos
+        DialogoRegistrarGasto dialogo = new DialogoRegistrarGasto(
+            this, 
+            true, 
+            idCajaActual, 
+            this.idSucursal
+        );
+        
+        dialogo.setVisible(true);
+        
+        // Opcional: Si tienes un label que muestra el saldo actual en pantalla, aquí podrías actualizarlo
+        // actualizarLabelSaldo();
+    }//GEN-LAST:event_btn_comprasActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -1448,6 +1513,7 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
     private javax.swing.JButton btn_agregar;
     private javax.swing.JButton btn_buscar;
     private javax.swing.JButton btn_cancelar;
+    private javax.swing.JButton btn_compras;
     private javax.swing.JButton btn_cuenta;
     private javax.swing.JButton btn_devolver;
     private javax.swing.JButton btn_eliminarItem;
