@@ -21,46 +21,46 @@ import static edu.UPAO.proyecto.DAO.ColorADM.*;
 import javax.swing.*;
 
 public class ALMACEN_Admin extends javax.swing.JPanel {
-    
-   private DefaultTableModel modeloTabla;
+
+    private DefaultTableModel modeloTabla;
     private List<ProductoCaducidad> listaProductos;
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private List<Categoria> listaCategorias;
     private Categoria categoriaSeleccionada;
-    private JPanel panelCategorias; 
+    private JPanel panelCategorias;
     private DefaultTableModel modeloTablaProductos;
-    
+
     // DATOS DE CONEXIÓN
     String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
     String usuario = "root";
     String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
-    
+
     public ALMACEN_Admin() {
         initComponents();
         inicializarTabla();
-        configurarComboBoxes();  
+        configurarComboBoxes();
         // Carga inicial de datos reales
-        cargarDatosDesdeBD(); 
-        actualizarMetricasBD(); 
+        cargarDatosDesdeBD();
+        actualizarMetricasBD();
         configurarBuscador();
         inicializarInventarioTienda();
     }
 // /////////////////////////////////////////////////////
     //  1. GESTIÓN DE CADUCIDAD (TABLA Y FILTROS)
     // /////////////////////////////////////////////////////
-    
+
     private void inicializarTabla() {
         modeloTabla = new DefaultTableModel(
-            new Object[]{"Producto (Lote/SKU)", "Proveedor", "Fecha de Caducidad", "Días Restantes", "Cantidad"}, 0
+                new Object[]{"Producto (Lote/SKU)", "Proveedor", "Fecha de Caducidad", "Días Restantes", "Cantidad"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-        
+
         jTable1.setModel(modeloTabla);
-        
+
         // Aplicamos tu renderizador personalizado
         try {
             CaducidadCellRenderer renderer = new CaducidadCellRenderer();
@@ -70,65 +70,64 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         } catch (Exception e) {
             System.out.println("Nota: No se encontró CaducidadCellRenderer, usando default.");
         }
-        
+
         jTable1.getColumnModel().getColumn(0).setPreferredWidth(250);
         jTable1.setRowHeight(30);
         listaProductos = new ArrayList<>();
     }
-    
+
     private void configurarComboBoxes() {
-       Estado.removeAllItems();
+        Estado.removeAllItems();
         Estado.addItem("Todos");
         Estado.addItem("Vencidos");
         Estado.addItem("No Vencidos"); // <--- NUEVA OPCIÓN
         Estado.addItem("Vencen en 7 días");
         Estado.addItem("Vencen en 30 días");
     }
-    
+
     // MÉTODO PRINCIPAL PARA CARGAR TABLA DE CADUCIDAD
     private void cargarDatosDesdeBD() {
         listaProductos.clear();
         modeloTabla.setRowCount(0);
-        
+
         // SQL: Unimos inventario + producto. 
         // Nota: Como proveedor no está directo en producto, usamos 'Varios' o hacemos join complejo.
         // Aquí asumiremos que quieres ver el stock general.
-        String sql = "SELECT p.nombre, p.codigo, i.stock_actual, i.fecha_caducidad " +
-                     "FROM inventario_sucursal i " +
-                     "INNER JOIN producto p ON i.id_producto = p.id_producto " +
-                     "WHERE i.id_sucursal = 1 AND i.stock_actual > 0 " +
-                     "ORDER BY i.fecha_caducidad ASC";
+        String sql = "SELECT p.nombre, p.codigo, i.stock_actual, i.fecha_caducidad "
+                + "FROM inventario_sucursal i "
+                + "INNER JOIN producto p ON i.id_producto = p.id_producto "
+                + "WHERE i.id_sucursal = 1 AND i.stock_actual > 0 "
+                + "ORDER BY i.fecha_caducidad ASC";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
-            
+
             while (rs.next()) {
                 String nombre = rs.getString("nombre");
                 String codigo = rs.getString("codigo");
                 int stock = rs.getInt("stock_actual");
                 Date fechaSQL = rs.getDate("fecha_caducidad");
                 LocalDate fecha = (fechaSQL != null) ? fechaSQL.toLocalDate() : LocalDate.now().plusYears(1);
-                
+
                 // Agregamos a la lista en memoria para filtrar luego
                 listaProductos.add(new ProductoCaducidad(
-                    codigo, nombre, "General", fecha, stock));
+                        codigo, nombre, "General", fecha, stock));
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error cargando inventario: " + e.getMessage());
         }
-        
+
         filtrarProductos(); // Mostramos la lista
     }
 
     // /////////////////////////////////////////////////////
     //  2. DASHBOARD DE MÉTRICAS (KPIs) - SQL PURO
     // /////////////////////////////////////////////////////
-    
     private void actualizarMetricasBD() {
         // Consultas directas a la BD para velocidad y precisión
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            
+
             // 1. Vencidos
             String sqlVencidos = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad < CURDATE() AND id_sucursal=1";
             PreparedStatement ps1 = con.prepareStatement(sqlVencidos);
@@ -148,10 +147,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             int en30dias = rs3.next() ? rs3.getInt(1) : 0;
 
             // 4. Valor en Riesgo (Stock * Precio Compra de lo que vence en 7 días o menos)
-            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) " +
-                               "FROM inventario_sucursal i " +
-                               "INNER JOIN producto p ON i.id_producto = p.id_producto " +
-                               "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=1";
+            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) "
+                    + "FROM inventario_sucursal i "
+                    + "INNER JOIN producto p ON i.id_producto = p.id_producto "
+                    + "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=1";
             PreparedStatement ps4 = con.prepareStatement(sqlRiesgo);
             ResultSet rs4 = ps4.executeQuery();
             double riesgo = rs4.next() ? rs4.getDouble(1) : 0.0;
@@ -169,7 +168,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             jPanel7.setBackground(new Color(173, 216, 230)); // Azul
 
             jLabel1.setForeground(Color.WHITE);
-            
+
         } catch (SQLException e) {
             System.out.println("Error en métricas: " + e);
         }
@@ -177,42 +176,39 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
     // Lógica de Filtros en Memoria (Para la tabla)
     private void filtrarProductos() {
-       String estadoSel = (String) Estado.getSelectedItem();
-        
+        String estadoSel = (String) Estado.getSelectedItem();
+
         // Limpieza del buscador
         String busqueda = jTextField1.getText().trim().toLowerCase();
         String placeholder = "buscar producto por nombre/sku.....";
         if (busqueda.equals(placeholder) || busqueda.isEmpty()) {
             busqueda = "";
         }
-        
+
         modeloTabla.setRowCount(0);
-        
+
         for (ProductoCaducidad p : listaProductos) {
             long dias = p.getDiasRestantes();
             boolean cumpleEstado = true;
-            
+
             // Lógica de Filtros
             if ("Vencidos".equals(estadoSel)) {
                 cumpleEstado = dias < 0;
-            } 
-            else if ("No Vencidos".equals(estadoSel)) { // <--- NUEVA LÓGICA
+            } else if ("No Vencidos".equals(estadoSel)) { // <--- NUEVA LÓGICA
                 cumpleEstado = dias >= 0; // Muestra todo lo que NO esté vencido (incluye por vencer)
-            }
-            else if ("Vencen en 7 días".equals(estadoSel)) {
+            } else if ("Vencen en 7 días".equals(estadoSel)) {
                 cumpleEstado = dias >= 0 && dias <= 7;
-            }
-            else if ("Vencen en 30 días".equals(estadoSel)) {
+            } else if ("Vencen en 30 días".equals(estadoSel)) {
                 cumpleEstado = dias > 7 && dias <= 30;
             }
-            
+
             // Filtro de Texto
             boolean cumpleBusqueda = true;
             if (!busqueda.isEmpty()) {
-                cumpleBusqueda = p.getNombreProducto().toLowerCase().contains(busqueda) || 
-                                 p.getLote().toLowerCase().contains(busqueda);
+                cumpleBusqueda = p.getNombreProducto().toLowerCase().contains(busqueda)
+                        || p.getLote().toLowerCase().contains(busqueda);
             }
-            
+
             if (cumpleEstado && cumpleBusqueda) {
                 modeloTabla.addRow(new Object[]{
                     p.getNombreProducto() + " (" + p.getLote() + ")",
@@ -228,13 +224,12 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     // /////////////////////////////////////////////////////
     //  3. INVENTARIO DE TIENDA (CATEGORÍAS Y PRODUCTOS)
     // /////////////////////////////////////////////////////
-
     private void inicializarInventarioTienda() {
         listaCategorias = new ArrayList<>();
         configurarPanelCategorias();
         jPanel9.setLayout(new BoxLayout(jPanel9, BoxLayout.Y_AXIS));
         configurarPanelProductos();
-        
+
         cargarCategoriasBD(); // Carga real
         actualizarVistaCategorias();
     }
@@ -243,7 +238,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jPanel9.setBackground(Color.WHITE);
         jScrollPane3.getViewport().setBackground(Color.WHITE);
     }
-    
+
     private void configurarPanelCategorias() {
         panelCategorias = new JPanel();
         panelCategorias.setLayout(new BoxLayout(panelCategorias, BoxLayout.Y_AXIS));
@@ -254,16 +249,16 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     // Carga Categorías que tengan productos con stock
     private void cargarCategoriasBD() {
         listaCategorias.clear();
-        String sql = "SELECT DISTINCT c.id_categoria, c.nombre " +
-                     "FROM categoria c " +
-                     "INNER JOIN producto p ON c.id_categoria = p.id_categoria " +
-                     "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto " +
-                     "WHERE i.stock_actual > 0 AND i.id_sucursal = 1";
-                     
+        String sql = "SELECT DISTINCT c.id_categoria, c.nombre "
+                + "FROM categoria c "
+                + "INNER JOIN producto p ON c.id_categoria = p.id_categoria "
+                + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
+                + "WHERE i.stock_actual > 0 AND i.id_sucursal = 1";
+
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
-            
+
             while (rs.next()) {
                 int id = rs.getInt("id_categoria");
                 String nombre = rs.getString("nombre");
@@ -279,13 +274,13 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     private void actualizarVistaCategorias() {
         panelCategorias.removeAll();
         panelCategorias.add(Box.createVerticalStrut(10));
-        
+
         for (Categoria categoria : listaCategorias) {
             JPanel cardCategoria = crearCardCategoria(categoria);
             panelCategorias.add(cardCategoria);
             panelCategorias.add(Box.createVerticalStrut(10));
         }
-        
+
         panelCategorias.revalidate();
         panelCategorias.repaint();
     }
@@ -297,22 +292,22 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         card.setMaximumSize(new Dimension(350, 70));
         card.setPreferredSize(new Dimension(350, 70));
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        
+
         // Colores (Usando tus constantes o defaults)
         if (categoria.equals(categoriaSeleccionada)) {
             card.setBackground(new Color(255, 248, 225)); // Color seleccionado suave
         } else {
             card.setBackground(Color.WHITE);
         }
-        
+
         JLabel lblNombre = new JLabel(categoria.getNombre());
         lblNombre.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
+
         card.add(lblNombre, BorderLayout.CENTER);
-        
+
         // Evento Clic
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -320,7 +315,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 seleccionarCategoria(categoria);
             }
         });
-        
+
         return card;
     }
 
@@ -333,69 +328,69 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     // Carga productos de la derecha según la categoría seleccionada
     private void actualizarVistaProductosBD(int idCategoria) {
         jPanel9.removeAll();
-        
+
         jLabel6.setText("Productos: " + categoriaSeleccionada.getNombre());
         jPanel9.add(Box.createVerticalStrut(10));
-        
-        String sql = "SELECT p.nombre, i.stock_actual " +
-                     "FROM producto p " +
-                     "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto " +
-                     "WHERE p.id_categoria = ? AND i.id_sucursal = 1 AND i.stock_actual > 0";
-                     
+
+        String sql = "SELECT p.nombre, i.stock_actual "
+                + "FROM producto p "
+                + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
+                + "WHERE p.id_categoria = ? AND i.id_sucursal = 1 AND i.stock_actual > 0";
+
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, idCategoria);
             ResultSet rs = ps.executeQuery();
-            
+
             boolean hayProductos = false;
             while (rs.next()) {
                 hayProductos = true;
                 String nombre = rs.getString("nombre");
                 int stock = rs.getInt("stock_actual");
-                
+
                 JPanel cardProducto = crearCardProducto(nombre, stock);
                 jPanel9.add(cardProducto);
                 jPanel9.add(Box.createVerticalStrut(8));
             }
-            
+
             if (!hayProductos) {
                 jPanel9.add(new JLabel("  No hay stock en esta categoría."));
             }
-            
+
         } catch (SQLException e) {
             System.out.println("Error productos: " + e);
         }
-        
+
         jPanel9.revalidate();
         jPanel9.repaint();
     }
-    
+
     // Diseño de tarjeta de Producto (SIN BOTONES DE BORRAR)
     private JPanel crearCardProducto(String nombreProducto, int stock) {
         JPanel card = new JPanel(new BorderLayout(10, 0));
         card.setMaximumSize(new Dimension(350, 45));
         card.setPreferredSize(new Dimension(350, 45));
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
-            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
         card.setBackground(new Color(250, 250, 250));
-        
+
         JLabel lblNombre = new JLabel(nombreProducto);
         lblNombre.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        
+
         JLabel lblCantidad = new JLabel("(" + stock + " unid.)");
         lblCantidad.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblCantidad.setForeground(new Color(0, 100, 0)); // Verde oscuro
-        
+
         card.add(lblNombre, BorderLayout.CENTER);
         card.add(lblCantidad, BorderLayout.EAST);
-        
+
         return card;
     }
 
     private void configurarBuscador() {
-       // 1. Configuración Visual (Texto Fantasma)
+        // 1. Configuración Visual (Texto Fantasma)
         String placeholder = "Buscar producto por Nombre/SKU.....";
         jTextField1.setText(placeholder);
         jTextField1.setForeground(Color.GRAY);
@@ -421,10 +416,11 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jTextField1.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 // Cada vez que sueltas una tecla, llamamos al filtro
-                filtrarProductos(); 
+                filtrarProductos();
             }
         });
     }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -450,6 +446,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jPanel8 = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
         jPanel9 = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
 
         jTabbedPane1.setBackground(new java.awt.Color(204, 0, 255));
 
@@ -630,7 +627,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         );
         jPanel8Layout.setVerticalGroup(
             jPanel8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 435, Short.MAX_VALUE)
+            .addGap(0, 489, Short.MAX_VALUE)
         );
 
         jScrollPane2.setViewportView(jPanel8);
@@ -650,33 +647,47 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
         jScrollPane3.setViewportView(jPanel9);
 
+        jButton1.setText("Nueva Categoria");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(73, 73, 73)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel5)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 387, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 151, Short.MAX_VALUE)
+                .addGap(46, 46, 46)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jButton1))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 63, Short.MAX_VALUE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 374, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 70, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(17, 17, 17))
+                .addGap(131, 131, 131))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(69, 69, 69)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5)
-                    .addComponent(jLabel6))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jScrollPane2)
-                    .addComponent(jScrollPane3))
-                .addContainerGap(59, Short.MAX_VALUE))
+                .addGap(51, 51, 51)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel6)
+                            .addComponent(jButton1))
+                        .addGap(18, 18, 18)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addGap(18, 18, 18)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(23, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("INVENTARIO DE TIENDA", jPanel3);
@@ -701,9 +712,27 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         filtrarProductos();
     }//GEN-LAST:event_EstadoActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+// 1. Crear y mostrar el diálogo
+        JFrame marcoPadre = (JFrame) SwingUtilities.getWindowAncestor(this);
+        DialogoNuevaCategoria dialogo = new DialogoNuevaCategoria(marcoPadre, true);
+        dialogo.setVisible(true);
+
+        // 2. Si se guardó algo, recargamos la lista de categorías
+        if (dialogo.isGuardadoExitoso()) {
+            System.out.println("Recargando categorías...");
+            // Limpiamos la lista actual
+            listaCategorias.clear();
+            // Volvemos a cargar de la BD
+            cargarCategoriasBD();
+            // Repintamos la interfaz gráfica
+            actualizarVistaCategorias();
+        }    }//GEN-LAST:event_jButton1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> Estado;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;

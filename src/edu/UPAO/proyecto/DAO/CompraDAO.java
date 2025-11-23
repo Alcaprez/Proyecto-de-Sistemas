@@ -16,6 +16,8 @@ public class CompraDAO {
     public CompraDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+
+            this.productoDAO = new ProductoDAO();
             System.out.println("Conectado");
         } catch (Exception e) {
             System.err.println("Error conectando : " + e.getMessage());
@@ -74,7 +76,7 @@ public class CompraDAO {
             actualizarStockProductos(compra.getDetalles(), conn);
 
             // 5. REGISTRAR MOVIMIENTO DE INVENTARIO
-            registrarMovimientosInventarioCompra(compra.getDetalles(), idCompraGenerada, conn);
+            registrarMovimientosInventarioCompra(compra.getDetalles(), idCompraGenerada, compra.getIdSucursal(), conn);
 
             // 6. REGISTRAR MOVIMIENTO DE CAJA
             registrarMovimientoCajaCompra(compra, idCompraGenerada, conn);
@@ -107,7 +109,7 @@ public class CompraDAO {
         }
     }
 
-    // ✅ ACTUALIZAR STOCK (AUMENTAR)
+    // ACTUALIZAR STOCK (AUMENTAR)
     private void actualizarStockProductos(List<DetalleCompra> detalles, Connection conn) throws SQLException {
         String sql = "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?";
 
@@ -124,32 +126,43 @@ public class CompraDAO {
         }
     }
 
-    // ✅ REGISTRAR MOVIMIENTOS DE INVENTARIO (COMPRA)
-    private void registrarMovimientosInventarioCompra(List<DetalleCompra> detalles, int idCompraGenerada, Connection conn) throws SQLException {
+    // REGISTRAR MOVIMIENTOS DE INVENTARIO (COMPRA)
+// ✅ ESTE ES EL MÉTODO CORREGIDO (Cópialo y reemplaza al anterior)
+    // Fíjate que en el paréntesis ahora recibe 'int idSucursal'
+    private void registrarMovimientosInventarioCompra(List<DetalleCompra> detalles, int idCompraGenerada, int idSucursal, Connection conn) throws SQLException {
+        
+        // Asegúrate de que tu tabla 'movimiento_inventario' coincida con las columnas del INSERT.
+        // Si no tiene columna 'id_sucursal', usa el INSERT de abajo tal cual.
         String sql = "INSERT INTO movimiento_inventario (fecha_hora, tipo, cantidad, stock_anterior, stock_nuevo, estado, id_producto) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (DetalleCompra detalle : detalles) {
-                int stockAnterior = productoDAO.obtenerStockActual(detalle.getIdProducto());
-                int stockNuevo = stockAnterior + detalle.getCantidad();
+                
+                // 1. AQUÍ ESTÁ LA CLAVE: Usamos el 'idSucursal' que recibimos para consultar el stock correcto
+                int stockAnterior = productoDAO.obtenerStockActual(detalle.getIdProducto(), idSucursal);
+                
+                int stockNuevo = stockAnterior + detalle.getCantidad(); // Es compra, se suma
 
                 stmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-                stmt.setString(2, "ENTRADA");
+                stmt.setString(2, "ENTRADA"); // Tipo movimiento
                 stmt.setInt(3, detalle.getCantidad());
                 stmt.setInt(4, stockAnterior);
                 stmt.setInt(5, stockNuevo);
                 stmt.setString(6, "ACTIVO");
                 stmt.setInt(7, detalle.getIdProducto());
+                
+                // OJO: Si tu tabla 'movimiento_inventario' tiene la columna 'id_sucursal', 
+                // descomenta y agrega la línea siguiente, y ajusta el INSERT de arriba.
+                // stmt.setInt(8, idSucursal); 
+                
                 stmt.addBatch();
-
-                System.out.println("Registrando movimiento COMPRA - Producto: " + detalle.getIdProducto() + ", Stock: " + stockAnterior + " → " + stockNuevo);
             }
             stmt.executeBatch();
-            System.out.println("Movimientos de inventario por compra registrados");
+            System.out.println("Movimientos de inventario registrados correctamente.");
         }
     }
 
-    // ✅ REGISTRAR MOVIMIENTO DE CAJA (COMPRA)
+    // rEGISTRAR MOVIMIENTO DE CAJA (COMPRA)
     private void registrarMovimientoCajaCompra(Compra compra, int idCompraGenerada, Connection conn) throws SQLException {
         String sql = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_caja, id_compra, id_sucursal) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
@@ -167,7 +180,7 @@ public class CompraDAO {
         }
     }
 
-    // ✅ OBTENER ID DE CAJA ACTIVA
+    // OBTENER ID DE CAJA ACTIVA
     private int obtenerIdCajaActiva() throws SQLException {
         String sql = "SELECT id_caja FROM caja WHERE estado = 'ABIERTA' LIMIT 1";
 
@@ -181,7 +194,7 @@ public class CompraDAO {
         }
     }
 
-    // ✅ MÉTODOS PARA RENTABILIDAD
+    // MÉTODOS PARA RENTABILIDAD
     public double obtenerTotalCompras(java.util.Date fechaInicio, java.util.Date fechaFin, Integer idSucursal) {
         String sql = "SELECT COALESCE(SUM(total), 0) as total_compras FROM compra WHERE DATE(fecha_hora) BETWEEN DATE(?) AND DATE(?)";
 
