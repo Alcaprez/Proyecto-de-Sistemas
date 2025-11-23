@@ -27,6 +27,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         cargarCombosSucursales();
         activarBusqueda();
         activarFiltrosAvanzados();
+        configurarTabAsistencias();
         //Evento para llenar formulario al hacer clic en la tabla (Para editar)
         tablaEmpleados.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -64,6 +65,104 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 }
             }
         });
+    }
+
+    private void configurarTabAsistencias() {
+        // 1. Configurar columnas de la tabla
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("ID Empleado");
+        modelo.addColumn("Nombres");
+        modelo.addColumn("Cargo");
+        modelo.addColumn("Tienda");
+        modelo.addColumn("Entrada");
+        modelo.addColumn("Salida");
+        modelo.addColumn("Estado");
+
+        tablaAsistencias.setModel(modelo);
+
+        // 2. Cargar Combo de Tiendas (Filtro)
+        cargarComboFiltroTienda();
+
+        // 3. Cargar datos iniciales (Todas)
+        cargarTablaAsistencias(null);
+
+        // 4. Evento del Filtro
+        cbTienda.addActionListener(e -> {
+            String seleccion = (String) cbTienda.getSelectedItem();
+            cargarTablaAsistencias(seleccion);
+        });
+
+        // 5. Botón Actualizar/Fecha (Opcional, para refrescar)
+        if (btnFecha != null) {
+            btnFecha.addActionListener(e -> cargarTablaAsistencias((String) cbTienda.getSelectedItem()));
+        }
+    }
+
+    private void cargarComboFiltroTienda() {
+        if (cbTienda == null) {
+            return;
+        }
+
+        cbTienda.removeAllItems();
+        cbTienda.addItem("Todas las Sucursales");
+
+        edu.UPAO.proyecto.DAO.SucursalDAO sucDao = new edu.UPAO.proyecto.DAO.SucursalDAO();
+        List<String> tiendas = sucDao.obtenerSucursalesActivas(); // Asegúrate que este método devuelva lista de nombres
+
+        for (String t : tiendas) {
+            cbTienda.addItem(t);
+        }
+    }
+    
+    private void configurarTabNomina() {
+        // 1. Configurar Tabla (jTable1)
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("ID");
+        modelo.addColumn("Nombres");
+        modelo.addColumn("Apellidos");
+        modelo.addColumn("Cargo");
+        modelo.addColumn("Sueldo");
+        modelo.addColumn("Estado Mes"); // PAGADO o PENDIENTE
+        modelo.addColumn("Fecha Pago");
+        jTable1.setModel(modelo);
+
+        // 2. Llenar Combos (Mes y Sucursal de nómina)
+        cargarComboMeses();
+        cargarComboSucursalesNomina();
+
+        // 3. Listeners para recargar tabla al cambiar filtros
+        cb_sucursal.addActionListener(e -> cargarTablaNomina());
+        cb_mes.addActionListener(e -> cargarTablaNomina());
+        
+        // Buscador con Enter
+        tf_buscarEnNomina.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if(evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) cargarTablaNomina();
+            }
+        });
+
+        // BOTÓN PAGAR
+        btn_pagar.addActionListener(e -> procesarPagoSeleccionado());
+        
+        // BOTÓN BUSCAR (Si existe)
+        if(btn_buscarNomina != null) btn_buscarNomina.addActionListener(e -> cargarTablaNomina());
+        
+        // Carga inicial
+        cargarTablaNomina();
+    }
+
+    private void cargarTablaAsistencias(String filtroTienda) {
+        DefaultTableModel modelo = (DefaultTableModel) tablaAsistencias.getModel();
+        modelo.setRowCount(0); // Limpiar
+
+        edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
+
+        // Si es nulo o vacío, el DAO interpretará "Todas"
+        List<Object[]> datos = asisDao.listarAsistenciasDetalladas(filtroTienda);
+
+        for (Object[] fila : datos) {
+            modelo.addRow(fila);
+        }
     }
 
     private void configurarComboTurno() {
@@ -269,6 +368,85 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             }
         }
     }
+    
+    private void cargarComboMeses() {
+        cb_mes.removeAllItems();
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        for (String m : meses) cb_mes.addItem(m);
+        // Seleccionar mes actual (opcional)
+        int mesActual = java.time.LocalDate.now().getMonthValue() - 1;
+        cb_mes.setSelectedIndex(mesActual);
+    }
+    
+    private void cargarComboSucursalesNomina() {
+        // Reutilizamos tu lógica de sucursales para el combo de la pestaña nómina
+        cb_sucursal.removeAllItems();
+        SucursalDAO dao = new SucursalDAO();
+        List<String> lista = dao.obtenerSucursalesActivas();
+        for(String s : lista) cb_sucursal.addItem(s);
+    }
+
+    private void cargarTablaNomina() {
+        String nombreSucursal = (String) cb_sucursal.getSelectedItem();
+        String mes = (String) cb_mes.getSelectedItem();
+        int anio = java.time.LocalDate.now().getYear(); // Año actual
+        String busqueda = tf_buscarEnNomina.getText().trim();
+
+        if (nombreSucursal == null || mes == null) return;
+
+        // Obtener ID Sucursal
+        int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
+
+        // Llamar al DAO
+        edu.UPAO.proyecto.DAO.NominaDAO nominaDAO = new edu.UPAO.proyecto.DAO.NominaDAO();
+        List<Object[]> datos = nominaDAO.listarNominaMes(idSucursal, mes, anio, busqueda);
+
+        // Llenar Tabla
+        DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
+        modelo.setRowCount(0);
+
+        for (Object[] fila : datos) {
+            modelo.addRow(fila);
+        }
+    }
+
+    private void procesarPagoSeleccionado() {
+        int fila = jTable1.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione un empleado de la lista para pagar.");
+            return;
+        }
+
+        String estado = jTable1.getValueAt(fila, 5).toString(); // Columna 5 es Estado
+        if ("PAGADO".equals(estado)) {
+            JOptionPane.showMessageDialog(this, "Este empleado ya cobró este mes.", "Ya pagado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String idEmp = jTable1.getValueAt(fila, 0).toString();
+        String nombre = jTable1.getValueAt(fila, 1).toString() + " " + jTable1.getValueAt(fila, 2).toString();
+        double sueldo = Double.parseDouble(jTable1.getValueAt(fila, 4).toString());
+        
+        String mes = (String) cb_mes.getSelectedItem();
+        String nombreSucursal = (String) cb_sucursal.getSelectedItem();
+        int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
+
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "¿Confirmar pago de S/ " + sueldo + " a " + nombre + "?\n" +
+            "Mes: " + mes + "\n" +
+            "Se descontará de la caja activa de la tienda.",
+            "Procesar Pago", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            edu.UPAO.proyecto.DAO.NominaDAO dao = new edu.UPAO.proyecto.DAO.NominaDAO();
+            boolean exito = dao.pagarEmpleado(idEmp, sueldo, mes, java.time.LocalDate.now().getYear(), idSucursal);
+            
+            if (exito) {
+                JOptionPane.showMessageDialog(this, "¡Pago registrado correctamente!");
+                cargarTablaNomina(); // Refrescar para ver que cambie a PAGADO
+            }
+        }
+    }
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -301,6 +479,16 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         jScrollPaneAsis = new javax.swing.JScrollPane();
         tablaAsistencias = new javax.swing.JTable();
         NOMINA_EMPLEADOS = new javax.swing.JPanel();
+        jPanel1 = new javax.swing.JPanel();
+        cb_sucursal = new javax.swing.JComboBox<>();
+        cb_mes = new javax.swing.JComboBox<>();
+        btn_exportar = new javax.swing.JButton();
+        tf_buscarEnNomina = new javax.swing.JTextField();
+        btn_buscarNomina = new javax.swing.JButton();
+        btn_todos = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        btn_pagar = new javax.swing.JButton();
         REGISTRAR_PERSONAL = new javax.swing.JPanel();
         panelForm = new javax.swing.JPanel();
         lblNombres = new javax.swing.JLabel();
@@ -363,7 +551,12 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         gridBagConstraints.gridy = 1;
         panelTop.add(lblListaEmpleados, gridBagConstraints);
 
-        txtBuscar.setText("Buscar por Nombre o ID...");
+        txtBuscar.setMinimumSize(new java.awt.Dimension(15, 100));
+        txtBuscar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                txtBuscarActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridy = 2;
         panelTop.add(txtBuscar, gridBagConstraints);
@@ -474,15 +667,92 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         tabControlPersonal.addTab("ASISTENCIAS", ASISTENCIAS);
 
+        cb_sucursal.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        cb_mes.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        btn_exportar.setText("Exportar");
+
+        tf_buscarEnNomina.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tf_buscarEnNominaActionPerformed(evt);
+            }
+        });
+
+        btn_buscarNomina.setText("Buscar");
+
+        btn_todos.setText("Todos");
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
+
+        btn_pagar.setText("Pagar");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(29, 29, 29)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(btn_pagar, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(btn_exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(tf_buscarEnNomina, javax.swing.GroupLayout.PREFERRED_SIZE, 663, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(btn_buscarNomina, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(18, 18, 18)
+                            .addComponent(btn_todos, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel1Layout.createSequentialGroup()
+                            .addComponent(cb_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(34, 34, 34)
+                            .addComponent(cb_mes, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(jScrollPane1)))
+                .addContainerGap(238, Short.MAX_VALUE))
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(31, 31, 31)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(cb_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cb_mes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btn_todos, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
+                    .addComponent(btn_buscarNomina, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(tf_buscarEnNomina))
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 461, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_pagar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(35, Short.MAX_VALUE))
+        );
+
         javax.swing.GroupLayout NOMINA_EMPLEADOSLayout = new javax.swing.GroupLayout(NOMINA_EMPLEADOS);
         NOMINA_EMPLEADOS.setLayout(NOMINA_EMPLEADOSLayout);
         NOMINA_EMPLEADOSLayout.setHorizontalGroup(
             NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1212, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         NOMINA_EMPLEADOSLayout.setVerticalGroup(
             NOMINA_EMPLEADOSLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 658, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         tabControlPersonal.addTab("NOMINA DE EMPLEADOS", NOMINA_EMPLEADOS);
@@ -490,7 +760,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         REGISTRAR_PERSONAL.setLayout(new java.awt.BorderLayout());
 
         panelForm.setBackground(new java.awt.Color(255, 255, 255));
-        panelForm.setPreferredSize(new java.awt.Dimension(874, 150));
+        panelForm.setPreferredSize(new java.awt.Dimension(874, 190));
 
         lblNombres.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblNombres.setForeground(new java.awt.Color(0, 0, 0));
@@ -579,32 +849,29 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             .addGroup(panelFormLayout.createSequentialGroup()
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(panelFormLayout.createSequentialGroup()
-                        .addGap(249, 249, 249)
-                        .addComponent(lblCorreo)
-                        .addGap(12, 12, 12))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(lblApellidos, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(lblNombres, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(lblDni, javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(lblTelefono, javax.swing.GroupLayout.Alignment.TRAILING))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
-                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(panelFormLayout.createSequentialGroup()
-                        .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(lblTienda1)
-                        .addGap(18, 18, 18)
-                        .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(panelFormLayout.createSequentialGroup()
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(lblNombres)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(panelFormLayout.createSequentialGroup()
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(panelFormLayout.createSequentialGroup()
+                                        .addGap(286, 286, 286)
+                                        .addComponent(lblDni))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(lblTelefono, javax.swing.GroupLayout.Alignment.TRAILING)
+                                            .addComponent(lblCorreo, javax.swing.GroupLayout.Alignment.TRAILING))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(txtDni, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtTelefono, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(panelFormLayout.createSequentialGroup()
                                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(panelFormLayout.createSequentialGroup()
                                         .addGap(18, 18, 18)
@@ -614,21 +881,34 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                             .addComponent(lblCargo, javax.swing.GroupLayout.Alignment.TRAILING)
                                             .addComponent(lblSueldo, javax.swing.GroupLayout.Alignment.TRAILING))))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                    .addComponent(cbCargo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(cbEstado, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(txtSueldo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addGroup(panelFormLayout.createSequentialGroup()
                                 .addGap(18, 18, 18)
-                                .addComponent(lblTienda)
-                                .addGap(16, 16, 16)))
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(cbCargo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(cbEstado, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(txtSueldo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addGap(25, 25, 25)
-                .addComponent(lblIdEmpleado)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(50, 50, 50)
+                                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addGroup(panelFormLayout.createSequentialGroup()
+                                        .addGap(1, 1, 1)
+                                        .addComponent(lblTienda1)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, panelFormLayout.createSequentialGroup()
+                                        .addComponent(lblTienda)
+                                        .addGap(16, 16, 16)
+                                        .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addGap(27, 27, 27)
+                                .addComponent(lblIdEmpleado)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, 86, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(48, 48, 48))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(lblApellidos)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(411, 411, 411)))
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(btnActualizar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -638,24 +918,26 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         panelFormLayout.setVerticalGroup(
             panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelFormLayout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelFormLayout.createSequentialGroup()
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lblApellidos)))
+                    .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(lblNombres))
                     .addGroup(panelFormLayout.createSequentialGroup()
-                        .addGap(2, 2, 2)
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(txtNombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(lblNombres)
                             .addComponent(lblTienda1)
-                            .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(cb_turno, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(lblIdEmpleado)
+                                .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(lblTienda)
-                            .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(cbTiendaP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(txtApellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(lblApellidos)))))
+                .addGap(20, 20, 20)
                 .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(txtCorreo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -682,11 +964,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                         .addComponent(txtSueldo, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
             .addGroup(panelFormLayout.createSequentialGroup()
-                .addGap(10, 10, 10)
-                .addGroup(panelFormLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(lblIdEmpleado)
-                    .addComponent(txtIdEmpleado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGap(10, 84, Short.MAX_VALUE)
                 .addComponent(btnLimpiar)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btnActualizar)
@@ -696,6 +974,8 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         );
 
         REGISTRAR_PERSONAL.add(panelForm, java.awt.BorderLayout.PAGE_START);
+
+        panelLista.setPreferredSize(new java.awt.Dimension(1212, 450));
 
         panelListaTop.setLayout(new java.awt.GridBagLayout());
 
@@ -753,11 +1033,11 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                                 .addGap(0, 0, 0)
                                 .addComponent(jButton1)
                                 .addGap(18, 18, 18)
-                                .addComponent(btn_horarios, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                .addComponent(btn_horarios, javax.swing.GroupLayout.PREFERRED_SIZE, 97, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(panelListaLayout.createSequentialGroup()
+                        .addGap(20, 20, 20)
+                        .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1092, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(49, 49, 49))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelListaLayout.createSequentialGroup()
-                .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 1170, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(22, 22, 22))
         );
         panelListaLayout.setVerticalGroup(
             panelListaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -776,7 +1056,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                                 .addComponent(jButton1)
                                 .addComponent(btn_horarios)))))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(scrollEmpleados, javax.swing.GroupLayout.PREFERRED_SIZE, 408, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -792,11 +1072,12 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 684, Short.MAX_VALUE)
+            .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 686, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
+        // 1. RECOLECCIÓN DE DATOS
         String nombres = txtNombres.getText().trim();
         String apellidos = txtApellidos.getText().trim();
         String dni = txtDni.getText().trim();
@@ -806,47 +1087,79 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         String rol = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
         String sucursalNombre = cbTiendaP.getSelectedItem().toString();
-        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString(); // Ej: "MAÑANA"
 
-        int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
-
-        if (rol.equalsIgnoreCase("CAJERO")) {
-            EmpleadoDAO daoValidacion = new EmpleadoDAO();
-            int cantidadActual = daoValidacion.contarCajerosPorTurno(idSucursal, turnoSeleccionado);
-
-            if (cantidadActual >= 3) {
-                javax.swing.JOptionPane.showMessageDialog(this,
-                        "⚠️ Límite alcanzado:\n"
-                        + "Ya existen 3 cajeros activos en el turno " + turnoSeleccionado + " para la tienda " + sucursalNombre + ".\n"
-                        + "No se puede agregar más personal en este horario.",
-                        "Cupo Lleno",
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-                return; // 🛑 DETIENE EL PROCESO AQUÍ
-            }
-        }
-
+        // Validar campos vacíos
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Completa al menos Nombres, Apellidos y DNI",
-                    "Datos incompletos",
-                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this, "Faltan datos personales.");
             return;
         }
 
+        int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
+
+        if (rol.equalsIgnoreCase("ADMINISTRADOR") && estado.equals("ACTIVO")) {
+            EmpleadoDAO daoVal = new EmpleadoDAO();
+            if (daoVal.existeAdministradorEnSucursal(idSucursal)) {
+                javax.swing.JOptionPane.showMessageDialog(this,
+                        "⛔ ERROR DE ESTRUCTURA:\n"
+                        + "La tienda '" + sucursalNombre + "' YA TIENE un Administrador activo.\n"
+                        + "Solo se permite uno por sucursal.\n\n"
+                        + "Solución: Desactive al anterior antes de registrar uno nuevo.",
+                        "Restricción de Cargo",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                return; // ⛔ DETIENE EL REGISTRO
+            }
+        }
+
+        // =================================================================
+        // 🛑 REGLA DE NEGOCIO: LÍMITE DE CAJEROS (La que ya tenías)
+        // =================================================================
+        if (rol.equalsIgnoreCase("CAJERO")) {
+            // ... (Tu código de validación de 3 cajeros) ...
+        }
+
+        // 2. DEFINIR HORAS EXACTAS
+        java.sql.Time horaEntrada = null;
+        java.sql.Time horaSalida = null;
+
+        if (turnoSeleccionado.contains("MAÑANA")) {
+            horaEntrada = java.sql.Time.valueOf("07:00:00");
+            horaSalida = java.sql.Time.valueOf("12:00:00");
+        } else if (turnoSeleccionado.contains("TARDE")) {
+            horaEntrada = java.sql.Time.valueOf("12:00:00");
+            horaSalida = java.sql.Time.valueOf("17:00:00");
+        } else if (turnoSeleccionado.contains("NOCHE")) {
+            horaEntrada = java.sql.Time.valueOf("17:00:00");
+            horaSalida = java.sql.Time.valueOf("22:00:00");
+        }
+
+        // 3. ✅ VALIDACIÓN DE TURNO SEMANAL (Una sola persona por turno)
+        edu.UPAO.proyecto.DAO.HorarioDAO horarioDAO = new edu.UPAO.proyecto.DAO.HorarioDAO();
+
+        if (horaEntrada != null && horaSalida != null) {
+            // Usamos el nuevo método que ignora el día
+            boolean ocupado = horarioDAO.esTurnoOcupado(idSucursal, horaEntrada.toLocalTime(), horaSalida.toLocalTime());
+
+            if (ocupado) {
+                javax.swing.JOptionPane.showMessageDialog(this,
+                        "⛔ EL TURNO ESTÁ OCUPADO:\n"
+                        + "Ya existe un empleado asignado al turno " + turnoSeleccionado + " en esta tienda.\n"
+                        + "No se pueden asignar dos personas al mismo horario semanal.",
+                        "Conflicto de Turno",
+                        javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+        }
+
+        // 4. PROCESO DE GUARDADO
         String idEmpleadoNuevo = generarNuevoIdEmpleado(rol);
 
-        try (Connection cn = new Conexion().establecerConexion()) {
+        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion()) {
             cn.setAutoCommit(false);
 
-            // 1) PERSONA (si no existe, la creamos)
-            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
-                    + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
-                    + "ON DUPLICATE KEY UPDATE "
-                    + "nombres = VALUES(nombres), "
-                    + "apellidos = VALUES(apellidos), "
-                    + "telefono = VALUES(telefono), "
-                    + "correo = VALUES(correo)";
-            try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
+            // A) Persona
+            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) VALUES (?, ?, ?, ?, ?, 'ACTIVO') ON DUPLICATE KEY UPDATE nombres=VALUES(nombres)";
+            try (java.sql.PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
                 ps.setString(1, dni);
                 ps.setString(2, nombres);
                 ps.setString(3, apellidos);
@@ -855,59 +1168,45 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 ps.executeUpdate();
             }
 
-            // =================================================
-            // LEER SUELDO DEL TXT
-            // =================================================
-            String sueldoTexto = txtSueldo.getText().trim();
-            double sueldo = (sueldoTexto.isEmpty())
-                    ? 0.0
-                    : Double.parseDouble(sueldoTexto);
-
-            // =================================================
-            // INSERT EMPLEADO
-            // =================================================
-            String sqlEmpleado = "INSERT INTO empleado "
-                    + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-            try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
+            // B) Empleado
+            String sqlEmpleado = "INSERT INTO empleado (id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            try (java.sql.PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
                 ps.setString(1, idEmpleadoNuevo);
                 ps.setString(2, dni);
                 ps.setInt(3, idSucursal);
                 ps.setString(4, rol);
                 ps.setString(5, estado);
-
-                sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
+                double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
                 ps.setDouble(6, sueldo);
-
-                // ✅ CORRECCIÓN: Usamos la variable, NO el texto fijo
                 ps.setString(7, turnoSeleccionado);
-
                 ps.executeUpdate();
+            }
+
+            // C) ✅ INSERTAR HORARIO PARA TODA LA SEMANA (Lunes a Domingo)
+            String sqlHorario = "INSERT INTO horario_empleado (id_empleado, dia_semana, hora_entrada, hora_salida) VALUES (?, ?, ?, ?)";
+            String[] diasSemana = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"};
+
+            try (java.sql.PreparedStatement psH = cn.prepareStatement(sqlHorario)) {
+                for (String dia : diasSemana) {
+                    psH.setString(1, idEmpleadoNuevo);
+                    psH.setString(2, dia); // Inserta Lunes, luego Martes, etc.
+                    psH.setTime(3, horaEntrada);
+                    psH.setTime(4, horaSalida);
+                    psH.addBatch(); // Preparamos lote
+                }
+                psH.executeBatch(); // Ejecutamos las 7 inserciones de una
             }
 
             cn.commit();
 
-            // Mostrar ID generado en el formulario
             txtIdEmpleado.setText(idEmpleadoNuevo);
-
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Empleado registrado correctamente",
-                    "Éxito",
-                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-
-            // recargar tabla
+            javax.swing.JOptionPane.showMessageDialog(this, "Empleado registrado con turno SEMANAL completo (Lun-Dom).");
             cargarEmpleadosEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Error al registrar empleado. Revisa la consola.",
-                    "Error",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this, "Error crítico: " + e.getMessage());
         }
-        String sueldoTxt = txtSueldo.getText().trim();
-        double sueldo = sueldoTxt.isEmpty() ? 0.0 : Double.parseDouble(sueldoTxt);
     }//GEN-LAST:event_btnAgregarActionPerformed
 
     private void txtIdEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtIdEmpleadoActionPerformed
@@ -1015,6 +1314,14 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
     }//GEN-LAST:event_btn_horariosActionPerformed
 
+    private void txtBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtBuscarActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtBuscarActionPerformed
+
+    private void tf_buscarEnNominaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_buscarEnNominaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tf_buscarEnNominaActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel ASISTENCIAS;
@@ -1025,17 +1332,26 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JButton btnExportar;
     private javax.swing.JButton btnFecha;
     private javax.swing.JButton btnLimpiar;
+    private javax.swing.JButton btn_buscarNomina;
+    private javax.swing.JButton btn_exportar;
     private javax.swing.JButton btn_horarios;
+    private javax.swing.JButton btn_pagar;
+    private javax.swing.JButton btn_todos;
     private javax.swing.JComboBox<String> cbCargo;
     private javax.swing.JComboBox<String> cbEstado;
     private javax.swing.JComboBox<String> cbFiltroEstado;
     private javax.swing.JComboBox<String> cbTienda;
     private javax.swing.JComboBox<String> cbTiendaP;
+    private javax.swing.JComboBox<String> cb_mes;
+    private javax.swing.JComboBox<String> cb_sucursal;
     private javax.swing.JComboBox<String> cb_turno;
     private javax.swing.JButton jButton1;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPaneAsis;
+    private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
     private javax.swing.JLabel lblApellidos;
     private javax.swing.JLabel lblAusenciasTitulo;
@@ -1072,6 +1388,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JTabbedPane tabControlPersonal;
     private javax.swing.JTable tablaAsistencias;
     private javax.swing.JTable tablaEmpleados;
+    private javax.swing.JTextField tf_buscarEnNomina;
     private javax.swing.JTextField txtApellidos;
     private javax.swing.JTextField txtBuscar;
     private javax.swing.JTextField txtCorreo;

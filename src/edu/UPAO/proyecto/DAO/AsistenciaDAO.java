@@ -205,4 +205,49 @@ public class AsistenciaDAO {
             System.err.println("Error cerrando conexión: " + e.getMessage());
         }
     }
+    
+    public List<Object[]> listarAsistenciasDetalladas(String nombreSucursalFiltro) {
+        List<Object[]> lista = new ArrayList<>();
+        
+        // Construimos la consulta base
+        String sql = "SELECT a.fecha_hora_entrada, a.fecha_hora_salida, a.estado, " +
+                     "e.id_empleado, CONCAT(p.nombres, ' ', p.apellidos) AS nombre_completo, " +
+                     "e.rol, s.nombre_sucursal " +
+                     "FROM asistencia a " +
+                     "INNER JOIN empleado e ON a.id_empleado = e.id_empleado " +
+                     "INNER JOIN persona p ON e.dni = p.dni " +
+                     "INNER JOIN sucursal s ON a.id_sucursal = s.id_sucursal ";
+
+        // Aplicar filtro si no es "Todas"
+        boolean filtrar = nombreSucursalFiltro != null && !nombreSucursalFiltro.equals("Todas las Sucursales");
+        if (filtrar) {
+            sql += "WHERE s.nombre_sucursal = ? ";
+        }
+        
+        sql += "ORDER BY a.fecha_hora_entrada DESC"; // Lo más reciente primero
+
+        try (Connection cn = new Conexion().establecerConexion();
+             PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            if (filtrar) {
+                ps.setString(1, nombreSucursalFiltro);
+            }
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                lista.add(new Object[]{
+                    rs.getString("id_empleado"),
+                    rs.getString("nombre_completo"),
+                    rs.getString("rol"),
+                    rs.getString("nombre_sucursal"),
+                    rs.getTimestamp("fecha_hora_entrada"),
+                    rs.getTimestamp("fecha_hora_salida"),
+                    rs.getString("estado")
+                });
+            }
+        } catch (SQLException e) {
+            System.err.println("Error listando asistencias: " + e.getMessage());
+        }
+        return lista;
+    }
 }
