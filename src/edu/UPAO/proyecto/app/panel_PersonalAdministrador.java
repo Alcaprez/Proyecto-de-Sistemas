@@ -4,17 +4,24 @@
  */
 package edu.UPAO.proyecto.app;
 
-/**
- *
- * @author ALBERTH
- */
+import javax.swing.table.DefaultTableModel;
+import java.util.List;
+import edu.UPAO.proyecto.DAO.AsistenciaDAO;
+import edu.UPAO.proyecto.DAO.SucursalDAO;
+
 public class panel_PersonalAdministrador extends javax.swing.JPanel {
 
-    /**
-     * Creates new form panel_vistaVentas
-     */
+private String nombreSucursalAdmin = "Tienda Central"; // Valor por defecto, cambiar dinámicamente
+    
     public panel_PersonalAdministrador() {
         initComponents();
+        configurarTabAsistencias();
+    }
+
+    public panel_PersonalAdministrador(String nombreSucursal) {
+        this.nombreSucursalAdmin = nombreSucursal;
+        initComponents();
+        configurarTabAsistencias();
     }
 
     /**
@@ -26,19 +33,136 @@ public class panel_PersonalAdministrador extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        cb_mes = new javax.swing.JComboBox<>();
+        tf_buscarEnNomina = new javax.swing.JTextField();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
+        btn_buscarNomina = new javax.swing.JButton();
+        btn_todos = new javax.swing.JButton();
+        btn_pagar = new javax.swing.JButton();
+        btn_exportar = new javax.swing.JButton();
         PROMOCIONES = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        cb_mes1 = new javax.swing.JComboBox<>();
+        tf_buscarEnNomina1 = new javax.swing.JTextField();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        jTable2 = new javax.swing.JTable();
+        btn_buscarNomina1 = new javax.swing.JButton();
+        btn_todos1 = new javax.swing.JButton();
+        btn_pagar1 = new javax.swing.JButton();
+        btn_exportar1 = new javax.swing.JButton();
         jPanel2 = new javax.swing.JPanel();
+
+        cb_mes.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        tf_buscarEnNomina.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tf_buscarEnNominaActionPerformed(evt);
+            }
+        });
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
+
+        btn_buscarNomina.setText("Buscar");
+
+        btn_todos.setText("Todos");
+
+        btn_pagar.setText("Pagar");
+
+        btn_exportar.setText("Exportar");
+
+        cb_mes1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        tf_buscarEnNomina1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tf_buscarEnNomina1ActionPerformed(evt);
+            }
+        });
+
+        jTable2.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane2.setViewportView(jTable2);
+
+        btn_buscarNomina1.setText("Buscar");
+
+        btn_todos1.setText("Todos");
+
+        btn_pagar1.setText("Pagar");
+
+        btn_exportar1.setText("Exportar");
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addGap(27, 27, 27)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(tf_buscarEnNomina1, javax.swing.GroupLayout.PREFERRED_SIZE, 663, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btn_buscarNomina1, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btn_todos1, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 945, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cb_mes1, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(193, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btn_pagar1, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btn_exportar1, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(193, 193, 193))
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                .addGap(0, 25, Short.MAX_VALUE)
+                .addComponent(cb_mes1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(btn_todos1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_buscarNomina1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(tf_buscarEnNomina1, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 432, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(btn_pagar1, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btn_exportar1, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(41, 41, 41))
+        );
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1165, Short.MAX_VALUE)
+            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 619, Short.MAX_VALUE)
+            .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         PROMOCIONES.addTab("ASISTENCIAS", jPanel1);
@@ -68,10 +192,112 @@ public class panel_PersonalAdministrador extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 
+    private void configurarTabAsistencias() {
+        // 1. Configurar Tabla de Asistencias (jTable2 en tu código)
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("ID Empleado");
+        modelo.addColumn("Nombre Completo");
+        modelo.addColumn("Cargo");
+        // modelo.addColumn("Tienda"); // Opcional: Como es solo su tienda, quizás sea redundante
+        modelo.addColumn("Entrada");
+        modelo.addColumn("Salida");
+        modelo.addColumn("Estado");
+
+        jTable2.setModel(modelo); // jTable2 es la tabla dentro de la pestaña ASISTENCIAS
+
+        // 2. Cargar Meses en el Combo (cb_mes1) para filtrar por fecha si quisieras
+        // Por ahora, cargamos todos los registros de SU TIENDA
+        cargarTablaAsistencias();
+
+        // 3. Eventos de Botones
+        btn_buscarNomina1.addActionListener(e -> filtrarAsistencias()); // Botón Buscar
+        btn_todos1.addActionListener(e -> cargarTablaAsistencias());     // Botón Todos (Refrescar)
+
+        // Buscador con Enter
+        tf_buscarEnNomina1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    filtrarAsistencias();
+                }
+            }
+        });
+    }
+    
+    private void cargarTablaAsistencias() {
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
+        modelo.setRowCount(0);
+
+        AsistenciaDAO dao = new AsistenciaDAO();
+        
+        // TRUCO: Usamos el mismo método del Gerente, pero le pasamos FIJO el nombre de la tienda del Admin
+        // Así solo ve a su gente.
+        List<Object[]> datos = dao.listarAsistenciasDetalladas(this.nombreSucursalAdmin);
+
+        for (Object[] fila : datos) {
+            // Filtramos columnas para que coincidan con el modelo (quitamos la columna Tienda si quieres)
+            // El DAO devuelve: [ID, Nombre, Rol, Tienda, Entrada, Salida, Estado]
+            // Nosotros queremos: [ID, Nombre, Rol, Entrada, Salida, Estado]
+            
+            Object[] filaReducida = new Object[] {
+                fila[0], // ID
+                fila[1], // Nombre
+                fila[2], // Rol
+                fila[4], // Entrada
+                fila[5], // Salida
+                fila[6]  // Estado
+            };
+            modelo.addRow(filaReducida);
+        }
+    }
+    
+    private void filtrarAsistencias() {
+        String texto = tf_buscarEnNomina1.getText().trim().toLowerCase();
+        if (texto.isEmpty()) {
+            cargarTablaAsistencias();
+            return;
+        }
+        
+        // Filtro manual simple sobre la tabla cargada (o podrías hacer query SQL)
+        DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
+        var sorter = new javax.swing.table.TableRowSorter<>(modelo);
+        jTable2.setRowSorter(sorter);
+        
+        if (texto.length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + texto));
+        }
+    }
+
+    private void tf_buscarEnNominaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_buscarEnNominaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tf_buscarEnNominaActionPerformed
+
+    private void tf_buscarEnNomina1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_buscarEnNomina1ActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_tf_buscarEnNomina1ActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTabbedPane PROMOCIONES;
+    private javax.swing.JButton btn_buscarNomina;
+    private javax.swing.JButton btn_buscarNomina1;
+    private javax.swing.JButton btn_exportar;
+    private javax.swing.JButton btn_exportar1;
+    private javax.swing.JButton btn_pagar;
+    private javax.swing.JButton btn_pagar1;
+    private javax.swing.JButton btn_todos;
+    private javax.swing.JButton btn_todos1;
+    private javax.swing.JComboBox<String> cb_mes;
+    private javax.swing.JComboBox<String> cb_mes1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JTable jTable1;
+    private javax.swing.JTable jTable2;
+    private javax.swing.JTextField tf_buscarEnNomina;
+    private javax.swing.JTextField tf_buscarEnNomina1;
     // End of variables declaration//GEN-END:variables
 }
