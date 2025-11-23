@@ -5,107 +5,100 @@ import edu.UPAO.proyecto.Modelo.Proveedor;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
 public class ProveedorDAO {
 
-    // ====================================================================
-    // 1. MÉTODO AUXILIAR PARA GENERAR ID CHAR(8) (Ej: PR000001)
-    // ====================================================================
+    // Genera ID con formato correcto PROV000X
     private String generarNuevoIdProveedor(Connection cn) throws SQLException {
         String sql = "SELECT MAX(id_proveedor) AS max_id FROM proveedor";
-        try (PreparedStatement ps = cn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next() && rs.getString("max_id") != null) {
+        try (PreparedStatement ps = cn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
                 String maxId = rs.getString("max_id");
-                // Asumimos formato "PR" + 6 dígitos. Extraemos los dígitos.
-                try {
-                    int correlativo = Integer.parseInt(maxId.substring(2));
-                    return String.format("PR%06d", correlativo + 1);
-                } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
-                     // Si el ID actual no tiene el formato esperado, reiniciamos o manejamos el error
-                     return "PR000001"; 
+                if (maxId != null && maxId.startsWith("PROV")) {
+                    try {
+                        String numeroStr = maxId.substring(4);
+                        int correlativo = Integer.parseInt(numeroStr);
+                        return String.format("PROV%04d", correlativo + 1);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error al parsear ID: " + e.getMessage());
+                    }
                 }
             }
         }
-        return "PR000001"; // Primer proveedor si la tabla está vacía
+        return "PROV0001";
     }
 
-    // ====================================================================
-    // 2. LISTAR y BUSCAR (Combinados)
-    // ====================================================================
     public List<Proveedor> listar(String filtro) {
         List<Proveedor> lista = new ArrayList<>();
-        // Hacemos JOIN con persona para obtener nombres y teléfonos del contacto
-        String sql = "SELECT pr.id_proveedor, pr.Razon_Social, pr.ruc, pr.direccion, pr.estado, pr.id_sucursal, " +
-                     "pe.dni, pe.nombres, pe.apellidos, pe.telefono " +
-                     "FROM proveedor pr " +
-                     "LEFT JOIN persona pe ON pr.dni = pe.dni " +
-                     "WHERE pr.Razon_Social LIKE ? OR pr.ruc LIKE ? OR pe.dni LIKE ?";
-        
+        // CORRECCIÓN AQUÍ: Seleccionamos pr.dni en vez de pe.dni para asegurar que siempre salga
+        String sql = "SELECT pr.id_proveedor, pr.Razon_Social, pr.ruc, pr.direccion, pr.estado, pr.id_sucursal, "
+                + "pr.dni AS dni_proveedor, "
+                + // <--- CLAVE: Tomar DNI de la tabla proveedor
+                "pe.nombres, pe.apellidos, pe.telefono "
+                + "FROM proveedor pr "
+                + "LEFT JOIN persona pe ON pr.dni = pe.dni "
+                + "WHERE pr.Razon_Social LIKE ? OR pr.ruc LIKE ? OR pr.dni LIKE ?"; // Filtramos también por pr.dni
+
         String parametroFiltro = "%" + (filtro == null ? "" : filtro.trim()) + "%";
-        
-        try (Connection cn = new Conexion().establecerConexion();
-             PreparedStatement ps = cn.prepareStatement(sql)) {
-            
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
             ps.setString(1, parametroFiltro);
             ps.setString(2, parametroFiltro);
             ps.setString(3, parametroFiltro);
-            
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Proveedor p = new Proveedor();
-                    // Datos de la tabla proveedor
                     p.setIdProveedor(rs.getString("id_proveedor"));
                     p.setRazonSocial(rs.getString("Razon_Social"));
                     p.setRuc(rs.getString("ruc"));
                     p.setDireccion(rs.getString("direccion"));
                     p.setEstado(rs.getString("estado"));
                     p.setIdSucursal(rs.getInt("id_sucursal"));
-                    // Datos de la tabla persona (asociado)
-                    p.setDniAsociado(rs.getString("dni"));
-                    p.setNombresContacto(rs.getString("nombres"));
-                    p.setApellidosContacto(rs.getString("apellidos"));
-                    p.setTelefonoContacto(rs.getString("telefono"));
+
+                    // Ahora el DNI nunca será nulo porque viene de la tabla proveedor
+                    p.setDniAsociado(rs.getString("dni_proveedor"));
+
+                    // Estos datos sí pueden ser nulos si la persona no existe, controlamos con ""
+                    p.setNombresContacto(rs.getString("nombres") != null ? rs.getString("nombres") : "");
+                    p.setApellidosContacto(rs.getString("apellidos") != null ? rs.getString("apellidos") : "");
+
+                    // Preferencia: Si hay teléfono en persona úsalo, si no, vacío
+                    p.setTelefonoContacto(rs.getString("telefono") != null ? rs.getString("telefono") : "");
+
                     lista.add(p);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al listar proveedores: " + e.getMessage());
+            System.err.println("Error SQL listar: " + e.getMessage());
             e.printStackTrace();
         }
         return lista;
     }
-    
-    // ====================================================================
-    // 3. GUARDAR (Transacción Persona + Proveedor)
-    // ====================================================================
+
     public boolean guardar(Proveedor p) {
-        // NOTA IMPORTANTE SOBRE LA DB vs FORMULARIO:
-        // La tabla 'persona' EXIGE 'nombres' y 'apellidos'. Tu formulario NO los pide.
-        // SOLUCIÓN TEMPORAL: Usaremos la 'Razon Social' como 'nombres' y un texto fijo como 'apellidos'
-        // para cumplir con la base de datos. Lo ideal sería añadir esos campos al formulario.
-        
+        // Aseguramos que la persona exista o se actualice
         String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, estado) "
-                          + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') " 
-                          + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
-        
+                + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') "
+                + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
+
         String sqlProveedor = "INSERT INTO proveedor (id_proveedor, Razon_Social, dni, ruc, direccion, id_sucursal, estado) "
-                            + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
         try (Connection cn = new Conexion().establecerConexion()) {
-            cn.setAutoCommit(false); // INICIAR TRANSACCIÓN
-            
+            cn.setAutoCommit(false);
             try {
-                // a) Insertar/Actualizar Persona
+                // a) Insertar Persona
                 try (PreparedStatement psPe = cn.prepareStatement(sqlPersona)) {
                     psPe.setString(1, p.getDniAsociado());
-                    // Usamos Razón Social como nombre temporalmente porque el formulario no pide nombre de contacto
-                    psPe.setString(2, p.getRazonSocial()); 
+                    psPe.setString(2, p.getRazonSocial());
                     psPe.setString(3, p.getTelefonoContacto());
                     psPe.executeUpdate();
                 }
 
-                // b) Generar ID y Insertar Proveedor
+                // b) Insertar Proveedor
                 String nuevoId = generarNuevoIdProveedor(cn);
                 try (PreparedStatement psPr = cn.prepareStatement(sqlProveedor)) {
                     psPr.setString(1, nuevoId);
@@ -113,42 +106,46 @@ public class ProveedorDAO {
                     psPr.setString(3, p.getDniAsociado());
                     psPr.setString(4, p.getRuc());
                     psPr.setString(5, p.getDireccion());
-                    psPr.setInt(6, p.getIdSucursal()); // Sucursal del gerente que registra
+                    psPr.setInt(6, p.getIdSucursal());
                     psPr.setString(7, p.getEstado());
                     psPr.executeUpdate();
                 }
-                
-                cn.commit(); // CONFIRMAR
+
+                cn.commit();
                 return true;
-                
             } catch (SQLException ex) {
-                cn.rollback(); // DESHACER
-                System.err.println("Rollback por error en transacción: " + ex.getMessage());
-                throw ex;
+                cn.rollback();
+                ex.printStackTrace();
+                return false;
             }
         } catch (SQLException e) {
-            System.err.println("Error al guardar proveedor: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
 
-    // ====================================================================
-    // 4. ACTUALIZAR (Transacción)
-    // ====================================================================
     public boolean actualizar(Proveedor p) {
-        String sqlPersona = "UPDATE persona SET telefono=? WHERE dni=?";
+        // CAMBIO CRÍTICO: Usamos INSERT... ON DUPLICATE KEY en vez de UPDATE simple.
+        // Esto arregla el problema de que no se guarde el teléfono si la persona no existía antes.
+        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, estado) "
+                + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') "
+                + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
+
         String sqlProveedor = "UPDATE proveedor SET Razon_Social=?, ruc=?, direccion=?, estado=? WHERE id_proveedor=?";
-        
+
         try (Connection cn = new Conexion().establecerConexion()) {
-            cn.setAutoCommit(false);
+            cn.setAutoCommit(false); // Iniciar transacción
             try {
-                // a) Actualizar Persona (Solo teléfono según formulario actual)
+                // a) Insertar o Actualizar Persona (Aseguramos que el contacto exista)
                 try (PreparedStatement psPe = cn.prepareStatement(sqlPersona)) {
-                    psPe.setString(1, p.getTelefonoContacto());
-                    psPe.setString(2, p.getDniAsociado());
+                    psPe.setString(1, p.getDniAsociado());
+                    // Usamos la Razón Social como nombre temporal si se crea un contacto nuevo
+                    psPe.setString(2, p.getRazonSocial());
+                    psPe.setString(3, p.getTelefonoContacto());
                     psPe.executeUpdate();
                 }
-                // b) Actualizar Proveedor
+
+                // b) Actualizar datos del Proveedor
                 try (PreparedStatement psPr = cn.prepareStatement(sqlProveedor)) {
                     psPr.setString(1, p.getRazonSocial());
                     psPr.setString(2, p.getRuc());
@@ -157,36 +154,29 @@ public class ProveedorDAO {
                     psPr.setString(5, p.getIdProveedor());
                     psPr.executeUpdate();
                 }
-                cn.commit();
+
+                cn.commit(); // Confirmar cambios
                 return true;
             } catch (SQLException ex) {
-                cn.rollback();
-                throw ex;
+                cn.rollback(); // Deshacer si falla
+                System.err.println("Error SQL al actualizar: " + ex.getMessage());
+                return false;
             }
         } catch (SQLException e) {
-            System.err.println("Error al actualizar proveedor: " + e.getMessage());
+            System.err.println("Error de conexión: " + e.getMessage());
             return false;
         }
     }
 
-    // 5. Validaciones auxiliares
     public boolean existeRuc(String ruc) {
         String sql = "SELECT 1 FROM proveedor WHERE ruc = ?";
-        try (Connection cn = new Conexion().establecerConexion();
-             PreparedStatement ps = cn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-             ps.setString(1, ruc);
-             return rs.next();
-        } catch (SQLException e) { return false; }
-    }
-    
-    // Validar si el DNI ya existe en persona (para no sobrescribir nombres si no se desea)
-    public boolean existeDniPersona(String dni) {
-         String sql = "SELECT 1 FROM persona WHERE dni = ?";
-         try (Connection cn = new Conexion().establecerConexion();
-              PreparedStatement ps = cn.prepareStatement(sql)) {
-             ps.setString(1, dni);
-             try(ResultSet rs = ps.executeQuery()) { return rs.next(); }
-         } catch (SQLException e) { return false; }
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, ruc);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

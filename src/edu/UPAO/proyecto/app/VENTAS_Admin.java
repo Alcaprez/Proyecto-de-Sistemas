@@ -1,129 +1,484 @@
 package edu.UPAO.proyecto.app;
 
-import java.sql.*; // Asegúrate de tener estos imports arriba
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.sql.*;
+import javax.swing.JPanel;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.JOptionPane;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
 
 public class VENTAS_Admin extends javax.swing.JPanel {
-
+    // DATOS DE CONEXIÓN
+    String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+    String usuario = "root";
+    String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
     public VENTAS_Admin() {
         initComponents();
-        buscarDevoluciones();
+        
+        // 1. Llenar el Combo de Tipos manualmente
+        cboTipoMovimiento.removeAllItems();
+        cboTipoMovimiento.addItem("Todos");
+        cboTipoMovimiento.addItem("VENTA");
+        cboTipoMovimiento.addItem("COMPRA");
+        cboTipoMovimiento.addItem("INVENTARIO");
+        
+        // 2. Cargar los datos
+        cargarKPIs(); 
+        cargarGrafico();
+        cargarDevoluciones("");
+        cargarHistorialCaja(""); // <--- ¡ESTO ES LO QUE FALTABA!
+        
+        // 3. Evento para el Combo (Para que filtre al cambiar)
+        cboTipoMovimiento.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cargarHistorialCaja("");
+            }
+        });
+       
     }
+    private void cargarKPIs() {
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+            
+            // A. PRODUCTOS DEVUELTOS
+            // Sumamos los productos de las compras que marcamos como 'DEVUELTA' o 'ANULADA'
+            String sqlDev = "SELECT SUM(dc.cantidad) FROM detalle_compra dc " +
+                            "INNER JOIN compra c ON dc.id_compra = c.id_compra " +
+                            "WHERE c.estado = 'DEVUELTA' OR c.estado = 'ANULADA'";
+            PreparedStatement ps1 = con.prepareStatement(sqlDev);
+            ResultSet rs1 = ps1.executeQuery();
+            if (rs1.next()) {
+                // Si es null (nadie ha devuelto nada), ponemos 0
+                int devueltos = rs1.getInt(1);
+                lblDevueltos.setText(devueltos + ""); 
+            }
 
-    private void buscarDevoluciones() {
-        // 1. Tus credenciales de Railway (tal cual me las diste)
-        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
-        String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
+            // B. CANTIDAD DE VENTAS (Transacciones)
+            String sqlVentas = "SELECT COUNT(*) FROM venta";
+            PreparedStatement ps2 = con.prepareStatement(sqlVentas);
+            ResultSet rs2 = ps2.executeQuery();
+            if (rs2.next()) lblCantVentas.setText(rs2.getInt(1) + "");
 
-        // 2. Limpiamos la tabla antes de buscar
-        DefaultTableModel modelo = (DefaultTableModel) tblDevoluciones.getModel();
-        modelo.setRowCount(0);
+            // C. UNIDADES VENDIDAS (Suma total de productos salidos)
+            String sqlUnidades = "SELECT SUM(cantidad) FROM detalle_venta";
+            PreparedStatement ps3 = con.prepareStatement(sqlUnidades);
+            ResultSet rs3 = ps3.executeQuery();
+            if (rs3.next()) {
+                int unidades = rs3.getInt(1);
+                lblUnidades.setText(unidades + "");
+            }
 
-        // 3. Construimos la consulta SQL con los JOINS necesarios
-        // Explicación: Unimos Devolucion -> Detalle -> Venta -> Cliente -> Persona
-        String sql = "SELECT "
-                + "  d.id_devolucion, "
-                + "  dd.id_producto, "
-                + "  d.fecha_hora, "
-                + "  CONCAT(p.nombres, ' ', p.apellidos) AS nombre_cliente, "
-                + "  dd.subtotal, "
-                + "  d.motivo "
-                + "FROM devolucion d "
-                + "INNER JOIN detalle_devolucion dd ON d.id_devolucion = dd.id_devolucion "
-                + "INNER JOIN venta v ON d.id_venta = v.id_venta "
-                + "INNER JOIN cliente c ON v.id_cliente = c.id_cliente "
-                + "INNER JOIN persona p ON c.dni = p.dni "
-                + "WHERE 1=1 ";
+            // D. PRODUCTO ESTRELLA (Más vendido)
+            String sqlTop = "SELECT p.nombre FROM detalle_venta dv " +
+                            "JOIN producto p ON dv.id_producto = p.id_producto " +
+                            "GROUP BY p.nombre ORDER BY SUM(dv.cantidad) DESC LIMIT 1";
+            PreparedStatement ps4 = con.prepareStatement(sqlTop);
+            ResultSet rs4 = ps4.executeQuery();
+            if (rs4.next()) {
+                // Usamos HTML para que si el nombre es largo se centre bonito
+                lblTopProducto.setText("<html><center>" + rs4.getString(1) + "</center></html>");
+            } else {
+                lblTopProducto.setText("---");
+            }
 
-        // 4. Filtro por TEXTO (ID Producto)
-        // Usamos tu variable txtIdProducto (o como hayas llamado a la caja negra larga)
-        String texto = txtIdProducto.getText().trim();
-
-        if (!texto.isEmpty() && !texto.equals("Coloque el  id del producto")) {
-            sql += " AND dd.id_producto LIKE '%" + texto + "%'";
+        } catch (SQLException e) {
+            System.out.println("Error cargando KPIs: " + e);
         }
+    }
+    // --- MÉTODO 2: DIBUJAR EL GRÁFICO ---
+    private void cargarGrafico() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-        // Ordenamos por fecha más reciente
-        sql += " ORDER BY d.fecha_hora DESC";
+        // Consulta: Suma de ventas agrupadas por mes (Formato Año-Mes)
+        String sql = "SELECT DATE_FORMAT(fecha_hora, '%Y-%m') as mes, SUM(total) as total " +
+                     "FROM venta " +
+                     "GROUP BY mes ORDER BY mes ASC LIMIT 12"; // Últimos 12 meses
 
-        try {
-            Connection con = DriverManager.getConnection(url, usuario, password);
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                Object[] fila = new Object[6];
-                fila[0] = rs.getInt("id_devolucion");
-                fila[1] = rs.getInt("id_producto");
-                fila[2] = rs.getTimestamp("fecha_hora");
-                fila[3] = rs.getString("nombre_cliente");
-                fila[4] = rs.getBigDecimal("subtotal");
-                fila[5] = rs.getString("motivo");
-
-                modelo.addRow(fila);
+                String mes = rs.getString("mes"); 
+                double monto = rs.getDouble("total");
+                dataset.addValue(monto, "Ventas", mes);
             }
 
-            con.close();
-            // Si tienes un método para pintar colores como en tu ejemplo, llámalo aquí:
-            // pintarColoresTabla(); 
+        } catch (SQLException e) {
+            System.out.println("Error grafico: " + e);
+        }
 
+        // Crear el objeto gráfico (Línea)
+        JFreeChart chart = ChartFactory.createLineChart(
+                "Evolución de Ventas", // Título
+                "Mes",                 // Eje X
+                "Dinero (S/)",         // Eje Y
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, // Leyenda (false para ganar espacio)
+                true,
+                false
+        );
+
+        // Personalización Visual
+        CategoryPlot plot = chart.getCategoryPlot();
+        plot.setBackgroundPaint(Color.WHITE);     // Fondo blanco limpio
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY); // Líneas guía grises
+        
+        // Personalizar la línea (Puntos visibles)
+        LineAndShapeRenderer renderer = new LineAndShapeRenderer();
+        renderer.setSeriesPaint(0, new Color(46, 139, 87)); // Color verde corporativo
+        renderer.setSeriesStroke(0, new java.awt.BasicStroke(3.0f)); // Línea más gruesa
+        plot.setRenderer(renderer);
+
+        // INYECTAR EL GRÁFICO EN TU PANEL
+        // Importante: Tu 'panelGrafico' debe tener Layout BorderLayout o esto no se verá bien.
+        ChartPanel chartPanel = new ChartPanel(chart);
+        
+        // Nos aseguramos que el panelGrafico acepte el relleno completo
+        panelGrafico.setLayout(new java.awt.BorderLayout());
+        panelGrafico.removeAll(); // Limpiamos por si acaso
+        panelGrafico.add(chartPanel, BorderLayout.CENTER);
+        panelGrafico.validate();
+    }
+    
+    private void cargarDevoluciones(String filtro) {
+        DefaultTableModel modelo = (DefaultTableModel) tblDevolucionesVentas.getModel();
+        modelo.setRowCount(0);
+        // Ajustamos columnas para que se vean bien los datos
+        modelo.setColumnIdentifiers(new Object[]{"ID Dev.", "Producto", "Fecha", "Cliente", "Importe", "Motivo"});
+        
+        // Anchos visuales
+        tblDevolucionesVentas.getColumnModel().getColumn(0).setPreferredWidth(60);
+        tblDevolucionesVentas.getColumnModel().getColumn(1).setPreferredWidth(200); 
+        tblDevolucionesVentas.getColumnModel().getColumn(5).setPreferredWidth(150);
+
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+
+        String sql = "SELECT d.id_devolucion, p.nombre, d.fecha_hora, " +
+                     "CONCAT(per.nombres, ' ', per.apellidos) as cliente_nombre, " +
+                     "dd.subtotal, d.motivo " +
+                     "FROM devolucion d " +
+                     "INNER JOIN detalle_devolucion dd ON d.id_devolucion = dd.id_devolucion " +
+                     "INNER JOIN producto p ON dd.id_producto = p.id_producto " +
+                     "INNER JOIN venta v ON d.id_venta = v.id_venta " +
+                     "INNER JOIN cliente c ON v.id_cliente = c.id_cliente " +
+                     "INNER JOIN persona per ON c.dni = per.dni " +
+                     "WHERE 1=1 ";
+
+        // --- CAMBIO AQUÍ: FILTRO POR NOMBRE DEL PRODUCTO ---
+        if (filtro != null && !filtro.isEmpty()) {
+            sql += " AND p.nombre LIKE '%" + filtro + "%'"; 
+        }
+        
+        sql += " ORDER BY d.fecha_hora DESC";
+
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                modelo.addRow(new Object[]{
+                    rs.getString("id_devolucion"),
+                    rs.getString("nombre"), // Muestra el nombre encontrado
+                    rs.getTimestamp("fecha_hora"),
+                    rs.getString("cliente_nombre"),
+                    "S/ " + rs.getDouble("subtotal"),
+                    rs.getString("motivo")
+                });
+            }
         } catch (SQLException e) {
             System.out.println("Error buscando devoluciones: " + e);
-            JOptionPane.showMessageDialog(this, "Error de conexión: " + e.getMessage());
         }
     }
+private void cargarHistorialCaja(String filtro) {
+        DefaultTableModel modelo = (DefaultTableModel) tblFacturas.getModel();
+        modelo.setRowCount(0);
+        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO / DESCRIPCIÓN", "TIPO", "ENTRADA"});
+        
+        tblFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);
+        tblFacturas.getColumnModel().getColumn(2).setPreferredWidth(300);
 
+        String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
+        String usuario = "root";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+
+        // 1. LA CONSULTA UNIFICADA (Base)
+        String sql = "SELECT * FROM (" +
+                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal FROM movimiento_caja " +
+                     "   UNION ALL " +
+                     "   SELECT mi.fecha_hora, " +
+                     "          CONCAT(mi.tipo, ': ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
+                     "          'INVENTARIO' as tipo, " +
+                     "          0.00 as monto, " +
+                     "          mi.id_sucursal " +
+                     "   FROM movimiento_inventario mi " +
+                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
+                     ") AS unificados " +
+                     "WHERE id_sucursal = 1 ";
+
+        // 2. FILTRO POR TIPO (Estricto)
+        // Verificamos que el combo exista y tenga algo seleccionado
+        if (cboTipoMovimiento != null && cboTipoMovimiento.getSelectedItem() != null) {
+            String tipoSel = cboTipoMovimiento.getSelectedItem().toString();
+            
+            if (!"Todos".equalsIgnoreCase(tipoSel)) {
+                // CAMBIO IMPORTANTE: Usamos '=' en lugar de 'LIKE' para que sea exacto
+                sql += " AND tipo = '" + tipoSel + "' ";
+            }
+        }
+
+        // 3. FILTRO POR TEXTO (Buscador)
+        if (filtro != null && !filtro.isEmpty()) {
+            sql += " AND (descripcion LIKE '%" + filtro + "%')";
+        }
+
+        sql += " ORDER BY fecha_hora DESC LIMIT 100";
+        
+        // DEBUG: Ver el SQL en consola por si falla
+        System.out.println("SQL Facturas: " + sql);
+
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Timestamp ts = rs.getTimestamp("fecha_hora");
+                String fecha = new java.text.SimpleDateFormat("dd/MM/yyyy").format(ts);
+                String hora = new java.text.SimpleDateFormat("HH:mm").format(ts);
+                String desc = rs.getString("descripcion");
+                String tipo = rs.getString("tipo");
+                double monto = rs.getDouble("monto");
+                
+                String textoMonto = "0.00";
+                if (monto > 0 && !tipo.equals("INVENTARIO")) {
+                    textoMonto = String.format("S/ %.2f", monto);
+                }
+
+                modelo.addRow(new Object[]{fecha, hora, desc, tipo, textoMonto});
+            }
+        } catch (SQLException e) {
+            System.out.println("Error historial: " + e);
+        }
+    }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
-        jPanel3 = new javax.swing.JPanel();
+        jPanel4 = new javax.swing.JPanel();
+        jLabel2 = new javax.swing.JLabel();
+        lblDevueltos = new javax.swing.JLabel();
+        jPanel5 = new javax.swing.JPanel();
+        jLabel4 = new javax.swing.JLabel();
+        lblCantVentas = new javax.swing.JLabel();
+        jPanel6 = new javax.swing.JPanel();
+        jLabel6 = new javax.swing.JLabel();
+        lblUnidades = new javax.swing.JLabel();
+        jPanel7 = new javax.swing.JPanel();
+        jLabel8 = new javax.swing.JLabel();
+        lblTopProducto = new javax.swing.JLabel();
+        panelGrafico = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        tblDevoluciones = new javax.swing.JTable();
+        tblDevolucionesVentas = new javax.swing.JTable();
         jLabel1 = new javax.swing.JLabel();
-        txtIdProducto = new javax.swing.JTextField();
-        btnBuscar = new javax.swing.JButton();
+        txtBuscarDev = new javax.swing.JTextField();
+        btnBuscarDev = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        jScrollPane2 = new javax.swing.JScrollPane();
+        tblFacturas = new javax.swing.JTable();
+        jButton1 = new javax.swing.JButton();
+        cboTipoMovimiento = new javax.swing.JComboBox<>();
+        jLabel3 = new javax.swing.JLabel();
 
         jTabbedPane1.setBackground(new java.awt.Color(204, 0, 255));
 
         jPanel1.setBackground(new java.awt.Color(255, 255, 255));
 
+        jPanel4.setBackground(new java.awt.Color(51, 153, 0));
+
+        jLabel2.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        jLabel2.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel2.setText("Productos devueltos");
+
+        lblDevueltos.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        lblDevueltos.setForeground(new java.awt.Color(255, 255, 255));
+        lblDevueltos.setText("jLabel3");
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addGap(17, 17, 17)
+                        .addComponent(lblDevueltos, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel2)
+                .addGap(18, 18, 18)
+                .addComponent(lblDevueltos)
+                .addContainerGap(38, Short.MAX_VALUE))
+        );
+
+        jPanel5.setBackground(new java.awt.Color(51, 153, 0));
+
+        jLabel4.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        jLabel4.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel4.setText("Cantidad de ventas");
+
+        lblCantVentas.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        lblCantVentas.setForeground(new java.awt.Color(255, 255, 255));
+        lblCantVentas.setText("jLabel5");
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGroup(jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel5Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel5Layout.createSequentialGroup()
+                        .addGap(17, 17, 17)
+                        .addComponent(lblCantVentas, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel5Layout.setVerticalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel4)
+                .addGap(18, 18, 18)
+                .addComponent(lblCantVentas)
+                .addContainerGap(38, Short.MAX_VALUE))
+        );
+
+        jPanel6.setBackground(new java.awt.Color(51, 153, 0));
+
+        jLabel6.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        jLabel6.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel6.setText("Cantidad de unidades vendidas");
+
+        lblUnidades.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        lblUnidades.setForeground(new java.awt.Color(255, 255, 255));
+        lblUnidades.setText("jLabel7");
+
+        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
+        jPanel6.setLayout(jPanel6Layout);
+        jPanel6Layout.setHorizontalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addGap(17, 17, 17)
+                .addComponent(lblUnidades, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addComponent(jLabel6)
+                .addGap(0, 4, Short.MAX_VALUE))
+        );
+        jPanel6Layout.setVerticalGroup(
+            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel6Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel6)
+                .addGap(18, 18, 18)
+                .addComponent(lblUnidades)
+                .addContainerGap(39, Short.MAX_VALUE))
+        );
+
+        jPanel7.setBackground(new java.awt.Color(51, 153, 0));
+
+        jLabel8.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        jLabel8.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel8.setText("Producto más vendido");
+
+        lblTopProducto.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        lblTopProducto.setForeground(new java.awt.Color(255, 255, 255));
+        lblTopProducto.setText("jLabel9");
+
+        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
+        jPanel7.setLayout(jPanel7Layout);
+        jPanel7Layout.setHorizontalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel7Layout.createSequentialGroup()
+                .addGroup(jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel7Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel7Layout.createSequentialGroup()
+                        .addGap(17, 17, 17)
+                        .addComponent(lblTopProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel7Layout.setVerticalGroup(
+            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel7Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jLabel8)
+                .addGap(18, 18, 18)
+                .addComponent(lblTopProducto)
+                .addContainerGap(38, Short.MAX_VALUE))
+        );
+
+        panelGrafico.setLayout(new java.awt.BorderLayout());
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1002, Short.MAX_VALUE)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(40, 40, 40)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(83, 83, 83)
+                .addComponent(panelGrafico, javax.swing.GroupLayout.PREFERRED_SIZE, 496, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(167, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 600, Short.MAX_VALUE)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(30, 30, 30)
+                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(26, 26, 26)
+                        .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(36, 36, 36)
+                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(42, 42, 42)
+                        .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addGap(61, 61, 61)
+                        .addComponent(panelGrafico, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(65, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("VENTAS", jPanel1);
 
-        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1002, Short.MAX_VALUE)
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 600, Short.MAX_VALUE)
-        );
-
-        jTabbedPane1.addTab("FACTURAS", jPanel3);
-
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
 
-        tblDevoluciones.setModel(new javax.swing.table.DefaultTableModel(
+        tblDevolucionesVentas.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null, null, null},
                 {null, null, null, null, null, null},
@@ -136,29 +491,29 @@ public class VENTAS_Admin extends javax.swing.JPanel {
                 {null, null, null, null, null, null}
             },
             new String [] {
-                "ID Devolucion", "ID Producto", "Fecha", "Cliente", "Importe", "Motivo"
+                "ID Devolucion", "Producto", "Fecha", "Cliente", "Importe", "Motivo"
             }
         ));
-        jScrollPane1.setViewportView(tblDevoluciones);
+        jScrollPane1.setViewportView(tblDevolucionesVentas);
 
         jLabel1.setBackground(new java.awt.Color(0, 0, 0));
         jLabel1.setText("PRODUCTOS DEVUELTOS");
 
-        txtIdProducto.setForeground(new java.awt.Color(153, 153, 153));
-        txtIdProducto.setText("Coloque el  id del producto");
-        txtIdProducto.addFocusListener(new java.awt.event.FocusAdapter() {
+        txtBuscarDev.setForeground(new java.awt.Color(153, 153, 153));
+        txtBuscarDev.setText("Coloque el  nombre del producto");
+        txtBuscarDev.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
-                txtIdProductoFocusGained(evt);
+                txtBuscarDevFocusGained(evt);
             }
             public void focusLost(java.awt.event.FocusEvent evt) {
-                txtIdProductoFocusLost(evt);
+                txtBuscarDevFocusLost(evt);
             }
         });
 
-        btnBuscar.setText("Buscar");
-        btnBuscar.addActionListener(new java.awt.event.ActionListener() {
+        btnBuscarDev.setText("Buscar");
+        btnBuscarDev.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnBuscarActionPerformed(evt);
+                btnBuscarDevActionPerformed(evt);
             }
         });
 
@@ -175,11 +530,11 @@ public class VENTAS_Admin extends javax.swing.JPanel {
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 161, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(txtIdProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 416, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(txtBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 416, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(btnBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(btnBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(123, 123, 123)))))
-                .addContainerGap(16, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -188,14 +543,75 @@ public class VENTAS_Admin extends javax.swing.JPanel {
                 .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 49, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtIdProducto, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(txtBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 48, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(28, 28, 28)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 305, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", jPanel2);
+
+        jPanel3.setBackground(new java.awt.Color(255, 255, 255));
+
+        tblFacturas.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane2.setViewportView(tblFacturas);
+
+        jButton1.setText("Ver pdf");
+
+        cboTipoMovimiento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel3.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel3.setText("Facturas");
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addGap(53, 53, 53)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 725, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 88, Short.MAX_VALUE)
+                        .addComponent(jButton1)
+                        .addGap(77, 77, 77))))
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addGap(65, 65, 65)
+                .addComponent(jLabel3)
+                .addGap(45, 45, 45)
+                .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGap(32, 32, 32)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 255, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 143, Short.MAX_VALUE)
+                        .addComponent(jButton1)
+                        .addGap(273, 273, 273))))
+        );
+
+        jTabbedPane1.addTab("FACTURAS", jPanel3);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -211,36 +627,60 @@ public class VENTAS_Admin extends javax.swing.JPanel {
         jTabbedPane1.getAccessibleContext().setAccessibleName("VENTAS");
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
-        buscarDevoluciones();
-    }//GEN-LAST:event_btnBuscarActionPerformed
+    private void txtBuscarDevFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtBuscarDevFocusGained
+    if (txtBuscarDev.getText().equals("Coloque el  nombre del producto")) {
+        txtBuscarDev.setText(""); // Borra el texto automáticamente
+        txtBuscarDev.setForeground(new java.awt.Color(0, 0, 0)); // Pone la letra negra normal
+    }
+    }//GEN-LAST:event_txtBuscarDevFocusGained
 
-    private void txtIdProductoFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtIdProductoFocusGained
-        // OJO: Asegúrate de que este texto sea EXACTAMENTE igual al de tu diseño (con los espacios exactos)
-        if (txtIdProducto.getText().equals("Coloque el  id del producto")) {
-            txtIdProducto.setText(""); // Borra el texto
-            txtIdProducto.setForeground(new java.awt.Color(0, 0, 0)); // Cambia a color NEGRO para escribir
+    private void btnBuscarDevActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarDevActionPerformed
+       String texto = txtBuscarDev.getText().trim();
+        String placeholder = "Coloque el  nombre del producto"; 
+        
+        // Si está vacío o tiene el texto de ayuda, carga todo
+        if (texto.isEmpty() || texto.equals(placeholder)) {
+            cargarDevoluciones(""); 
+        } else {
+            cargarDevoluciones(texto); // Busca por el nombre escrito
         }
-    }//GEN-LAST:event_txtIdProductoFocusGained
+    }//GEN-LAST:event_btnBuscarDevActionPerformed
 
-    private void txtIdProductoFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtIdProductoFocusLost
-        // Si al salir la caja quedó vacía, volvemos a poner el texto fantasma
-        if (txtIdProducto.getText().isEmpty()) {
-            txtIdProducto.setText("Coloque el  id del producto");
-            txtIdProducto.setForeground(new java.awt.Color(153, 153, 153)); // Vuelve a color GRIS
-        }
-    }//GEN-LAST:event_txtIdProductoFocusLost
+    private void txtBuscarDevFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_txtBuscarDevFocusLost
+    if (txtBuscarDev.getText().isEmpty()) {
+        txtBuscarDev.setText("Coloque el  nombre del producto"); // Restaura el mensaje si no escribiste nada
+        txtBuscarDev.setForeground(new java.awt.Color(153, 153, 153)); // Lo pone gris clarito
+    }        // TODO add your handling code here:
+    }//GEN-LAST:event_txtBuscarDevFocusLost
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnBuscar;
+    private javax.swing.JButton btnBuscarDev;
+    private javax.swing.JComboBox<String> cboTipoMovimiento;
+    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable tblDevoluciones;
-    private javax.swing.JTextField txtIdProducto;
+    private javax.swing.JLabel lblCantVentas;
+    private javax.swing.JLabel lblDevueltos;
+    private javax.swing.JLabel lblTopProducto;
+    private javax.swing.JLabel lblUnidades;
+    private javax.swing.JPanel panelGrafico;
+    private javax.swing.JTable tblDevolucionesVentas;
+    private javax.swing.JTable tblFacturas;
+    private javax.swing.JTextField txtBuscarDev;
     // End of variables declaration//GEN-END:variables
 }

@@ -193,11 +193,6 @@ public class UsuarioDAO {
         }
     }
 
-    // ---------- API PRINCIPAL ----------
-    /**
-     * Lee usuarios desde data/empleados.csv. Si no existe, devuelve lista
-     * vacía.
-     */
     private String esc(String s) {
         if (s == null) {
             return "";
@@ -334,6 +329,38 @@ public class UsuarioDAO {
         return false;
     }
 
+    public boolean registrar(Usuario u) {
+        // NOTA: Hemos cambiado la consulta para incluir 'id_usuario' explícitamente
+        String sql = "INSERT INTO usuario (id_usuario, id_empleado, contraseña, estado) VALUES (?, ?, ?, ?)";
+        
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            // 1. Convertimos el ID de empleado (String) a Entero para el ID de Usuario
+            // Esto garantiza la integridad 1 a 1.
+            try {
+                int idIdéntico = Integer.parseInt(u.getUsuario()); // u.getUsuario() devuelve el id_empleado en tu modelo
+                ps.setInt(1, idIdéntico);
+            } catch (NumberFormatException e) {
+                System.err.println("Error: El ID del empleado no es numérico, no se puede crear usuario.");
+                return false;
+            }
+
+            // 2. Insertamos el ID de empleado como String (Foreign Key)
+            ps.setString(2, u.getUsuario()); 
+            
+            // 3. Contraseña y Estado
+            ps.setString(3, u.getContrasena());
+            ps.setString(4, "ACTIVO");
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error al registrar usuario: " + e.getMessage());
+            return false;
+        }
+    }
+    
     public boolean actualizarContrasena(String idUsuario, String nuevaContrasena) {
         String sql = "UPDATE usuario SET contrasena = ? WHERE id_usuario = ?";
 

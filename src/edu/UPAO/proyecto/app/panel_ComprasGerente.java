@@ -1,44 +1,50 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JPanel.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.ProveedorDAO;
 import edu.UPAO.proyecto.Modelo.Proveedor;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 
-/**
- *
- * @author ALBERTH
- */
 public class panel_ComprasGerente extends javax.swing.JPanel {
 
 // Variables de control
     private ProveedorDAO proveedorDAO;
-    private String idProveedorSeleccionado = null; // Para saber si editamos, ahora es String (PRxxxxx)
-    private int idSucursalActual; // Necesitamos saber en qué sucursal estamos
+    private String idProveedorSeleccionado = null;
+    private int idSucursalActual;
 
-    /**
-     * Creates new form panel_ComprasGerente IMPORTANTE: Ahora recibe el ID de
-     * la sucursal actual del gerente logueado.
-     */
     public panel_ComprasGerente(int idSucursal) {
         this.idSucursalActual = idSucursal;
-        initComponents();
+        initComponents(); // CÓDIGO GENERADO POR NETBEANS
 
-        // Inicialización propia
+        // Inicialización
         proveedorDAO = new ProveedorDAO();
         configurarTablaProveedores();
-        cargarProveedoresEnTabla(""); // Carga inicial sin filtro
+        configurarBusquedaEnTiempoReal(); // <--- NUEVO: Búsqueda automática
+        cargarProveedoresEnTabla("");
         limpiarFormulario();
     }
 
+    // --- MÉTODO NUEVO PARA BUSCAR MIENTRAS ESCRIBES ---
+    private void configurarBusquedaEnTiempoReal() {
+        tf_buscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String texto = tf_buscar.getText().trim();
+                cargarProveedoresEnTabla(texto);
+            }
+        });
+    }
+
     private void configurarTablaProveedores() {
-        DefaultTableModel modelo = new DefaultTableModel();
-        // Definimos columnas que coincidan con el modelo
+        DefaultTableModel modelo = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         modelo.addColumn("ID");
         modelo.addColumn("RUC");
         modelo.addColumn("Razón Social");
@@ -48,12 +54,11 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         modelo.addColumn("Estado");
         jTable2.setModel(modelo);
 
-        // Ocultar la columna ID visualmente (pero sigue estando en el modelo)
+        // Ocultar columna ID
         jTable2.getColumnModel().getColumn(0).setMinWidth(0);
         jTable2.getColumnModel().getColumn(0).setMaxWidth(0);
         jTable2.getColumnModel().getColumn(0).setWidth(0);
 
-        // Listener para cuando clickean una fila
         jTable2.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && jTable2.getSelectedRow() != -1) {
                 llenarFormularioDesdeTabla();
@@ -63,20 +68,23 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
 
     private void cargarProveedoresEnTabla(String filtro) {
         DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
-        modelo.setRowCount(0); // Limpiar tabla
+        modelo.setRowCount(0);
 
-        List<Proveedor> lista = proveedorDAO.listar(filtro);
-
-        for (Proveedor p : lista) {
-            modelo.addRow(new Object[]{
-                p.getIdProveedor(),
-                p.getRuc(),
-                p.getRazonSocial(),
-                p.getDniAsociado(),
-                p.getTelefonoContacto(),
-                p.getDireccion(),
-                p.getEstado()
-            });
+        try {
+            List<Proveedor> lista = proveedorDAO.listar(filtro);
+            for (Proveedor p : lista) {
+                modelo.addRow(new Object[]{
+                    p.getIdProveedor(),
+                    p.getRuc(),
+                    p.getRazonSocial(),
+                    p.getDniAsociado(), // Ahora esto vendrá lleno gracias al DAO corregido
+                    p.getTelefonoContacto(),
+                    p.getDireccion(),
+                    p.getEstado()
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Error al cargar tabla: " + e.getMessage());
         }
     }
 
@@ -86,40 +94,51 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         tf_dniAsosiado.setText("");
         tf_Direccion.setText("");
         tf_Telefono.setText("");
-        jCheckBox1.setSelected(true); // Activo por defecto
+        jCheckBox1.setSelected(true);
 
         idProveedorSeleccionado = null;
-        btn_GuardarActualizar.setText("Guardar"); // Botón en modo Guardar
+        btn_GuardarActualizar.setText("Guardar");
         jTable2.clearSelection();
-        tf_dniAsosiado.setEditable(true); // El DNI se puede editar al crear
-        tf_RUC.setEditable(true); // El RUC se puede editar al crear
+
+        // Permitir editar claves únicas solo al crear
+        tf_dniAsosiado.setEditable(true);
+        tf_RUC.setEditable(true);
     }
 
     private void llenarFormularioDesdeTabla() {
         int fila = jTable2.getSelectedRow();
         if (fila >= 0) {
-            // Obtenemos datos del modelo de la tabla
             idProveedorSeleccionado = jTable2.getValueAt(fila, 0).toString();
-            tf_RUC.setText(jTable2.getValueAt(fila, 1).toString());
-            tf_razonSocial.setText(jTable2.getValueAt(fila, 2).toString());
-            tf_dniAsosiado.setText(jTable2.getValueAt(fila, 3).toString());
-            tf_Telefono.setText(jTable2.getValueAt(fila, 4).toString());
-            tf_Direccion.setText(jTable2.getValueAt(fila, 5).toString());
+            tf_RUC.setText(validarNulo(jTable2.getValueAt(fila, 1)));
+            tf_razonSocial.setText(validarNulo(jTable2.getValueAt(fila, 2)));
+            tf_dniAsosiado.setText(validarNulo(jTable2.getValueAt(fila, 3)));
 
-            String estado = jTable2.getValueAt(fila, 6).toString();
-            jCheckBox1.setSelected(estado.equals("ACTIVO"));
+            // AQUÍ ES DONDE SE CARGA EL TELÉFONO A LA CAJA DE TEXTO
+            tf_Telefono.setText(validarNulo(jTable2.getValueAt(fila, 4)));
 
-            // Cambios visuales para modo Edición
+            tf_Direccion.setText(validarNulo(jTable2.getValueAt(fila, 5)));
+
+            String estado = validarNulo(jTable2.getValueAt(fila, 6));
+            jCheckBox1.setSelected("ACTIVO".equals(estado));
+
             btn_GuardarActualizar.setText("Actualizar");
-            // Por regla de negocio, usualmente no se permite cambiar DNI o RUC al editar,
-            // solo datos de contacto o razón social.
+            // Al actualizar, el DNI y RUC suelen bloquearse para no romper integridad, 
+            // pero si necesitas corregirlos, puedes cambiar esto a true.
             tf_dniAsosiado.setEditable(false);
             tf_RUC.setEditable(false);
         }
     }
 
+    private String validarNulo(Object obj) {
+        return obj == null ? "" : obj.toString();
+    }
+
+    // Método auxiliar para evitar NullPointerException en la tabla
+    private String objToString(Object obj) {
+        return obj == null ? "" : obj.toString();
+    }
+
     private void guardarOActualizar() {
-        // 1. Recolectar y Validar datos
         String razonSocial = tf_razonSocial.getText().trim();
         String ruc = tf_RUC.getText().trim();
         String dni = tf_dniAsosiado.getText().trim();
@@ -127,20 +146,20 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         String telefono = tf_Telefono.getText().trim();
         String estado = jCheckBox1.isSelected() ? "ACTIVO" : "INACTIVO";
 
+        // Validaciones
         if (razonSocial.isEmpty() || ruc.isEmpty() || dni.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Razón Social, RUC y DNI son obligatorios.", "Campos Incompletos", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Por favor complete Razón Social, RUC y DNI.", "Datos faltantes", JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (!ruc.matches("\\d{11}")) {
-            JOptionPane.showMessageDialog(this, "El RUC debe tener 11 dígitos numéricos.", "Formato Incorrecto", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "El RUC debe tener 11 dígitos numéricos.", "Error RUC", JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (!dni.matches("\\d{8}")) {
-            JOptionPane.showMessageDialog(this, "El DNI asociado debe tener 8 dígitos numéricos.", "Formato Incorrecto", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "El DNI debe tener 8 dígitos numéricos.", "Error DNI", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 2. Crear objeto Modelo
         Proveedor p = new Proveedor();
         p.setRazonSocial(razonSocial);
         p.setRuc(ruc);
@@ -148,33 +167,30 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         p.setDireccion(direccion);
         p.setTelefonoContacto(telefono);
         p.setEstado(estado);
-        p.setIdSucursal(this.idSucursalActual); // Asignamos la sucursal actual
+        p.setIdSucursal(this.idSucursalActual);
 
-        // 3. Llamar al DAO
         if (idProveedorSeleccionado == null) {
-            // === MODO GUARDAR NUEVO ===
+            // MODO GUARDAR
             if (proveedorDAO.existeRuc(ruc)) {
-                JOptionPane.showMessageDialog(this, "El RUC ingresado ya está registrado.", "Duplicado", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "El RUC ya está registrado.", "Duplicado", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-
             if (proveedorDAO.guardar(p)) {
-                JOptionPane.showMessageDialog(this, "Proveedor registrado correctamente.");
+                JOptionPane.showMessageDialog(this, "Proveedor registrado con éxito.");
                 limpiarFormulario();
                 cargarProveedoresEnTabla("");
             } else {
-                JOptionPane.showMessageDialog(this, "Error al registrar proveedor. Verifique los datos.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al guardar en base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            // === MODO ACTUALIZAR ===
+            // MODO ACTUALIZAR
             p.setIdProveedor(idProveedorSeleccionado);
-
             if (proveedorDAO.actualizar(p)) {
-                JOptionPane.showMessageDialog(this, "Proveedor actualizado correctamente.");
+                JOptionPane.showMessageDialog(this, "Proveedor actualizado con éxito.");
                 limpiarFormulario();
                 cargarProveedoresEnTabla("");
             } else {
-                JOptionPane.showMessageDialog(this, "Error al actualizar proveedor.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al actualizar.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

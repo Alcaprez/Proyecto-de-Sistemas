@@ -91,6 +91,24 @@ public class EmpleadoDAO {
         }
         return 0;
     }
+    
+    public boolean existeAdministradorEnSucursal(int idSucursal) {
+        String sql = "SELECT COUNT(*) FROM empleado WHERE id_sucursal = ? AND rol = 'ADMINISTRADOR' AND estado = 'ACTIVO'";
+        
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, idSucursal);
+            java.sql.ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0; // Devuelve true si ya hay 1 (o más)
+            }
+        } catch (java.sql.SQLException e) {
+            System.err.println("❌ Error validando admin único: " + e.getMessage());
+        }
+        return false;
+    }
 
     // ✅ MÉTODO NUEVO: Contar cajeros por sucursal y turno
     public int contarCajerosPorTurno(int idSucursal, String turno) {

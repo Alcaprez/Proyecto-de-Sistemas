@@ -282,12 +282,13 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
-
+        TESORERIA_Admin paneltesoreria = new TESORERIA_Admin();
+        MostrarPanel(paneltesoreria);
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
     private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
-        CONTROL_PERSONAL panelControl_Personal = new CONTROL_PERSONAL();
-        MostrarPanel(panelControl_Personal);
+        panel_PersonalAdministrador panel_PersonalAdministrador1 = new panel_PersonalAdministrador();       
+        MostrarPanel(panel_PersonalAdministrador1);
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
@@ -305,7 +306,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_ventaActionPerformed
 
     private void btn_almacenesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_almacenesActionPerformed
-        ALMACEN panelAlmacen = new ALMACEN();
+        ALMACEN_Admin panelAlmacen = new ALMACEN_Admin();
         MostrarPanel(panelAlmacen);
     }//GEN-LAST:event_btn_almacenesActionPerformed
 
