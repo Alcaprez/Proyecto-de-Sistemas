@@ -19,11 +19,28 @@ public class VENTAS_Admin extends javax.swing.JPanel {
     String usuario = "root";
     String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
     public VENTAS_Admin() {
-       initComponents();
+        initComponents();
+        
+        // 1. Llenar el Combo de Tipos manualmente
+        cboTipoMovimiento.removeAllItems();
+        cboTipoMovimiento.addItem("Todos");
+        cboTipoMovimiento.addItem("VENTA");
+        cboTipoMovimiento.addItem("COMPRA");
+        cboTipoMovimiento.addItem("INVENTARIO");
+        
+        // 2. Cargar los datos
         cargarKPIs(); 
         cargarGrafico();
         cargarDevoluciones("");
-        cargarHistorialCaja("");
+        cargarHistorialCaja(""); // <--- ¡ESTO ES LO QUE FALTABA!
+        
+        // 3. Evento para el Combo (Para que filtre al cambiar)
+        cboTipoMovimiento.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cargarHistorialCaja("");
+            }
+        });
+       
     }
     private void cargarKPIs() {
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
@@ -181,63 +198,74 @@ public class VENTAS_Admin extends javax.swing.JPanel {
             System.out.println("Error buscando devoluciones: " + e);
         }
     }
-    private void cargarHistorialCaja(String filtro) {
-        // 1. Configurar Modelo de Tabla
+private void cargarHistorialCaja(String filtro) {
         DefaultTableModel modelo = (DefaultTableModel) tblFacturas.getModel();
         modelo.setRowCount(0);
-        // Columnas idénticas a tu imagen de referencia
-        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO / DESCRIPCIÓN", "TIPO", "MONTO"});
+        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO / DESCRIPCIÓN", "TIPO", "ENTRADA"});
         
-        // Ajustes visuales de ancho
-        tblFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);  // Fecha
-        tblFacturas.getColumnModel().getColumn(1).setPreferredWidth(60);  // Hora
-        tblFacturas.getColumnModel().getColumn(2).setPreferredWidth(350); // Concepto ancho
-        tblFacturas.getColumnModel().getColumn(3).setPreferredWidth(100); // Tipo (Ingreso/Egreso)
+        tblFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);
+        tblFacturas.getColumnModel().getColumn(2).setPreferredWidth(300);
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
         String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
 
-        // 2. Consulta SQL a movimiento_caja
-        String sql = "SELECT fecha_hora, descripcion, tipo, monto " +
-                     "FROM movimiento_caja " +
-                     "WHERE id_sucursal = 1 "; // Asumiendo Sucursal 1
+        // 1. LA CONSULTA UNIFICADA (Base)
+        String sql = "SELECT * FROM (" +
+                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal FROM movimiento_caja " +
+                     "   UNION ALL " +
+                     "   SELECT mi.fecha_hora, " +
+                     "          CONCAT(mi.tipo, ': ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
+                     "          'INVENTARIO' as tipo, " +
+                     "          0.00 as monto, " +
+                     "          mi.id_sucursal " +
+                     "   FROM movimiento_inventario mi " +
+                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
+                     ") AS unificados " +
+                     "WHERE id_sucursal = 1 ";
 
-        // Filtro dinámico (por descripción o tipo)
-        if (filtro != null && !filtro.isEmpty()) {
-            sql += " AND (descripcion LIKE '%" + filtro + "%' OR tipo LIKE '%" + filtro + "%')";
+        // 2. FILTRO POR TIPO (Estricto)
+        // Verificamos que el combo exista y tenga algo seleccionado
+        if (cboTipoMovimiento != null && cboTipoMovimiento.getSelectedItem() != null) {
+            String tipoSel = cboTipoMovimiento.getSelectedItem().toString();
+            
+            if (!"Todos".equalsIgnoreCase(tipoSel)) {
+                // CAMBIO IMPORTANTE: Usamos '=' en lugar de 'LIKE' para que sea exacto
+                sql += " AND tipo = '" + tipoSel + "' ";
+            }
         }
+
+        // 3. FILTRO POR TEXTO (Buscador)
+        if (filtro != null && !filtro.isEmpty()) {
+            sql += " AND (descripcion LIKE '%" + filtro + "%')";
+        }
+
+        sql += " ORDER BY fecha_hora DESC LIMIT 100";
         
-        sql += " ORDER BY fecha_hora DESC";
+        // DEBUG: Ver el SQL en consola por si falla
+        System.out.println("SQL Facturas: " + sql);
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                // Separamos Fecha y Hora del Timestamp para que se vea como tu diseño
                 Timestamp ts = rs.getTimestamp("fecha_hora");
                 String fecha = new java.text.SimpleDateFormat("dd/MM/yyyy").format(ts);
                 String hora = new java.text.SimpleDateFormat("HH:mm").format(ts);
-                
-                String descripcion = rs.getString("descripcion");
+                String desc = rs.getString("descripcion");
                 String tipo = rs.getString("tipo");
                 double monto = rs.getDouble("monto");
                 
-                // (Opcional) Formato visual para el monto según si es Ingreso o Egreso
-                // Si quieres que las salidas salgan en negativo o rojo, este es el lugar.
-                String montoTexto = String.format("S/ %.2f", monto);
+                String textoMonto = "0.00";
+                if (monto > 0 && !tipo.equals("INVENTARIO")) {
+                    textoMonto = String.format("S/ %.2f", monto);
+                }
 
-                modelo.addRow(new Object[]{
-                    fecha,
-                    hora,
-                    descripcion,
-                    tipo,
-                    montoTexto
-                });
+                modelo.addRow(new Object[]{fecha, hora, desc, tipo, textoMonto});
             }
         } catch (SQLException e) {
-            System.out.println("Error cargando facturas: " + e);
+            System.out.println("Error historial: " + e);
         }
     }
     @SuppressWarnings("unchecked")
@@ -268,9 +296,9 @@ public class VENTAS_Admin extends javax.swing.JPanel {
         jPanel3 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
         tblFacturas = new javax.swing.JTable();
-        btnBuscarFactura = new javax.swing.JButton();
-        txtBuscarFactura = new javax.swing.JTextField();
         jButton1 = new javax.swing.JButton();
+        cboTipoMovimiento = new javax.swing.JComboBox<>();
+        jLabel3 = new javax.swing.JLabel();
 
         jTabbedPane1.setBackground(new java.awt.Color(204, 0, 255));
 
@@ -539,16 +567,13 @@ public class VENTAS_Admin extends javax.swing.JPanel {
         ));
         jScrollPane2.setViewportView(tblFacturas);
 
-        btnBuscarFactura.setText("Buscar factura/ refresh");
-
-        txtBuscarFactura.setText("jTextField1");
-        txtBuscarFactura.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyReleased(java.awt.event.KeyEvent evt) {
-                txtBuscarFacturaKeyReleased(evt);
-            }
-        });
-
         jButton1.setText("Ver pdf");
+
+        cboTipoMovimiento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        jLabel3.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel3.setText("Facturas");
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -556,30 +581,34 @@ public class VENTAS_Admin extends javax.swing.JPanel {
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(53, 53, 53)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(txtBuscarFactura, javax.swing.GroupLayout.PREFERRED_SIZE, 261, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(btnBuscarFactura, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 725, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(214, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(99, 99, 99))
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 725, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 88, Short.MAX_VALUE)
+                        .addComponent(jButton1)
+                        .addGap(77, 77, 77))))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(116, 116, 116)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(txtBuscarFactura, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnBuscarFactura))
-                .addGap(44, 44, 44)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 255, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 82, Short.MAX_VALUE)
-                .addComponent(jButton1)
-                .addGap(55, 55, 55))
+                .addGap(65, 65, 65)
+                .addComponent(jLabel3)
+                .addGap(45, 45, 45)
+                .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
+                        .addGap(32, 32, 32)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 255, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 143, Short.MAX_VALUE)
+                        .addComponent(jButton1)
+                        .addGap(273, 273, 273))))
         );
 
         jTabbedPane1.addTab("FACTURAS", jPanel3);
@@ -624,18 +653,14 @@ public class VENTAS_Admin extends javax.swing.JPanel {
     }        // TODO add your handling code here:
     }//GEN-LAST:event_txtBuscarDevFocusLost
 
-    private void txtBuscarFacturaKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtBuscarFacturaKeyReleased
-     String texto = txtBuscarFactura.getText().trim();
-        cargarHistorialCaja(texto);   // TODO add your handling code here:
-    }//GEN-LAST:event_txtBuscarFacturaKeyReleased
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnBuscarDev;
-    private javax.swing.JButton btnBuscarFactura;
+    private javax.swing.JComboBox<String> cboTipoMovimiento;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel8;
@@ -657,6 +682,5 @@ public class VENTAS_Admin extends javax.swing.JPanel {
     private javax.swing.JTable tblDevolucionesVentas;
     private javax.swing.JTable tblFacturas;
     private javax.swing.JTextField txtBuscarDev;
-    private javax.swing.JTextField txtBuscarFactura;
     // End of variables declaration//GEN-END:variables
 }
