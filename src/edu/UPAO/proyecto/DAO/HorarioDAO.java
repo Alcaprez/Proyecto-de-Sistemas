@@ -66,31 +66,41 @@ public class HorarioDAO {
         return horario;
     }
 
-    // ✅ MÉTODO NUEVO: Validar si el turno ya está ocupado en esa sucursal
     public boolean existeCruceHorario(int idSucursal, String diaSemana, java.time.LocalTime nuevaEntrada, java.time.LocalTime nuevaSalida) {
-        // Esta consulta busca si existe algún registro que se solape con el horario que intentas meter
-        // Lógica: (InicioNuevo < FinViejo) Y (InicioViejo < FinNuevo) -> Eso confirma un solapamiento
-        String sql = "SELECT COUNT(*) FROM horario_empleado h "
+        // 1. Imprimir qué estamos buscando (MIRA TU CONSOLA AL DARLE CLICK)
+        System.out.println("--- VALIDANDO CRUCE ---");
+        System.out.println("Buscando en Sucursal ID: " + idSucursal);
+        System.out.println("Día: " + diaSemana);
+        System.out.println("Horario Nuevo: " + nuevaEntrada + " - " + nuevaSalida);
+
+        // Query mejorada: UPPER para ignorar mayúsculas en el día
+        String sql = "SELECT h.dia_semana, h.hora_entrada, h.hora_salida FROM horario_empleado h "
                 + "INNER JOIN empleado e ON h.id_empleado = e.id_empleado "
                 + "WHERE e.id_sucursal = ? "
-                + "AND h.dia_semana = ? "
+                + "AND UPPER(h.dia_semana) = UPPER(?) "
                 + "AND ( ? < h.hora_salida AND h.hora_entrada < ? )";
 
         try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setInt(1, idSucursal);
-            ps.setString(2, diaSemana);
-            ps.setTime(3, java.sql.Time.valueOf(nuevaEntrada)); // Hora entrada nueva
-            ps.setTime(4, java.sql.Time.valueOf(nuevaSalida)); // Hora salida nueva
+            ps.setString(2, diaSemana.trim()); // Quitamos espacios extra por si acaso
+            ps.setTime(3, java.sql.Time.valueOf(nuevaEntrada));
+            ps.setTime(4, java.sql.Time.valueOf(nuevaSalida));
 
             java.sql.ResultSet rs = ps.executeQuery();
+
             if (rs.next()) {
-                return rs.getInt(1) > 0; // Si devuelve > 0, es que YA ESTÁ OCUPADO
+                // Si entra aquí, ¡ES QUE SÍ LO ENCONTRÓ!
+                System.out.println("⛔ CRUCE DETECTADO CON: " + rs.getTime("hora_entrada") + " - " + rs.getTime("hora_salida"));
+                return true;
+            } else {
+                System.out.println("✅ No se encontraron cruces (El horario parece libre para estos criterios).");
+                return false;
             }
         } catch (java.sql.SQLException e) {
-            System.err.println("❌ Error validando cruce de horarios: " + e.getMessage());
+            System.err.println("❌ Error SQL validando cruce: " + e.getMessage());
+            return false; // Asumimos false por error, pero imprime el fallo
         }
-        return false; // Si falla o no hay coincidencias, asumimos libre
     }
 
     public java.util.List<Object[]> listarHorariosPorSucursal(int idSucursal) {
@@ -123,6 +133,32 @@ public class HorarioDAO {
             System.err.println("❌ Error listando horarios sucursal: " + e.getMessage());
         }
         return lista;
+    }
+    
+    // ✅ MÉTODO CORREGIDO: Valida si el turno está ocupado en GENERAL (Toda la semana)
+    public boolean esTurnoOcupado(int idSucursal, java.time.LocalTime nuevaEntrada, java.time.LocalTime nuevaSalida) {
+        // Esta consulta verifica si existe AL MENOS UN registro en esa tienda que cruce con el horario
+        // Ya no filtramos por día, porque el turno aplica para toda la semana.
+        String sql = "SELECT COUNT(*) FROM horario_empleado h " +
+                     "INNER JOIN empleado e ON h.id_empleado = e.id_empleado " +
+                     "WHERE e.id_sucursal = ? " +
+                     "AND ( ? < h.hora_salida AND h.hora_entrada < ? )";
+
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idSucursal);
+            ps.setTime(2, java.sql.Time.valueOf(nuevaEntrada));
+            ps.setTime(3, java.sql.Time.valueOf(nuevaSalida));
+
+            java.sql.ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0; // Si hay registros, está ocupado
+            }
+        } catch (java.sql.SQLException e) {
+            System.err.println("❌ Error validando turno semanal: " + e.getMessage());
+        }
+        return false;
     }
 
     public void guardarOActualizarHorario(HorarioEmpleado horario) {

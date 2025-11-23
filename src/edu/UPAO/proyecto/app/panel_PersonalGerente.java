@@ -795,8 +795,10 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 684, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
-
+   
+    
     private void btnAgregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAgregarActionPerformed
+       // 1. RECOLECCIÓN DE DATOS
         String nombres = txtNombres.getText().trim();
         String apellidos = txtApellidos.getText().trim();
         String dni = txtDni.getText().trim();
@@ -806,108 +808,98 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         String rol = cbCargo.getSelectedItem().toString();
         String estado = cbEstado.getSelectedItem().toString();
         String sucursalNombre = cbTiendaP.getSelectedItem().toString();
-        String turnoSeleccionado = cb_turno.getSelectedItem().toString();
+        String turnoSeleccionado = cb_turno.getSelectedItem().toString(); // Ej: "MAÑANA"
 
-        int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
-
-        if (rol.equalsIgnoreCase("CAJERO")) {
-            EmpleadoDAO daoValidacion = new EmpleadoDAO();
-            int cantidadActual = daoValidacion.contarCajerosPorTurno(idSucursal, turnoSeleccionado);
-
-            if (cantidadActual >= 3) {
-                javax.swing.JOptionPane.showMessageDialog(this,
-                        "⚠️ Límite alcanzado:\n"
-                        + "Ya existen 3 cajeros activos en el turno " + turnoSeleccionado + " para la tienda " + sucursalNombre + ".\n"
-                        + "No se puede agregar más personal en este horario.",
-                        "Cupo Lleno",
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-                return; // 🛑 DETIENE EL PROCESO AQUÍ
-            }
-        }
-
+        // Validar campos vacíos
         if (nombres.isEmpty() || apellidos.isEmpty() || dni.isEmpty()) {
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Completa al menos Nombres, Apellidos y DNI",
-                    "Datos incompletos",
-                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this, "Faltan datos personales.");
             return;
         }
 
+        int idSucursal = obtenerIdSucursalPorNombre(sucursalNombre);
+
+        // 2. DEFINIR HORAS EXACTAS
+        java.sql.Time horaEntrada = null;
+        java.sql.Time horaSalida = null;
+        
+        if (turnoSeleccionado.contains("MAÑANA")) {
+            horaEntrada = java.sql.Time.valueOf("07:00:00");
+            horaSalida = java.sql.Time.valueOf("12:00:00");
+        } else if (turnoSeleccionado.contains("TARDE")) {
+            horaEntrada = java.sql.Time.valueOf("12:00:00");
+            horaSalida = java.sql.Time.valueOf("17:00:00");
+        } else if (turnoSeleccionado.contains("NOCHE")) {
+            horaEntrada = java.sql.Time.valueOf("17:00:00");
+            horaSalida = java.sql.Time.valueOf("22:00:00");
+        }
+
+        // 3. ✅ VALIDACIÓN DE TURNO SEMANAL (Una sola persona por turno)
+        edu.UPAO.proyecto.DAO.HorarioDAO horarioDAO = new edu.UPAO.proyecto.DAO.HorarioDAO();
+        
+        if (horaEntrada != null && horaSalida != null) {
+            // Usamos el nuevo método que ignora el día
+            boolean ocupado = horarioDAO.esTurnoOcupado(idSucursal, horaEntrada.toLocalTime(), horaSalida.toLocalTime());
+
+            if (ocupado) {
+                javax.swing.JOptionPane.showMessageDialog(this,
+                    "⛔ EL TURNO ESTÁ OCUPADO:\n" +
+                    "Ya existe un empleado asignado al turno " + turnoSeleccionado + " en esta tienda.\n" +
+                    "No se pueden asignar dos personas al mismo horario semanal.",
+                    "Conflicto de Turno",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                return; 
+            }
+        }
+
+        // 4. PROCESO DE GUARDADO
         String idEmpleadoNuevo = generarNuevoIdEmpleado(rol);
 
-        try (Connection cn = new Conexion().establecerConexion()) {
-            cn.setAutoCommit(false);
+        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion()) {
+            cn.setAutoCommit(false); 
 
-            // 1) PERSONA (si no existe, la creamos)
-            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) "
-                    + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
-                    + "ON DUPLICATE KEY UPDATE "
-                    + "nombres = VALUES(nombres), "
-                    + "apellidos = VALUES(apellidos), "
-                    + "telefono = VALUES(telefono), "
-                    + "correo = VALUES(correo)";
-            try (PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
-                ps.setString(1, dni);
-                ps.setString(2, nombres);
-                ps.setString(3, apellidos);
-                ps.setString(4, telefono);
-                ps.setString(5, correo);
+            // A) Persona
+            String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, correo, estado) VALUES (?, ?, ?, ?, ?, 'ACTIVO') ON DUPLICATE KEY UPDATE nombres=VALUES(nombres)";
+            try (java.sql.PreparedStatement ps = cn.prepareStatement(sqlPersona)) {
+                ps.setString(1, dni); ps.setString(2, nombres); ps.setString(3, apellidos);
+                ps.setString(4, telefono); ps.setString(5, correo);
                 ps.executeUpdate();
             }
 
-            // =================================================
-            // LEER SUELDO DEL TXT
-            // =================================================
-            String sueldoTexto = txtSueldo.getText().trim();
-            double sueldo = (sueldoTexto.isEmpty())
-                    ? 0.0
-                    : Double.parseDouble(sueldoTexto);
-
-            // =================================================
-            // INSERT EMPLEADO
-            // =================================================
-            String sqlEmpleado = "INSERT INTO empleado "
-                    + "(id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) "
-                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-            try (PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
-                ps.setString(1, idEmpleadoNuevo);
-                ps.setString(2, dni);
-                ps.setInt(3, idSucursal);
-                ps.setString(4, rol);
-                ps.setString(5, estado);
-
-                sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
-                ps.setDouble(6, sueldo);
-
-                // ✅ CORRECCIÓN: Usamos la variable, NO el texto fijo
-                ps.setString(7, turnoSeleccionado);
-
+            // B) Empleado
+            String sqlEmpleado = "INSERT INTO empleado (id_empleado, dni, id_sucursal, rol, estado, sueldo, horario) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            try (java.sql.PreparedStatement ps = cn.prepareStatement(sqlEmpleado)) {
+                ps.setString(1, idEmpleadoNuevo); ps.setString(2, dni); ps.setInt(3, idSucursal);
+                ps.setString(4, rol); ps.setString(5, estado);
+                double sueldo = Double.parseDouble(txtSueldo.getText().isEmpty() ? "0" : txtSueldo.getText());
+                ps.setDouble(6, sueldo); ps.setString(7, turnoSeleccionado);
                 ps.executeUpdate();
+            }
+            
+            // C) ✅ INSERTAR HORARIO PARA TODA LA SEMANA (Lunes a Domingo)
+            String sqlHorario = "INSERT INTO horario_empleado (id_empleado, dia_semana, hora_entrada, hora_salida) VALUES (?, ?, ?, ?)";
+            String[] diasSemana = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"};
+            
+            try (java.sql.PreparedStatement psH = cn.prepareStatement(sqlHorario)) {
+                for (String dia : diasSemana) {
+                    psH.setString(1, idEmpleadoNuevo);
+                    psH.setString(2, dia); // Inserta Lunes, luego Martes, etc.
+                    psH.setTime(3, horaEntrada);
+                    psH.setTime(4, horaSalida);
+                    psH.addBatch(); // Preparamos lote
+                }
+                psH.executeBatch(); // Ejecutamos las 7 inserciones de una
             }
 
             cn.commit();
 
-            // Mostrar ID generado en el formulario
             txtIdEmpleado.setText(idEmpleadoNuevo);
-
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Empleado registrado correctamente",
-                    "Éxito",
-                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-
-            // recargar tabla
+            javax.swing.JOptionPane.showMessageDialog(this, "Empleado registrado con turno SEMANAL completo (Lun-Dom).");
             cargarEmpleadosEnTabla();
 
         } catch (Exception e) {
             e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Error al registrar empleado. Revisa la consola.",
-                    "Error",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            javax.swing.JOptionPane.showMessageDialog(this, "Error crítico: " + e.getMessage());
         }
-        String sueldoTxt = txtSueldo.getText().trim();
-        double sueldo = sueldoTxt.isEmpty() ? 0.0 : Double.parseDouble(sueldoTxt);
     }//GEN-LAST:event_btnAgregarActionPerformed
 
     private void txtIdEmpleadoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtIdEmpleadoActionPerformed
