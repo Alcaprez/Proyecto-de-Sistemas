@@ -4,6 +4,21 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.sql.*;
 import javax.swing.JPanel;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
+import java.io.FileOutputStream;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JTable;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -22,11 +37,12 @@ public class VENTAS_Admin extends javax.swing.JPanel {
         initComponents();
         
         // 1. Llenar el Combo de Tipos manualmente
-        cboTipoMovimiento.removeAllItems();
-        cboTipoMovimiento.addItem("Todos");
-        cboTipoMovimiento.addItem("VENTA");
-        cboTipoMovimiento.addItem("COMPRA");
-        cboTipoMovimiento.addItem("INVENTARIO");
+           cboTipoMovimiento.removeAllItems();
+            cboTipoMovimiento.addItem("Todos");
+            cboTipoMovimiento.addItem("VENTA");       // Ingresos por venta
+            cboTipoMovimiento.addItem("COMPRA");      // Salidas por compra (Monto 0.00)
+            cboTipoMovimiento.addItem("GASTO");       // Gastos operativos (Monto 0.00)
+            cboTipoMovimiento.addItem("INVENTARIO");
         
         // 2. Cargar los datos
         cargarKPIs(); 
@@ -198,52 +214,49 @@ public class VENTAS_Admin extends javax.swing.JPanel {
             System.out.println("Error buscando devoluciones: " + e);
         }
     }
-private void cargarHistorialCaja(String filtro) {
+    private void cargarHistorialCaja(String string) {
         DefaultTableModel modelo = (DefaultTableModel) tblFacturas.getModel();
         modelo.setRowCount(0);
-        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO / DESCRIPCIÓN", "TIPO", "ENTRADA"});
+        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO / DESCRIPCIÓN", "TIPO", "MONTO"});
         
         tblFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);
-        tblFacturas.getColumnModel().getColumn(2).setPreferredWidth(300);
+        tblFacturas.getColumnModel().getColumn(1).setPreferredWidth(60);
+        tblFacturas.getColumnModel().getColumn(2).setPreferredWidth(350);
+        tblFacturas.getColumnModel().getColumn(4).setPreferredWidth(100);
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
         String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
 
-        // 1. LA CONSULTA UNIFICADA (Base)
+        // 1. CONSULTA
         String sql = "SELECT * FROM (" +
-                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal FROM movimiento_caja " +
+                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal " +
+                     "   FROM movimiento_caja " +
+                     
                      "   UNION ALL " +
+                     
                      "   SELECT mi.fecha_hora, " +
-                     "          CONCAT(mi.tipo, ': ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
-                     "          'INVENTARIO' as tipo, " +
+                     "          CONCAT('MOV. STOCK: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
+                     "          CASE " +
+                     "             WHEN mi.tipo LIKE '%COMPRA%' THEN 'COMPRA_INVENTARIO' " +
+                     "             ELSE 'INVENTARIO' " +
+                     "          END as tipo, " +
                      "          0.00 as monto, " +
                      "          mi.id_sucursal " +
                      "   FROM movimiento_inventario mi " +
                      "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
-                     ") AS unificados " +
+                     ") AS historial " +
                      "WHERE id_sucursal = 1 ";
 
-        // 2. FILTRO POR TIPO (Estricto)
-        // Verificamos que el combo exista y tenga algo seleccionado
+        // 2. FILTROS
         if (cboTipoMovimiento != null && cboTipoMovimiento.getSelectedItem() != null) {
             String tipoSel = cboTipoMovimiento.getSelectedItem().toString();
-            
             if (!"Todos".equalsIgnoreCase(tipoSel)) {
-                // CAMBIO IMPORTANTE: Usamos '=' en lugar de 'LIKE' para que sea exacto
-                sql += " AND tipo = '" + tipoSel + "' ";
+                sql += " AND tipo LIKE '%" + tipoSel + "%' ";
             }
         }
 
-        // 3. FILTRO POR TEXTO (Buscador)
-        if (filtro != null && !filtro.isEmpty()) {
-            sql += " AND (descripcion LIKE '%" + filtro + "%')";
-        }
-
         sql += " ORDER BY fecha_hora DESC LIMIT 100";
-        
-        // DEBUG: Ver el SQL en consola por si falla
-        System.out.println("SQL Facturas: " + sql);
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
@@ -255,17 +268,101 @@ private void cargarHistorialCaja(String filtro) {
                 String hora = new java.text.SimpleDateFormat("HH:mm").format(ts);
                 String desc = rs.getString("descripcion");
                 String tipo = rs.getString("tipo");
-                double monto = rs.getDouble("monto");
+                double montoReal = rs.getDouble("monto");
                 
+                // --- CORRECCIÓN: LÓGICA VISUAL ---
                 String textoMonto = "0.00";
-                if (monto > 0 && !tipo.equals("INVENTARIO")) {
-                    textoMonto = String.format("S/ %.2f", monto);
+                
+                // AHORA SÍ: Solo mostramos dinero si es VENTA genuina o un INGRESO externo.
+                // Apertura y Reposición son traslados internos -> Se muestran como 0.00 en este reporte de Ventas.
+                if (tipo.equals("VENTA") || tipo.equals("INGRESO")) {
+                     textoMonto = String.format("S/ %.2f", montoReal);
                 }
+                
+                String tipoVisual = tipo.replace("_INVENTARIO", "");
 
-                modelo.addRow(new Object[]{fecha, hora, desc, tipo, textoMonto});
+                modelo.addRow(new Object[]{fecha, hora, desc, tipoVisual, textoMonto});
             }
         } catch (SQLException e) {
-            System.out.println("Error historial: " + e);
+            System.out.println("Error historial ventas: " + e);
+        }
+    }
+    private void exportarPDF(JTable tabla, String tituloReporte) {
+        // 1. Configurar el selector de archivos
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Reporte PDF");
+        // Filtro para que solo muestre PDFs
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
+        
+        // Sugerir un nombre por defecto (Ej: Reporte_Ventas.pdf)
+        fileChooser.setSelectedFile(new java.io.File("Reporte_" + System.currentTimeMillis() + ".pdf"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            // Obtener la ruta elegida por el usuario
+            String rutaArchivo = fileChooser.getSelectedFile().getAbsolutePath();
+            
+            // Asegurar que termine en .pdf
+            if (!rutaArchivo.toLowerCase().endsWith(".pdf")) {
+                rutaArchivo += ".pdf";
+            }
+
+            try {
+                // 2. Crear el documento PDF
+                Document document = new Document();
+                PdfWriter.getInstance(document, new FileOutputStream(rutaArchivo));
+                document.open();
+
+                // 3. Agregar Título
+                com.itextpdf.text.Font fuenteTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+                Paragraph titulo = new Paragraph(tituloReporte, fuenteTitulo);
+                titulo.setAlignment(Element.ALIGN_CENTER);
+                titulo.setSpacingAfter(20);
+                document.add(titulo);
+
+                // 4. Agregar Tabla
+                PdfPTable tablePDF = new PdfPTable(tabla.getColumnCount());
+                tablePDF.setWidthPercentage(100); // Ancho completo
+
+                // A. Encabezados
+                for (int i = 0; i < tabla.getColumnCount(); i++) {
+                    PdfPCell cell = new PdfPCell(new Phrase(tabla.getColumnName(i)));
+                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    cell.setBackgroundColor(com.itextpdf.text.BaseColor.LIGHT_GRAY);
+                    cell.setPadding(8);
+                    tablePDF.addCell(cell);
+                }
+
+                // B. Datos
+                for (int i = 0; i < tabla.getRowCount(); i++) {
+                    for (int j = 0; j < tabla.getColumnCount(); j++) {
+                        Object valor = tabla.getValueAt(i, j);
+                        String texto = (valor == null) ? "" : valor.toString();
+                        
+                        PdfPCell cell = new PdfPCell(new Phrase(texto, FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                        cell.setPadding(5);
+                        // Alinear a la derecha si es dinero
+                        if (texto.contains("S/") || texto.contains("$")) {
+                            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                        }
+                        tablePDF.addCell(cell);
+                    }
+                }
+
+                document.add(tablePDF);
+                document.close();
+
+                // 5. MENSAJE DE ÉXITO CON LA RUTA
+                JOptionPane.showMessageDialog(this, 
+                    "¡Reporte generado exitosamente!\n\nGuardado en:\n" + rutaArchivo, 
+                    "Éxito", 
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error al generar PDF: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
     }
     @SuppressWarnings("unchecked")
@@ -567,7 +664,12 @@ private void cargarHistorialCaja(String filtro) {
         ));
         jScrollPane2.setViewportView(tblFacturas);
 
-        jButton1.setText("Ver pdf");
+        jButton1.setText("Exportar en pdf");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         cboTipoMovimiento.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
 
@@ -582,16 +684,13 @@ private void cargarHistorialCaja(String filtro) {
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(53, 53, 53)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(cboTipoMovimiento, javax.swing.GroupLayout.PREFERRED_SIZE, 169, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 725, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 88, Short.MAX_VALUE)
-                        .addComponent(jButton1)
-                        .addGap(77, 77, 77))))
+                        .addGap(62, 62, 62)
+                        .addComponent(jButton1)))
+                .addContainerGap(61, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -604,11 +703,11 @@ private void cargarHistorialCaja(String filtro) {
                     .addGroup(jPanel3Layout.createSequentialGroup()
                         .addGap(32, 32, 32)
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 255, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addContainerGap(153, Short.MAX_VALUE))
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 143, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton1)
-                        .addGap(273, 273, 273))))
+                        .addGap(274, 274, 274))))
         );
 
         jTabbedPane1.addTab("FACTURAS", jPanel3);
@@ -652,6 +751,11 @@ private void cargarHistorialCaja(String filtro) {
         txtBuscarDev.setForeground(new java.awt.Color(153, 153, 153)); // Lo pone gris clarito
     }        // TODO add your handling code here:
     }//GEN-LAST:event_txtBuscarDevFocusLost
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    // Llamamos al método pasándole la tabla y un título bonito
+        exportarPDF(tblFacturas, "Reporte Detallado de Ventas e Ingresos");       // TODO add your handling code here:
+    }//GEN-LAST:event_jButton1ActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

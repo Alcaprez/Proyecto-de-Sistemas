@@ -446,7 +446,6 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jPanel8 = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
         jPanel9 = new javax.swing.JPanel();
-        jButton1 = new javax.swing.JButton();
 
         jTabbedPane1.setBackground(new java.awt.Color(204, 0, 255));
 
@@ -647,24 +646,14 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
         jScrollPane3.setViewportView(jPanel9);
 
-        jButton1.setText("Nueva Categoria");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addGap(46, 46, 46)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(jLabel5)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jButton1))
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel5)
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 63, Short.MAX_VALUE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -678,9 +667,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 .addGap(51, 51, 51)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel6)
-                            .addComponent(jButton1))
+                        .addComponent(jLabel6)
                         .addGap(18, 18, 18)
                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
@@ -712,27 +699,9 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         filtrarProductos();
     }//GEN-LAST:event_EstadoActionPerformed
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-// 1. Crear y mostrar el diálogo
-        JFrame marcoPadre = (JFrame) SwingUtilities.getWindowAncestor(this);
-        DialogoNuevaCategoria dialogo = new DialogoNuevaCategoria(marcoPadre, true);
-        dialogo.setVisible(true);
-
-        // 2. Si se guardó algo, recargamos la lista de categorías
-        if (dialogo.isGuardadoExitoso()) {
-            System.out.println("Recargando categorías...");
-            // Limpiamos la lista actual
-            listaCategorias.clear();
-            // Volvemos a cargar de la BD
-            cargarCategoriasBD();
-            // Repintamos la interfaz gráfica
-            actualizarVistaCategorias();
-        }    }//GEN-LAST:event_jButton1ActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> Estado;
-    private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
