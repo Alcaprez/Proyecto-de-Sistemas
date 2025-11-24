@@ -1,4 +1,4 @@
-package edu.UPAO.proyecto.Modelo;
+package edu.UPAO.proyecto.modelo;
 
 public class Sucursal {
     
@@ -9,6 +9,13 @@ public class Sucursal {
 
     public Sucursal() {
     }
+    
+    public Sucursal(int id_sucursal, String nombre) {
+        this.id_sucursal = id_sucursal;
+        this.nombre = nombre;
+        this.direccion = ""; // Valores por defecto para evitar nulos
+        this.estado = "";
+    }
 
     public Sucursal(int id_sucursal, String nombre, String direccion, String estado) {
         this.id_sucursal = id_sucursal;
@@ -17,7 +24,13 @@ public class Sucursal {
         this.estado = estado;
     }
 
-    public int getId_sucursal() { return id_sucursal; }
+    public int getId() { 
+        return id_sucursal; 
+    }
+
+    public void setId(int id_sucursal) { // También es bueno cambiar el setter
+        this.id_sucursal = id_sucursal; 
+    }
     public void setId_sucursal(int id_sucursal) { this.id_sucursal = id_sucursal; }
 
     public String getNombre() { return nombre; }
