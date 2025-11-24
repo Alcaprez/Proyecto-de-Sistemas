@@ -2,7 +2,7 @@
 package edu.UPAO.proyecto.DAO;
 
 import BaseDatos.Conexion;
-import edu.UPAO.proyecto.Modelo.Sucursal;
+import edu.UPAO.proyecto.modelo.Sucursal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
