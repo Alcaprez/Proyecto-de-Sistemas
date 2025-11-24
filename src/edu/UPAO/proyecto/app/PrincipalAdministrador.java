@@ -7,6 +7,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
 
     private String idEmpleado;
     private String nombreUsuario;
+    private int idSucursal;
 
     public PrincipalAdministrador() {
         initComponents();
@@ -20,43 +21,52 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         // Guardar los datos recibidos
         this.idEmpleado = idEmpleado;
         this.nombreUsuario = nombreUsuario;
-
-        // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
+        this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);        // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
         this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
 
         verificarStockSucursal();
+        try {
+            edu.UPAO.proyecto.DAO.EmpleadoDAO dao = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+            this.idSucursal = dao.obtenerSucursalEmpleado(idEmpleado);
+            System.out.println("Admin logueado en sucursal ID: " + this.idSucursal);
+        } catch (Exception e) {
+            System.out.println("Error obteniendo sucursal: " + e.getMessage());
+            this.idSucursal = 1; // Valor por defecto si falla
+        }
+
+        verificarStockSucursal();
     }
-    
+
     private void verificarStockSucursal() {
         new Thread(() -> {
             try {
                 // 1. Obtener la sucursal de ESTE administrador
                 edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
                 int idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
-                
+
                 // 2. Buscar alertas SOLO de esa sucursal (pasamos el ID)
                 edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
                 java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
-                
+
                 if (!alertas.isEmpty()) {
                     StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK (Tu Sucursal)\n\n");
-                    
+
                     int limite = Math.min(alertas.size(), 15);
                     for (int i = 0; i < limite; i++) {
                         mensaje.append(alertas.get(i)).append("\n");
                     }
-                    
+
                     if (alertas.size() > 15) {
                         mensaje.append("\n... y ").append(alertas.size() - 15).append(" más.");
                     }
-                    
+
                     mensaje.append("\n\nSe requiere reposición urgente en esta sede.");
 
                     javax.swing.SwingUtilities.invokeLater(() -> {
-                        javax.swing.JOptionPane.showMessageDialog(this, 
-                            new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)), 
-                            "Gestión de Inventario - Local", 
-                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)),
+                                "Gestión de Inventario - Local",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
                     });
                 }
             } catch (Exception e) {
@@ -287,14 +297,13 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
     private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
-        panel_PersonalAdministrador panel_PersonalAdministrador1 = new panel_PersonalAdministrador();       
+        panel_PersonalAdministrador panel_PersonalAdministrador1 = new panel_PersonalAdministrador();
         MostrarPanel(panel_PersonalAdministrador1);
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
         // 1. Creamos la instancia de tu panel de pedidos
-        COMPRAS_Admin panelCompras = new COMPRAS_Admin();
-        // 2. Llamamos a tu función para mostrarlo en el área blanca
+        COMPRAS_Admin panelCompras = new COMPRAS_Admin(this.idSucursal); 
         MostrarPanel(panelCompras);
     }//GEN-LAST:event_btn_comprasActionPerformed
 
@@ -304,17 +313,17 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_ventaActionPerformed
 
     private void btn_almacenesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_almacenesActionPerformed
-        ALMACEN_Admin panelAlmacen = new ALMACEN_Admin();
+        ALMACEN_Admin panelAlmacen = new ALMACEN_Admin(idSucursal);
         MostrarPanel(panelAlmacen);
     }//GEN-LAST:event_btn_almacenesActionPerformed
 
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
         // 1. Validar que tenemos el ID del administrador (por si acaso)
-        String idParaEnviar = (this.idEmpleado != null) ? this.idEmpleado : "12000001"; 
-        
+        String idParaEnviar = (this.idEmpleado != null) ? this.idEmpleado : "12000001";
+
         // 2. Instanciar el panel pasándole el ID
         panel_Cuenta panelCuenta = new panel_Cuenta(idParaEnviar);
-        
+
         // 3. Mostrarlo en el contenido
         MostrarPanel(panelCuenta);
     }//GEN-LAST:event_btn_cuentaActionPerformed

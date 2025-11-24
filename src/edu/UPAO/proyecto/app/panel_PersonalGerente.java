@@ -113,7 +113,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             cbTienda.addItem(t);
         }
     }
-    
+
     private void configurarTabNomina() {
         // 1. Configurar Tabla (jTable1)
         DefaultTableModel modelo = new DefaultTableModel();
@@ -133,20 +133,24 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         // 3. Listeners para recargar tabla al cambiar filtros
         cb_sucursal.addActionListener(e -> cargarTablaNomina());
         cb_mes.addActionListener(e -> cargarTablaNomina());
-        
+
         // Buscador con Enter
         tf_buscarEnNomina.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
-                if(evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) cargarTablaNomina();
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    cargarTablaNomina();
+                }
             }
         });
 
         // BOTÓN PAGAR
         btn_pagar.addActionListener(e -> procesarPagoSeleccionado());
-        
+
         // BOTÓN BUSCAR (Si existe)
-        if(btn_buscarNomina != null) btn_buscarNomina.addActionListener(e -> cargarTablaNomina());
-        
+        if (btn_buscarNomina != null) {
+            btn_buscarNomina.addActionListener(e -> cargarTablaNomina());
+        }
+
         // Carga inicial
         cargarTablaNomina();
     }
@@ -368,22 +372,26 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
             }
         }
     }
-    
+
     private void cargarComboMeses() {
         cb_mes.removeAllItems();
         String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
-        for (String m : meses) cb_mes.addItem(m);
+        for (String m : meses) {
+            cb_mes.addItem(m);
+        }
         // Seleccionar mes actual (opcional)
         int mesActual = java.time.LocalDate.now().getMonthValue() - 1;
         cb_mes.setSelectedIndex(mesActual);
     }
-    
+
     private void cargarComboSucursalesNomina() {
         // Reutilizamos tu lógica de sucursales para el combo de la pestaña nómina
         cb_sucursal.removeAllItems();
         SucursalDAO dao = new SucursalDAO();
         List<String> lista = dao.obtenerSucursalesActivas();
-        for(String s : lista) cb_sucursal.addItem(s);
+        for (String s : lista) {
+            cb_sucursal.addItem(s);
+        }
     }
 
     private void cargarTablaNomina() {
@@ -392,7 +400,9 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         int anio = java.time.LocalDate.now().getYear(); // Año actual
         String busqueda = tf_buscarEnNomina.getText().trim();
 
-        if (nombreSucursal == null || mes == null) return;
+        if (nombreSucursal == null || mes == null) {
+            return;
+        }
 
         // Obtener ID Sucursal
         int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
@@ -426,21 +436,21 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         String idEmp = jTable1.getValueAt(fila, 0).toString();
         String nombre = jTable1.getValueAt(fila, 1).toString() + " " + jTable1.getValueAt(fila, 2).toString();
         double sueldo = Double.parseDouble(jTable1.getValueAt(fila, 4).toString());
-        
+
         String mes = (String) cb_mes.getSelectedItem();
         String nombreSucursal = (String) cb_sucursal.getSelectedItem();
         int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
 
-        int confirm = JOptionPane.showConfirmDialog(this, 
-            "¿Confirmar pago de S/ " + sueldo + " a " + nombre + "?\n" +
-            "Mes: " + mes + "\n" +
-            "Se descontará de la caja activa de la tienda.",
-            "Procesar Pago", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Confirmar pago de S/ " + sueldo + " a " + nombre + "?\n"
+                + "Mes: " + mes + "\n"
+                + "Se descontará de la caja activa de la tienda.",
+                "Procesar Pago", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
             edu.UPAO.proyecto.DAO.NominaDAO dao = new edu.UPAO.proyecto.DAO.NominaDAO();
             boolean exito = dao.pagarEmpleado(idEmp, sueldo, mes, java.time.LocalDate.now().getYear(), idSucursal);
-            
+
             if (exito) {
                 JOptionPane.showMessageDialog(this, "¡Pago registrado correctamente!");
                 cargarTablaNomina(); // Refrescar para ver que cambie a PAGADO
@@ -1199,13 +1209,29 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 }
                 psH.executeBatch(); // Ejecutamos las 7 inserciones de una
             }
+            String sqlUsuario = "INSERT INTO usuario (id_empleado, `contraseña`, estado) VALUES (?, ?, 'ACTIVO')";
+
+            try (java.sql.PreparedStatement psU = cn.prepareStatement(sqlUsuario)) {
+                psU.setString(1, idEmpleadoNuevo); // Vincula con el empleado
+
+                // Usamos el MISMO ID como contraseña inicial
+                psU.setString(2, idEmpleadoNuevo);
+
+                psU.executeUpdate();
+            }
 
             cn.commit();
 
             txtIdEmpleado.setText(idEmpleadoNuevo);
-            javax.swing.JOptionPane.showMessageDialog(this, "Empleado registrado con turno SEMANAL completo (Lun-Dom).");
-            cargarEmpleadosEnTabla();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "¡Registro Exitoso!\n"
+                    + "- Empleado creado: " + nombres + "\n"
+                    + "- ID Generado: " + idEmpleadoNuevo + "\n"
+                    + "- Credenciales de Acceso:\n"
+                    + "  Usuario: " + idEmpleadoNuevo + "\n"
+                    + "  Clave: " + idEmpleadoNuevo);
 
+            cargarEmpleadosEnTabla();
         } catch (Exception e) {
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this, "Error crítico: " + e.getMessage());

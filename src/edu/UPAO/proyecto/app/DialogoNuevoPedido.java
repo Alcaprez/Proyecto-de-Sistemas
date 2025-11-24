@@ -302,15 +302,18 @@ public class DialogoNuevoPedido extends javax.swing.JDialog {
 
             Connection con = (Connection) DriverManager.getConnection(url, usuario, password);
             // Buscamos por nombre (asumiendo que son únicos)
-            PreparedStatement ps = con.prepareStatement("SELECT stock_minimo, precio_venta FROM producto WHERE nombre = ?");
+            String sql = "SELECT p.stock_minimo, COALESCE(i.stock_actual, 0) as stock_real " +
+                         "FROM producto p " +
+                         "LEFT JOIN inventario_sucursal i ON p.id_producto = i.id_producto AND i.id_sucursal = 1 " +
+                         "WHERE p.nombre = ?";
+            
+            PreparedStatement ps = con.prepareStatement(sql);
             ps.setString(1, nombreProducto);
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
                 stockMin = rs.getInt("stock_minimo");
-                // Nota: El stock real suele estar en otra tabla (inventario_sucursal), 
-                // por ahora pondremos 0 o simulado para no complicar la consulta.
-                stockActual = 100; // Simulado por ahora
+                stockActual = rs.getInt("stock_real"); // ¡Valor real de la BD!
             }
             con.close();
         } catch (Exception e) {
