@@ -1,13 +1,25 @@
 package edu.UPAO.proyecto.app;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 import edu.UPAO.proyecto.DAO.CajaDAO;
 import edu.UPAO.proyecto.Modelo.Caja;
 import java.awt.Color;
+import java.io.FileOutputStream;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import javax.swing.JFileChooser;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
+import javax.swing.JTable;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class TESORERIA_Admin extends javax.swing.JPanel {
 
@@ -210,66 +222,69 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         }
     }
 
-    private void cargarListadoFacturas() {
+   private void cargarListadoFacturas() {
         DefaultTableModel modelo = (DefaultTableModel) tblListadoFacturas.getModel();
         modelo.setRowCount(0);
-        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO", "ENTRADA", "SALIDA", "SALDO"});
-
+        modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO", "ENTRADA", "SALIDA", "SALDO (BÓVEDA)"});
+        
+        // Ajustes visuales
         tblListadoFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);
         tblListadoFacturas.getColumnModel().getColumn(1).setPreferredWidth(60);
         tblListadoFacturas.getColumnModel().getColumn(2).setPreferredWidth(350);
 
-        double saldoAcumulado = 0.0;
+        // 1. REGLA DE NEGOCIO: Capital Social / Saldo Inicial del Gerente
+        double saldoAcumulado = 10000.00; 
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
 
-        // --- CONSULTA MAESTRA: CAJA + INVENTARIO (PRECIO REAL) ---
-        String sql = "SELECT * FROM ("
-                + // 1. MOVIMIENTOS DE CAJA (Excluyendo 'COMPRA' para no duplicar con inventario)
-                "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal "
-                + "   FROM movimiento_caja "
-                + "   WHERE tipo NOT IN ('COMPRA') "
-                + "   UNION ALL "
-                + // 2. ENTRADAS DE INVENTARIO (Representan SALIDA de dinero - COMPRA)
-                "   SELECT mi.fecha_hora, "
-                + "          CONCAT('COMPRA STOCK: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, "
-                + "          'GASTO_INVENTARIO' as tipo, "
-                + "          (mi.cantidad * p.precio_compra) as monto, "
-                + // Calculamos el costo
-                "          mi.id_sucursal "
-                + "   FROM movimiento_inventario mi "
-                + "   INNER JOIN producto p ON mi.id_producto = p.id_producto "
-                + "   WHERE mi.tipo = 'ENTRADA COMPRA' "
-                + "   UNION ALL "
-                + // 3. SALIDAS DE INVENTARIO POR ANULACIÓN (Representan ENTRADA de dinero - REEMBOLSO)
-                "   SELECT mi.fecha_hora, "
-                + "          CONCAT('DEVOLUCION PROV: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, "
-                + "          'INGRESO_INVENTARIO' as tipo, "
-                + "          (mi.cantidad * p.precio_compra) as monto, "
-                + // Recuperamos el costo
-                "          mi.id_sucursal "
-                + "   FROM movimiento_inventario mi "
-                + "   INNER JOIN producto p ON mi.id_producto = p.id_producto "
-                + "   WHERE mi.tipo = 'SALIDA POR ANULACION' "
-                + ") AS libro_caja "
-                + "WHERE id_sucursal = 1 ";
+        // 2. CONSULTA UNIFICADA
+        String sql = "SELECT * FROM (" +
+                     
+                     // A. CAJA CHICA (Ventas, Gastos, Aperturas, Cierres...)
+                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal " +
+                     "   FROM movimiento_caja " +
+                     "   WHERE tipo NOT IN ('COMPRA') " + 
+                     
+                     "   UNION ALL " +
+                     
+                     // B. INVENTARIO: ENTRADAS (Son SALIDAS de Dinero - Compras)
+                     "   SELECT mi.fecha_hora, " +
+                     "          CONCAT('COMPRA STOCK: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
+                     "          'GASTO_INVENTARIO' as tipo, " +
+                     "          (mi.cantidad * p.precio_compra) as monto, " +
+                     "          mi.id_sucursal " +
+                     "   FROM movimiento_inventario mi " +
+                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
+                     "   WHERE mi.tipo = 'ENTRADA COMPRA' " +
+                     
+                     "   UNION ALL " +
+                     
+                     // C. INVENTARIO: DEVOLUCIONES (Son ENTRADAS de Dinero - Reembolsos)
+                     "   SELECT mi.fecha_hora, " +
+                     "          CONCAT('DEVOLUCION PROV: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
+                     "          'INGRESO_INVENTARIO' as tipo, " +
+                     "          (mi.cantidad * p.precio_compra) as monto, " +
+                     "          mi.id_sucursal " +
+                     "   FROM movimiento_inventario mi " +
+                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
+                     "   WHERE mi.tipo = 'SALIDA POR ANULACION' " +
+                     
+                     ") AS libro_mayor " +
+                     "WHERE id_sucursal = 1 ";
 
-        // Filtros del ComboBox
+        // Filtros (Opcional)
         try {
             String filtro = cboFiltroFacturas.getSelectedItem().toString();
             if (filtro.equalsIgnoreCase("INGRESOS")) {
-                // Incluimos Ventas, Ingresos varios y Devoluciones de inventario (recupero plata)
-                sql += " AND (tipo IN ('VENTA', 'INGRESO', 'APERTURA') OR tipo = 'INGRESO_INVENTARIO') ";
+                sql += " AND (monto > 0 AND (tipo LIKE '%VENTA%' OR tipo LIKE '%CIERRE%' OR tipo LIKE '%INGRESO%')) ";
             } else if (filtro.equalsIgnoreCase("EGRESOS")) {
-                // Incluimos Gastos, Pagos y Compras de inventario (gasto plata)
-                sql += " AND (tipo IN ('GASTO', 'SALIDA', 'PAGO', 'DEVOLUCION') OR tipo = 'GASTO_INVENTARIO') ";
+                sql += " AND (monto > 0 AND (tipo LIKE '%GASTO%' OR tipo LIKE '%APERTURA%' OR tipo LIKE '%COMPRA%')) ";
             }
-        } catch (Exception e) {
-        }
+        } catch (Exception e) {} 
 
-        sql += " ORDER BY fecha_hora ASC"; // Orden cronológico para calcular saldo correctamente
+        sql += " ORDER BY fecha_hora ASC"; 
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
@@ -283,31 +298,50 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 String tipo = rs.getString("tipo");
                 double monto = rs.getDouble("monto");
 
-                double entrada = 0.0;
-                double salida = 0.0;
+                String textoEntrada = "0.00";
+                String textoSalida = "0.00";
 
-                // --- LÓGICA DE SALDO ---
-                // ¿Qué suma dinero a la caja? (Ventas, Ingresos Manuales, Devoluciones al proveedor)
-                if (tipo.contains("VENTA") || tipo.contains("INGRESO") || tipo.contains("APERTURA")) {
-                    entrada = monto;
+                // --- LÓGICA FINANCIERA CORREGIDA ---
+
+                // GRUPO A: SALIDAS DE BÓVEDA (Restan)
+                // 1. GASTO_INVENTARIO: Compras grandes de mercadería.
+                // 2. APERTURA: El sistema saca el 5% para dárselo al cajero.
+                // 3. REPOSICION: El admin saca más dinero manual para la caja chica.
+                if (tipo.equals("GASTO_INVENTARIO") || tipo.equals("APERTURA") || tipo.equals("REPOSICION")) {
+                    textoSalida = String.format("%.2f", monto);
+                    saldoAcumulado -= monto; 
+                }
+                
+                // GRUPO B: ENTRADAS A BÓVEDA (Suman)
+                // 1. INGRESO_INVENTARIO: Devoluciones al proveedor (recuperas plata).
+                // 2. CIERRE: El cajero entrega la ganancia del día.
+                // 3. RETIRO: Transferencia manual de caja chica a grande.
+                else if (tipo.equals("INGRESO_INVENTARIO") || tipo.equals("CIERRE") || tipo.equals("RETIRO")) {
+                    textoEntrada = String.format("%.2f", monto);
                     saldoAcumulado += monto;
-                } // ¿Qué resta dinero? (Gastos, Pagos, Compras de mercadería)
-                else {
-                    salida = monto;
-                    saldoAcumulado -= monto;
+                }
+                
+                // GRUPO C: MOVIMIENTOS INTERNOS DE CAJA CHICA (Neutros para Bóveda)
+                // Ventas, Gastos de luz, Pagos... ocurren "lejos" de la bóveda.
+                // Solo se anotan visualmente pero NO tocan el saldo acumulado aquí.
+                else if (tipo.contains("VENTA") || tipo.contains("INGRESO")) {
+                    textoEntrada = String.format("%.2f", monto);
+                }
+                else if (tipo.contains("GASTO") || tipo.contains("PAGO") || tipo.contains("SALIDA") || tipo.contains("DEVOLUCION")) {
+                    textoSalida = String.format("%.2f", monto);
                 }
 
                 modelo.addRow(new Object[]{
                     fecha,
                     hora,
                     desc,
-                    (entrada > 0) ? String.format("%.2f", entrada) : "0.00",
-                    (salida > 0) ? String.format("%.2f", salida) : "0.00",
+                    textoEntrada,
+                    textoSalida,
                     String.format("%.2f", saldoAcumulado)
                 });
             }
         } catch (SQLException e) {
-            System.out.println("Error listado facturas: " + e);
+            System.out.println("Error libro caja: " + e);
         }
     }
 
@@ -440,6 +474,84 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 modelo.addRow(new Object[]{hora, rs.getString("tipo"), rs.getString("descripcion"), "S/ " + rs.getDouble("monto")});
             }
         } catch (SQLException e) {
+        }
+    }
+        private void exportarPDF(JTable tabla, String tituloReporte) {
+        // 1. Configurar el selector de archivos
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Reporte PDF");
+        // Filtro para que solo muestre PDFs
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
+        
+        // Sugerir un nombre por defecto (Ej: Reporte_Ventas.pdf)
+        fileChooser.setSelectedFile(new java.io.File("Reporte_" + System.currentTimeMillis() + ".pdf"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            // Obtener la ruta elegida por el usuario
+            String rutaArchivo = fileChooser.getSelectedFile().getAbsolutePath();
+            
+            // Asegurar que termine en .pdf
+            if (!rutaArchivo.toLowerCase().endsWith(".pdf")) {
+                rutaArchivo += ".pdf";
+            }
+
+            try {
+                // 2. Crear el documento PDF
+                Document document = new Document();
+                PdfWriter.getInstance(document, new FileOutputStream(rutaArchivo));
+                document.open();
+
+                // 3. Agregar Título
+                com.itextpdf.text.Font fuenteTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+                Paragraph titulo = new Paragraph(tituloReporte, fuenteTitulo);
+                titulo.setAlignment(Element.ALIGN_CENTER);
+                titulo.setSpacingAfter(20);
+                document.add(titulo);
+
+                // 4. Agregar Tabla
+                PdfPTable tablePDF = new PdfPTable(tabla.getColumnCount());
+                tablePDF.setWidthPercentage(100); // Ancho completo
+
+                // A. Encabezados
+                for (int i = 0; i < tabla.getColumnCount(); i++) {
+                    PdfPCell cell = new PdfPCell(new Phrase(tabla.getColumnName(i)));
+                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    cell.setBackgroundColor(com.itextpdf.text.BaseColor.LIGHT_GRAY);
+                    cell.setPadding(8);
+                    tablePDF.addCell(cell);
+                }
+
+                // B. Datos
+                for (int i = 0; i < tabla.getRowCount(); i++) {
+                    for (int j = 0; j < tabla.getColumnCount(); j++) {
+                        Object valor = tabla.getValueAt(i, j);
+                        String texto = (valor == null) ? "" : valor.toString();
+                        
+                        PdfPCell cell = new PdfPCell(new Phrase(texto, FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                        cell.setPadding(5);
+                        // Alinear a la derecha si es dinero
+                        if (texto.contains("S/") || texto.contains("$")) {
+                            cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                        }
+                        tablePDF.addCell(cell);
+                    }
+                }
+
+                document.add(tablePDF);
+                document.close();
+
+                // 5. MENSAJE DE ÉXITO CON LA RUTA
+                JOptionPane.showMessageDialog(this, 
+                    "¡Reporte generado exitosamente!\n\nGuardado en:\n" + rutaArchivo, 
+                    "Éxito", 
+                    JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error al generar PDF: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
     }
 
@@ -789,7 +901,12 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         ));
         jScrollPane3.setViewportView(tblListadoFacturas);
 
-        jButton1.setText("Abrir PDF");
+        jButton1.setText("Exportar a PDF");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -1140,6 +1257,10 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             JOptionPane.showMessageDialog(this, "Error: Verifique el monto.");
         }
     }//GEN-LAST:event_btnGenerarPagoActionPerformed
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+       exportarPDF(tblListadoFacturas, "Reporte de Movimientos de Caja");        // TODO add your handling code here:
+    }//GEN-LAST:event_jButton1ActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGenerarPago;

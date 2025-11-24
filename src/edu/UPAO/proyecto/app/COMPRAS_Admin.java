@@ -440,7 +440,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         jScrollPane4.setViewportView(tblCompras);
 
         btnAnular.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
-        btnAnular.setText("Anular Compra");
+        btnAnular.setText("Devolver Compra");
         btnAnular.setActionCommand("Devolver Pedido");
         btnAnular.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
