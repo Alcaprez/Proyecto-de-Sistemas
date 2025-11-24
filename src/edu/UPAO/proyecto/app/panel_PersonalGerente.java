@@ -16,7 +16,7 @@ import edu.UPAO.proyecto.DAO.SucursalDAO;
 import edu.UPAO.proyecto.Modelo.Empleado;
 import java.util.ArrayList;
 import java.util.List;
-import edu.UPAO.proyecto.Modelo.Sucursal;
+import edu.UPAO.proyecto.modelo.Sucursal;
 import java.awt.Dimension;
 
 public class panel_PersonalGerente extends javax.swing.JPanel {

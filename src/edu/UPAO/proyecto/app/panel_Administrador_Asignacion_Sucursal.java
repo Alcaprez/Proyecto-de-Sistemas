@@ -1,7 +1,8 @@
 
 package edu.UPAO.proyecto.app;
 
-import edu.UPAO.proyecto.Modelo.Sucursal;
+import edu.UPAO.proyecto.modelo.Sucursal;
+import edu.UPAO.proyecto.modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.awt.Color;
 import java.awt.Component;
