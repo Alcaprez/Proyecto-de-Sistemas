@@ -18,6 +18,7 @@ public class LoginjFrame extends javax.swing.JFrame {
      * Creates new form Login
      */
     public LoginjFrame() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Lima"));
         initComponents();
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
@@ -428,6 +429,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
+                java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Lima"));
                 new LoginjFrame().setVisible(true);
             }
         });

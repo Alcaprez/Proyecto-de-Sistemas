@@ -5,6 +5,7 @@ import edu.UPAO.proyecto.Modelo.HorarioEmpleado;
 import java.util.HashMap;
 import java.util.Map;
 
+
 public class LoginController {
 
     private static Map<String, String> usuarios;

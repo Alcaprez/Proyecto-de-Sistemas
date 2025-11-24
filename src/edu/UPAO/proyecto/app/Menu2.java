@@ -10,7 +10,9 @@ import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
 import edu.UPAO.proyecto.Modelo.Producto;
 import java.util.ArrayList;
+import javax.swing.JFrame;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -35,7 +37,6 @@ public class Menu2 extends javax.swing.JFrame {
         setTitle("Sistema Kuyay - Menú Principal");
 
         inicializarComponentes();
-        btn_cuenta.doClick();
         verificarStockCajero(idEmpleado);
     }
 
@@ -129,9 +130,7 @@ public class Menu2 extends javax.swing.JFrame {
         inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
         txtCupon.setEnabled(false);
-        for (java.awt.event.ActionListener al : tb_reportes.getActionListeners()) {
-            tb_reportes.removeActionListener(al);
-        }
+
         // Configurar spinners
         spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         sp_item.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
@@ -374,7 +373,6 @@ public class Menu2 extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         lblFrase = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
-        tb_reportes = new javax.swing.JToggleButton();
         tb_entrada = new javax.swing.JToggleButton();
         btn_devolver = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
@@ -469,15 +467,6 @@ public class Menu2 extends javax.swing.JFrame {
 
         jPanel2.setBackground(new java.awt.Color(179, 9, 1));
 
-        tb_reportes.setBackground(new java.awt.Color(118, 158, 139));
-        tb_reportes.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
-        tb_reportes.setText("REPORTES");
-        tb_reportes.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tb_reportesActionPerformed(evt);
-            }
-        });
-
         tb_entrada.setBackground(new java.awt.Color(118, 158, 139));
         tb_entrada.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
         tb_entrada.setText("R. ENT / SAL");
@@ -547,8 +536,6 @@ public class Menu2 extends javax.swing.JFrame {
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(btn_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(tb_reportes, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
                         .addComponent(tb_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(btn_ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -556,14 +543,13 @@ public class Menu2 extends javax.swing.JFrame {
                         .addComponent(btn_devolver, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(btn_compras, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(501, Short.MAX_VALUE))
+                .addContainerGap(646, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tb_reportes, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(tb_entrada, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_ventas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -1002,28 +988,28 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja)", "Cancelar"};
-        
-        int seleccion = JOptionPane.showOptionDialog(this,
-            "¿Qué desea hacer?\n\n" +
-            "• Cerrar Sesión: La caja queda ABIERTA. Use esto para descansos.\n" +
-            "• Finalizar Turno: Se realizará el ARQUEO y se CERRARÁ la caja.",
-            "Control de Salida",
-            JOptionPane.YES_NO_CANCEL_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            options,
-            options[2]);
+        Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja)", "Cancelar"};
 
-        if (seleccion == 0) { 
+        int seleccion = JOptionPane.showOptionDialog(this,
+                "¿Qué desea hacer?\n\n"
+                + "• Cerrar Sesión: La caja queda ABIERTA. Use esto para descansos.\n"
+                + "• Finalizar Turno: Se realizará el ARQUEO y se CERRARÁ la caja.",
+                "Control de Salida",
+                JOptionPane.YES_NO_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[2]);
+
+        if (seleccion == 0) {
             // --- OPCIÓN 1: SOLO SALIR (Caja queda abierta) ---
             System.out.println("Sesión pausada. Caja sigue abierta.");
             irALogin();
-            
+
         } else if (seleccion == 1) {
             // --- OPCIÓN 2: FINALIZAR TURNO (Obliga Arqueo) ---
             int idCaja = obtenerIdCajaAbierta();
-            
+
             if (idCaja == -1) {
                 // Si por alguna razón no tiene caja (ej. error sistema), lo dejamos salir
                 JOptionPane.showMessageDialog(this, "No se detectó caja abierta. Saliendo...");
@@ -1032,7 +1018,7 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
                 // Abrir ventana OBLIGATORIA de Arqueo
                 DialogoArqueoCaja dialogo = new DialogoArqueoCaja(this, true, idCaja);
                 dialogo.setVisible(true);
-                
+
                 // Solo salimos si el arqueo fue exitoso
                 if (dialogo.cajaCerradaExito) {
                     irALogin();
@@ -1048,21 +1034,21 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
         login.setVisible(true);
         this.dispose();
     }
-    
+
     private void cerrarCajaAutomatica() {
         try {
             edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
-            
+
             // 1. Buscar mi caja abierta
             int idCaja = obtenerIdCajaAbierta(); // Método que ya creamos en la respuesta anterior
-            
+
             if (idCaja != -1) {
                 // 2. Calcular saldo final real
                 double saldoFinal = cajaDAO.obtenerSaldoAcumuladoHistorico(this.idSucursal);
-                
+
                 // 3. Cerrar en BD
                 boolean exito = cajaDAO.cerrarCaja(idCaja, saldoFinal);
-                
+
                 if (exito) {
                     System.out.println("✅ CAJA CERRADA CORRECTAMENTE. Saldo Final: " + saldoFinal);
                     JOptionPane.showMessageDialog(this, "Turno finalizado. Caja cerrada con: S/ " + saldoFinal);
@@ -1072,7 +1058,7 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
             System.err.println("Error al cerrar caja automática: " + e.getMessage());
         }
     }
-    
+
     private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
         String texto = txtBuscarCodigo.getText().trim().toLowerCase();
         if (texto.isEmpty()) {
@@ -1389,16 +1375,16 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
     private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
 // 1. Crear una ventana nueva (JFrame)
         javax.swing.JFrame ventanaCuenta = new javax.swing.JFrame("Mi Cuenta - Kuyay");
-        
+
         // 2. Crear tu panel pasándole el ID
         panel_Cuenta miPanel = new panel_Cuenta(this.idEmpleado); // Usamos el ID que ya tiene Menu2
-        
+
         // 3. Configurar la ventana
         ventanaCuenta.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE); // Solo cerrar esta ventana, no toda la app
         ventanaCuenta.setContentPane(miPanel); // Metemos el panel dentro
         ventanaCuenta.pack(); // Ajustar tamaño automáticamente al contenido del panel
         ventanaCuenta.setLocationRelativeTo(this); // Centrar sobre el menú
-        
+
         // 4. Mostrar
         ventanaCuenta.setVisible(true);
     }//GEN-LAST:event_btn_cuentaActionPerformed
@@ -1409,28 +1395,28 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
     }//GEN-LAST:event_btn_ventasActionPerformed
 
     private void btn_devolverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_devolverActionPerformed
-       int idCajaActual = obtenerIdCajaAbierta();
+        int idCajaActual = obtenerIdCajaAbierta();
 
         // 2. Validamos que exista una caja abierta
         if (idCajaActual == -1) {
-            JOptionPane.showMessageDialog(this, 
-                "No tienes una caja abierta actualmente.\nNo se pueden realizar devoluciones de dinero.", 
-                "Caja Cerrada", 
-                JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "No tienes una caja abierta actualmente.\nNo se pueden realizar devoluciones de dinero.",
+                    "Caja Cerrada",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // 3. Abrimos la ventana de devoluciones pasándole todos los datos
         DialogoDevolucionVenta dialogo = new DialogoDevolucionVenta(
-            this,               // Ventana padre (Menu2)
-            true,               // Modal (bloquea la ventana de atrás)
-            idCajaActual,       // ID Caja recuperado de la BD
-            this.idSucursal,    // ID Sucursal que ya tenías en Menu2
-            this.idEmpleado     // ID Empleado que ya tenías en Menu2
+                this, // Ventana padre (Menu2)
+                true, // Modal (bloquea la ventana de atrás)
+                idCajaActual, // ID Caja recuperado de la BD
+                this.idSucursal, // ID Sucursal que ya tenías en Menu2
+                this.idEmpleado // ID Empleado que ya tenías en Menu2
         );
-        
+
         dialogo.setVisible(true);
-        
+
         // Opcional: Recargar productos por si hubo devolución a stock
         cargarProductosEnTabla();
     }//GEN-LAST:event_btn_devolverActionPerformed
@@ -1445,35 +1431,31 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
         jFrame_Asistncias1.setVisible(true);
     }//GEN-LAST:event_tb_entradaActionPerformed
 
-    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tb_reportesActionPerformed
-
     private void btn_comprasComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_btn_comprasComponentMoved
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_comprasComponentMoved
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
-    // 1. Validar si hay caja abierta (Reutilizando tu método existente)
+        // 1. Validar si hay caja abierta (Reutilizando tu método existente)
         int idCajaActual = obtenerIdCajaAbierta(); // O usar this.idCaja si ya lo guardaste en el constructor
 
         if (idCajaActual == -1 || idCajaActual == 0) {
-            JOptionPane.showMessageDialog(this, 
-                "No hay caja abierta. No se puede sacar dinero.", 
-                "Error de Caja", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "No hay caja abierta. No se puede sacar dinero.",
+                    "Error de Caja", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // 2. Abrir la ventana de Gastos
         DialogoRegistrarGasto dialogo = new DialogoRegistrarGasto(
-            this, 
-            true, 
-            idCajaActual, 
-            this.idSucursal
+                this,
+                true,
+                idCajaActual,
+                this.idSucursal
         );
-        
+
         dialogo.setVisible(true);
-        
+
         // Opcional: Si tienes un label que muestra el saldo actual en pantalla, aquí podrías actualizarlo
         // actualizarLabelSaldo();
     }//GEN-LAST:event_btn_comprasActionPerformed
@@ -1548,7 +1530,6 @@ Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja
     private javax.swing.JSpinner sp_item;
     private javax.swing.JTable tablaProductos;
     private javax.swing.JToggleButton tb_entrada;
-    private javax.swing.JToggleButton tb_reportes;
     private javax.swing.JTextField txtBuscarCodigo;
     private javax.swing.JTextField txtCupon;
     private javax.swing.JTextArea txtObservaciones;

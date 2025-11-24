@@ -45,7 +45,51 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         
         initComponents();
         iniciarDashboard();
+        configurarGraficos();
         
+    }
+    
+    
+    
+private void configurarGraficos() {
+        // 1. AJUSTAR EL CONTENEDOR PRINCIPAL DE GRÁFICOS (panelCentro3)
+        // Le damos un margen interno grande para que los gráficos se vean más pequeños y centrados.
+        // Formato: (Arriba, Izquierda, Abajo, Derecha)
+        panelCentro3.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 50, 50, 50));
+
+        // 2. AJUSTAR ESPACIADO ENTRE GRÁFICOS (Separación)
+        // Cambiamos el GridLayout original (2,2,5,5) por uno con más separación (20px)
+        panelCentro3.setLayout(new java.awt.GridLayout(2, 2, 20, 20));
+        
+        // 3. FORZAR ACTUALIZACIÓN
+        panelCentro3.revalidate();
+    }
+
+    // ESTE MÉTODO ES OBLIGATORIO PARA QUE LOS GRÁFICOS NO SE CORTEN
+    // Úsalo dentro de tus métodos 'actualizarGrafico...' en lugar de solo añadir el panel.
+    private void renderizarGrafico(JPanel panelContenedor, JFreeChart chart) {
+        chart.setBackgroundPaint(Color.WHITE);
+        
+        // Crear el panel del gráfico
+        ChartPanel chartPanel = new ChartPanel(chart);
+        
+        // --- EL TRUCO PARA QUE NO SE CORTE NI SE VEA GIGANTE ---
+        // 1. Quitamos restricciones de tamaño mínimo (para que pueda encogerse)
+        chartPanel.setMinimumSize(new java.awt.Dimension(0, 0));
+        // 2. Damos un tamaño preferido base pequeño (el layout lo estirará lo necesario)
+        chartPanel.setPreferredSize(new java.awt.Dimension(100, 100));
+        
+        chartPanel.setPopupMenu(null);
+        chartPanel.setDomainZoomable(false);
+        chartPanel.setRangeZoomable(false);
+        
+        // Limpiar el panel contenedor (el gris) y agregar el gráfico
+        panelContenedor.removeAll();
+        panelContenedor.setLayout(new BorderLayout()); // Importante para que llene el hueco
+        panelContenedor.add(chartPanel, BorderLayout.CENTER);
+        
+        panelContenedor.revalidate();
+        panelContenedor.repaint();
     }
 
     private void iniciarDashboard() {
@@ -247,34 +291,7 @@ private void exportarDatosCSV() {
         renderizarGrafico(grafico_metodosPago, chart);
     }
     
-    private void renderizarGrafico(JPanel panelContenedor, JFreeChart chart) {
-       chart.setBackgroundPaint(Color.WHITE);
-        
-        // Crear el panel del gráfico
-        ChartPanel chartPanel = new ChartPanel(chart);
-        
-        // --- EL TRUCO MAESTRO ---
-        // Le decimos al layout: "Puedo ser tan pequeño como 1x1 pixel"
-        // Esto obliga al contenedor padre a imponer su tamaño, no al revés.
-        chartPanel.setMinimumSize(new java.awt.Dimension(0, 0));
-        chartPanel.setPreferredSize(new java.awt.Dimension(1, 1)); // Tamaño diminuto para que no empuje
-        chartPanel.setMaximumSize(new java.awt.Dimension(3000, 3000));
-        // ------------------------
 
-        chartPanel.setPopupMenu(null);
-        chartPanel.setDomainZoomable(false);
-        chartPanel.setRangeZoomable(false);
-        
-        // Limpiar y agregar al contenedor
-        panelContenedor.removeAll();
-        // El BorderLayout es CRUCIAL aquí, estirará el "1x1" hasta llenar el panel
-        panelContenedor.setLayout(new BorderLayout()); 
-        panelContenedor.add(chartPanel, BorderLayout.CENTER);
-        
-        // Forzar actualización visual agresiva
-        panelContenedor.revalidate();
-        panelContenedor.repaint();
-    }
 
     private void configurarFiltrosUI() {
         cb_sucursal.removeAllItems();
