@@ -16,7 +16,12 @@ public class Venta {
     private double subtotal;
     private double igv;
     private double total;
+
     private int idSucursal;
+    private String idCliente;      // CHAR(8)
+    private int idMetodoPago;      // INT
+    private int idCaja;            // INT
+    private Integer idCupon;       // INT (puede ser null)
 
     // Constructor vacío
     public Venta() {
@@ -67,20 +72,20 @@ public class Venta {
         this.detalleVenta = detalleVenta;
     }
 
-    // ✅ Calcular total automáticamente sumando subtotales de detalleVenta
+    // Calcular total automáticamente sumando subtotales de detalleVenta
     public double calcularTotal() {
         return detalleVenta.stream()
                 .mapToDouble(DetalleVenta::getSubtotal)
                 .sum();
     }
 
-    // ✅ Formatear fecha bonita para mostrar
+    //Formatear fecha bonita para mostrar
     public String getFechaFormateada() {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         return fecha.format(formatter);
     }
 
-    // ✅ Agregar un detalle de venta
+    // Agregar un detalle de venta
     public void agregarDetalle(DetalleVenta detalle) {
         if (this.detalleVenta == null) {
             this.detalleVenta = new ArrayList<>();
@@ -88,7 +93,7 @@ public class Venta {
         this.detalleVenta.add(detalle);
     }
 
-    // ✅ CORREGIDO: toFileLine() - reemplazado cajeroId por idEmpleado
+    // CORREGIDO: toFileLine() - reemplazado cajeroId por idEmpleado
     public String toFileLine() {
         StringBuilder sb = new StringBuilder();
         sb.append(getFechaFormateada()).append(";")
@@ -222,5 +227,37 @@ public class Venta {
 
     public void setIdEmpleado(String idEmpleado) {
         this.idEmpleado = idEmpleado;
+    }
+
+    public String getIdCliente() {
+        return idCliente;
+    }
+
+    public void setIdCliente(String idCliente) {
+        this.idCliente = idCliente;
+    }
+
+    public int getIdMetodoPago() {
+        return idMetodoPago;
+    }
+
+    public void setIdMetodoPago(int idMetodoPago) {
+        this.idMetodoPago = idMetodoPago;
+    }
+
+    public int getIdCaja() {
+        return idCaja;
+    }
+
+    public void setIdCaja(int idCaja) {
+        this.idCaja = idCaja;
+    }
+
+    public Integer getIdCupon() {
+        return idCupon;
+    }
+
+    public void setIdCupon(Integer idCupon) {
+        this.idCupon = idCupon;
     }
 }

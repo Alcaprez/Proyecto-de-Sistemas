@@ -13,22 +13,23 @@ public class MovimientoInventario {
     private int stockNuevo;
     private String estado;
     private int idProducto;
+    private int idSucursal;
 
-    // Constructores
     public MovimientoInventario() {
     }
 
-    public MovimientoInventario(String tipo, int cantidad, int stockAnterior, int stockNuevo, String estado, int idProducto) {
+    public MovimientoInventario(String tipo, int cantidad, int stockAnterior,
+            int stockNuevo, String estado, int idProducto, int idSucursal) {
         this.tipo = tipo;
         this.cantidad = cantidad;
         this.stockAnterior = stockAnterior;
         this.stockNuevo = stockNuevo;
         this.estado = estado;
         this.idProducto = idProducto;
+        this.idSucursal = idSucursal; // ✅ INICIALIZAR
         this.fechaHora = LocalDateTime.now();
     }
 
-    // Getters y Setters
     public int getIdMovimientoInventario() {
         return idMovimientoInventario;
     }
@@ -91,5 +92,13 @@ public class MovimientoInventario {
 
     public void setIdProducto(int idProducto) {
         this.idProducto = idProducto;
+    }
+
+    public int getIdSucursal() {
+        return idSucursal;
+    }
+
+    public void setIdSucursal(int idSucursal) {
+        this.idSucursal = idSucursal;
     }
 }

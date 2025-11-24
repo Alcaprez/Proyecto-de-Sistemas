@@ -1,8 +1,6 @@
 package edu.UPAO.proyecto.Modelo;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
 
 public class Cupon {
 
@@ -11,32 +9,41 @@ public class Cupon {
     }
 
     private String codigo;
-    private TipoDescuento tipo;   // PERCENT = %, FLAT = monto fijo
-    private double valor;         // si PERCENT => 0..100 ; si FLAT => monto en moneda
-    private String skuAplicado;   // null o "" = aplica al carrito completo
-    private double minimoCompra;  // 0 si no hay mínimo
-    private LocalDate inicio;     // null = sin inicio
-    private LocalDate fin;        // null = sin fin
+    private TipoDescuento tipo;
+    private double valor;
+    private String descripcion;   // ✅ Antes skuAplicado, ahora Descripción
+    private double minimoCompra;
+    private LocalDate inicio;
+    private LocalDate fin;
     private boolean activo;
-    private int maxUsos;          // 0 = ilimitado
-    private int usos;             // contador (simple)
+    private int maxUsos;
+    private int usos;
 
     public Cupon() {
     }
 
-    public Cupon(String codigo, TipoDescuento tipo, double valor, String skuAplicado,
+    public Cupon(String codigo, TipoDescuento tipo, double valor, String descripcion,
             double minimoCompra, LocalDate inicio, LocalDate fin,
             boolean activo, int maxUsos, int usos) {
         this.codigo = codigo;
         this.tipo = tipo;
         this.valor = valor;
-        this.skuAplicado = (skuAplicado == null || skuAplicado.isBlank()) ? null : skuAplicado;
+        this.descripcion = descripcion;
         this.minimoCompra = minimoCompra;
         this.inicio = inicio;
         this.fin = fin;
         this.activo = activo;
         this.maxUsos = maxUsos;
         this.usos = usos;
+    }
+
+    // Lógica simplificada: Aplica a todo el carrito si cumple condiciones
+    public double calcularDescuento(double subtotal) {
+        if (tipo == TipoDescuento.PERCENT) {
+            return subtotal * (valor / 100.0);
+        } else {
+            return Math.min(valor, subtotal); // No descontar más del total
+        }
     }
 
     public boolean isVigente(LocalDate hoy) {
@@ -59,70 +66,7 @@ public class Cupon {
         return subtotal >= minimoCompra;
     }
 
-    // Necesita tu clase VentaItem real. Si no la tienes, avísame y te doy una mínima.
-    public double calcularDescuento(List<VentaItem> items, double subtotal) {
-        if (items == null || items.isEmpty()) {
-            return 0.0;
-        }
-        if (!cumpleMinimo(subtotal)) {
-            return 0.0;
-        }
-
-        double base = 0.0;
-        if (skuAplicado == null) {
-            base = subtotal;
-        } else {
-            for (VentaItem it : items) {
-                if (it.getNombre().equalsIgnoreCase(skuAplicado)) {
-                    base += it.getSubtotal();
-                }
-            }
-
-            if (base <= 0) {
-                return 0.0;
-            }
-        }
-
-        if (tipo == TipoDescuento.PERCENT) {
-            return base * (valor / 100.0);
-        } else {
-            return Math.min(valor, base);
-        }
-    }
-
-    public String toCsvLine() {
-        String sku = (skuAplicado == null ? "" : skuAplicado);
-        String inicioStr = (inicio == null ? "" : inicio.toString());
-        String finStr = (fin == null ? "" : fin.toString());
-        return String.join(",",
-                escape(codigo),
-                tipo.name(),
-                String.valueOf(valor),
-                escape(sku),
-                String.valueOf(minimoCompra),
-                inicioStr,
-                finStr,
-                String.valueOf(activo),
-                String.valueOf(maxUsos),
-                String.valueOf(usos)
-        );
-    }
-
-    public static String csvHeader() {
-        return "codigo,tipo,valor,sku_aplicado,minimo_compra,inicio,fin,activo,max_usos,usos";
-    }
-
-    private static String escape(String s) {
-        if (s == null) {
-            return "";
-        }
-        if (s.contains(",") || s.contains("\"")) {
-            return "\"" + s.replace("\"", "\"\"") + "\"";
-        }
-        return s;
-    }
-
-    // Getters/Setters
+    // Getters y Setters actualizados
     public String getCodigo() {
         return codigo;
     }
@@ -147,12 +91,12 @@ public class Cupon {
         this.valor = valor;
     }
 
-    public String getSkuAplicado() {
-        return skuAplicado;
-    }
+    public String getDescripcion() {
+        return descripcion;
+    } // ✅ Getter Descripción
 
-    public void setSkuAplicado(String skuAplicado) {
-        this.skuAplicado = skuAplicado;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
     public double getMinimoCompra() {

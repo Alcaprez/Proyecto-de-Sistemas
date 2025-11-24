@@ -2,6 +2,7 @@
 package edu.UPAO.proyecto.DAO;
 
 import BaseDatos.Conexion;
+import edu.UPAO.proyecto.Modelo.Sucursal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +14,28 @@ public class SucursalDAO {
     public SucursalDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("Error conectando SucursalDAO: " + e.getMessage());
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
+    }
+
+    public int obtenerIdPorNombre(String nombreSucursal) {
+        int id = -1; // Valor por defecto de error
+        String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
+
+        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, nombreSucursal);
+            java.sql.ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                id = rs.getInt("id_sucursal");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo ID de sucursal: " + e.getMessage());
+        }
+        return id;
     }
 
     public List<String> obtenerSucursalesActivas() {
@@ -76,5 +96,30 @@ public class SucursalDAO {
             e.printStackTrace();
         }
         return sucursales;
+    }
+
+    public List<Sucursal> listar() {
+        List<Sucursal> lista = new ArrayList<>();
+        // Usamos el nombre exacto de la columna en tu base de datos: nombre_sucursal
+        String sql = "SELECT id_sucursal, nombre_sucursal, direccion, estado FROM sucursal WHERE estado = 'ACTIVO'";
+
+        try (Connection con = new Conexion().establecerConexion(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Sucursal s = new Sucursal();
+                s.setId_sucursal(rs.getInt("id_sucursal"));
+
+                // Aquí mapeamos la columna 'nombre_sucursal' al atributo 'nombre' de tu clase
+                s.setNombre(rs.getString("nombre_sucursal"));
+
+                s.setDireccion(rs.getString("direccion"));
+                s.setEstado(rs.getString("estado"));
+
+                lista.add(s);
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error al listar sucursales: " + e.getMessage());
+        }
+        return lista;
     }
 }

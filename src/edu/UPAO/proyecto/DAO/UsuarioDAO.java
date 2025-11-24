@@ -18,8 +18,9 @@ public class UsuarioDAO {
     public UsuarioDAO() {
         try {
             this.conexion = new Conexion().establecerConexion();
+            System.out.println("Conectado");
         } catch (Exception e) {
-            System.err.println("Error conectando UsuarioDAO: " + e.getMessage());
+            System.err.println("Error conectando DAO: " + e.getMessage());
         }
     }
 
@@ -33,6 +34,33 @@ public class UsuarioDAO {
             System.err.println("❌ Error en conexión: " + e.getMessage());
         }
         return false;
+    }
+
+    public boolean validarContrasena(String idEmpleado, String contrasena) {
+        String sql = "SELECT id_usuario FROM usuario WHERE id_empleado = ? AND contraseña = ?";
+        try (java.sql.Connection con = conexion != null ? conexion : new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, idEmpleado);
+            ps.setString(2, contrasena);
+            return ps.executeQuery().next();
+
+        } catch (java.sql.SQLException e) {
+            return false;
+        }
+    }
+
+    public boolean cambiarContrasena(String idEmpleado, String nuevaContrasena) {
+        String sql = "UPDATE usuario SET contraseña = ? WHERE id_empleado = ?";
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, nuevaContrasena);
+            ps.setString(2, idEmpleado);
+            return ps.executeUpdate() > 0;
+
+        } catch (java.sql.SQLException e) {
+            System.err.println("Error cambiando contraseña: " + e.getMessage());
+            return false;
+        }
     }
 
     public Usuario autenticar(String idEmpleado, String contrasena) {
@@ -165,11 +193,6 @@ public class UsuarioDAO {
         }
     }
 
-    // ---------- API PRINCIPAL ----------
-    /**
-     * Lee usuarios desde data/empleados.csv. Si no existe, devuelve lista
-     * vacía.
-     */
     private String esc(String s) {
         if (s == null) {
             return "";
@@ -304,5 +327,54 @@ public class UsuarioDAO {
             System.err.println("Error verificando sucursal: " + e.getMessage());
         }
         return false;
+    }
+
+    public boolean registrar(Usuario u) {
+        // NOTA: Hemos cambiado la consulta para incluir 'id_usuario' explícitamente
+        String sql = "INSERT INTO usuario (id_usuario, id_empleado, contraseña, estado) VALUES (?, ?, ?, ?)";
+        
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            // 1. Convertimos el ID de empleado (String) a Entero para el ID de Usuario
+            // Esto garantiza la integridad 1 a 1.
+            try {
+                int idIdéntico = Integer.parseInt(u.getUsuario()); // u.getUsuario() devuelve el id_empleado en tu modelo
+                ps.setInt(1, idIdéntico);
+            } catch (NumberFormatException e) {
+                System.err.println("Error: El ID del empleado no es numérico, no se puede crear usuario.");
+                return false;
+            }
+
+            // 2. Insertamos el ID de empleado como String (Foreign Key)
+            ps.setString(2, u.getUsuario()); 
+            
+            // 3. Contraseña y Estado
+            ps.setString(3, u.getContrasena());
+            ps.setString(4, "ACTIVO");
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error al registrar usuario: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    public boolean actualizarContrasena(String idUsuario, String nuevaContrasena) {
+        String sql = "UPDATE usuario SET contrasena = ? WHERE id_usuario = ?";
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, nuevaContrasena);
+            ps.setString(2, idUsuario);
+
+            int filasAfectadas = ps.executeUpdate();
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error al actualizar contraseña: " + e.getMessage());
+            return false;
+        }
     }
 }

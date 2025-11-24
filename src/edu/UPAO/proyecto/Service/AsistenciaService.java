@@ -1,42 +1,96 @@
 package edu.UPAO.proyecto.Service;
 
 import edu.UPAO.proyecto.DAO.AsistenciaDAO;
+import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.Modelo.Asistencia;
-import edu.UPAO.proyecto.Modelo.Usuario;
+import edu.UPAO.proyecto.Modelo.RegistroAsistencia;
 
-import java.time.*;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Optional;
 
 public class AsistenciaService {
-    private final AsistenciaDAO dao = new AsistenciaDAO();
 
-    public void marcarEntrada(String usuario, LocalDate fecha, LocalTime hora) {
-        dao.marcarEntrada(fecha, usuario, hora);
+    private AsistenciaDAO asistenciaDAO;
+    private EmpleadoDAO empleadoDAO;
+
+    public AsistenciaService() {
+        this.asistenciaDAO = new AsistenciaDAO();
+        this.empleadoDAO = new EmpleadoDAO();
     }
 
-    public void marcarSalida(String usuario, LocalDate fecha, LocalTime hora) {
-        dao.marcarSalida(fecha, usuario, hora);
-    }
+    public RegistroAsistencia registrarEntrada(String idEmpleado, String nombreEmpleado) {
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime ahora = LocalDateTime.now();
 
-    public Map<String, Asistencia> mapaDelDia(LocalDate fecha) {
-        Map<String, Asistencia> m = new HashMap<>();
-        for (Asistencia a : dao.listarPorFecha(fecha)) {
-            m.put(a.getUsuario().toLowerCase(), a);
+        // Verificar si ya registró entrada hoy
+        Optional<Asistencia> asistenciaExistente = asistenciaDAO.obtener(hoy, idEmpleado);
+        if (asistenciaExistente.isPresent() && asistenciaExistente.get().getHoraEntrada() != null) {
+            throw new IllegalStateException("⚠️ Ya registró su entrada hoy");
         }
-        return m;
+
+        // Registrar en base de datos
+        asistenciaDAO.marcarEntrada(hoy, idEmpleado, ahora.toLocalTime());
+
+        // Obtener sucursal para el registro
+        int idSucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
+
+        // Crear registro para la interfaz
+        RegistroAsistencia registro = new RegistroAsistencia(
+                idEmpleado, nombreEmpleado, "ENTRADA", ahora, "REGISTRADO"
+        );
+
+        System.out.println("✅ Entrada registrada en BD para: " + idEmpleado + " - Sucursal: " + idSucursal);
+        return registro;
     }
 
-    public long tardanzaMin(Usuario u, Asistencia a) {
-        if (u.getHoraEntradaProg() == null || a == null || a.getHoraEntrada() == null) return 0;
-        long min = ChronoUnit.MINUTES.between(u.getHoraEntradaProg(), a.getHoraEntrada());
-        return Math.max(0, min);
+    public RegistroAsistencia registrarSalida(String idEmpleado, String nombreEmpleado) {
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime ahora = LocalDateTime.now();
+
+        // Verificar si existe registro de entrada
+        Optional<Asistencia> asistenciaExistente = asistenciaDAO.obtener(hoy, idEmpleado);
+        if (asistenciaExistente.isEmpty() || asistenciaExistente.get().getHoraEntrada() == null) {
+            throw new IllegalStateException("❌ Debe registrar entrada primero");
+        }
+
+        if (asistenciaExistente.get().getHoraSalida() != null) {
+            throw new IllegalStateException("⚠️ Ya registró su salida hoy");
+        }
+
+        // Registrar salida en base de datos
+        asistenciaDAO.marcarSalida(hoy, idEmpleado, ahora.toLocalTime());
+
+        RegistroAsistencia registro = new RegistroAsistencia(
+                idEmpleado, nombreEmpleado, "SALIDA", ahora, "REGISTRADO"
+        );
+
+        System.out.println("✅ Salida registrada en BD para: " + idEmpleado);
+        return registro;
     }
 
-    public String totalHoras(Asistencia a) {
-        if (a == null || a.getHoraEntrada() == null || a.getHoraSalida() == null) return "0 h 0 m";
-        long min = ChronoUnit.MINUTES.between(a.getHoraEntrada(), a.getHoraSalida());
-        if (min < 0) min = 0;
-        return (min / 60) + " h " + (min % 60) + " m";
+    public boolean yaRegistroEntrada(String idEmpleado) {
+        Optional<Asistencia> asistencia = asistenciaDAO.obtener(LocalDate.now(), idEmpleado);
+        return asistencia.isPresent() && asistencia.get().getHoraEntrada() != null;
+    }
+
+    public boolean yaRegistroSalida(String idEmpleado) {
+        Optional<Asistencia> asistencia = asistenciaDAO.obtener(LocalDate.now(), idEmpleado);
+        return asistencia.isPresent() && asistencia.get().getHoraSalida() != null;
+    }
+
+    public String obtenerEstadoActual(String idEmpleado) {
+        if (yaRegistroSalida(idEmpleado)) {
+            return "SALIDA_REGISTRADA";
+        } else if (yaRegistroEntrada(idEmpleado)) {
+            return "ENTRADA_REGISTRADA";
+        } else {
+            return "PENDIENTE_ENTRADA";
+        }
+    }
+
+    public Optional<Asistencia> obtenerAsistenciaHoy(String idEmpleado) {
+        return asistenciaDAO.obtener(LocalDate.now(), idEmpleado);
     }
 }

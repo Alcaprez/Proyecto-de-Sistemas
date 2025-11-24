@@ -6,6 +6,7 @@ import edu.UPAO.proyecto.LoginController;
 import edu.UPAO.proyecto.Modelo.Usuario;
 import java.util.List;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -17,6 +18,7 @@ public class LoginjFrame extends javax.swing.JFrame {
      * Creates new form Login
      */
     public LoginjFrame() {
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Lima"));
         initComponents();
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
@@ -229,28 +231,6 @@ public class LoginjFrame extends javax.swing.JFrame {
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
 
-    private String obtenerTipoUsuario(String usuario) {
-        if (!usuario.matches("\\d{8}")) {
-            return "INVÁLIDO";
-        }
-
-        int id = Integer.parseInt(usuario);
-        int prefix = id / 1000000;
-
-        switch (prefix) {
-            case 10:
-                return "GERENTE";
-            case 11:
-                return "ADMINISTRADOR";
-            case 12:
-                return "CAJERO";
-            case 13:
-                return "PROVEEDOR";
-            default:
-                return "CLIENTE";
-        }
-    }
-
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
@@ -262,15 +242,20 @@ public class LoginjFrame extends javax.swing.JFrame {
             switch (rol) {
                 case "GERENTE":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Abrir panel de gerente
-                    PrincipalGerente principalGerente = new PrincipalGerente();
+
+                    // ✅ CAMBIO AQUÍ: Pasamos los datos al constructor nuevo
+                    PrincipalGerente principalGerente = new PrincipalGerente(idEmpleado, nombreUsuario);
+
                     principalGerente.setVisible(true);
                     break;
 
                 case "ADMINISTRADOR":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-                    // Abrir panel de administrador
-                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador();
+
+                    // --- CAMBIO AQUÍ: Pasamos idEmpleado y nombreUsuario al constructor ---
+                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador(idEmpleado, nombreUsuario);
+                    // -----------------------------------------------------------------------
+
                     principalAdministrador.setLocationRelativeTo(null);
                     principalAdministrador.setVisible(true);
                     break;
@@ -363,6 +348,45 @@ public class LoginjFrame extends javax.swing.JFrame {
         Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
 
         if (usuarioAutenticado != null) {
+            String rol = usuarioAutenticado.getCargo().toUpperCase();
+
+            if (rol.equals("CAJERO")) {
+                // 1. Validación de Horario (Existente)
+                boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
+                if (!enTurno) {
+                    JOptionPane.showMessageDialog(this,
+                            "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.",
+                            "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                // 2. 👇 LÓGICA REAL PARA OBTENER EL ID DE LA SUCURSAL 👇
+                String nombreSucursal = cb_sucursales.getSelectedItem().toString();
+                int idSucursalReal = -1;
+
+                try {
+                    SucursalDAO sucursalDAO = new SucursalDAO();
+                    // Aquí llamamos al método que acabamos de crear en el Paso 1
+                    idSucursalReal = sucursalDAO.obtenerIdPorNombre(nombreSucursal);
+                } catch (Exception e) {
+                    System.err.println("Error buscando sucursal: " + e.getMessage());
+                }
+
+                // Validamos que se haya encontrado la sucursal
+                if (idSucursalReal == -1) {
+                    JOptionPane.showMessageDialog(this, "Error crítico: No se pudo identificar la sucursal seleccionada en la BD.");
+                    return;
+                }
+
+                System.out.println("🏢 Sucursal detectada: " + nombreSucursal + " (ID: " + idSucursalReal + ")");
+
+                // 3. 👇 ABRIR CAJA AUTOMÁTICAMENTE CON EL ID REAL 👇
+                gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
+
+                edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
+                asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
+                
+            }
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
             abrirPanelSegunRol(usuarioAutenticado);
@@ -405,14 +429,43 @@ public class LoginjFrame extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
+                java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Lima"));
                 new LoginjFrame().setVisible(true);
             }
         });
     }
 
-    /**
-     * @param args the command line arguments
-     */
+    private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
+        edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+
+        // 1. Verificar si YA tiene caja abierta
+        edu.UPAO.proyecto.Modelo.Caja cajaActual = cajaDAO.obtenerCajaAbiertaPorUsuario(idSucursal, idEmpleado);
+
+        if (cajaActual == null) {
+            System.out.println("🔄 No tienes caja abierta. Iniciando apertura automática para " + idEmpleado + "...");
+
+            // --- CAMBIO AQUÍ -----------------------------------------------------
+            // ANTES: double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
+            // AHORA: Usamos el saldo con el que TÚ cerraste la última vez
+            double saldoHistorico = cajaDAO.obtenerSaldoUltimoCierre(idSucursal, idEmpleado);
+            // ---------------------------------------------------------------------
+
+            // 3. Determinar turno
+            java.time.LocalTime hora = java.time.LocalTime.now();
+            String turno = (hora.getHour() < 14) ? "MAÑANA" : "TARDE";
+
+            // 4. Abrir la caja en BD asignándola a TI
+            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoHistorico, idEmpleado, turno);
+
+            if (exito) {
+                System.out.println("✅ CAJA CREADA. Saldo Inicial (Continuidad): S/ " + saldoHistorico);
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al abrir caja.", "Error BD", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + ").");
+        }
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;

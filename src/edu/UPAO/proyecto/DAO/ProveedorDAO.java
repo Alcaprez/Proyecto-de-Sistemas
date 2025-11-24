@@ -1,212 +1,182 @@
 package edu.UPAO.proyecto.DAO;
 
+import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Proveedor;
-import java.io.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 
-/**
- * DAO que gestiona proveedores persistiendo los datos en un archivo CSV.
- * Además, registra automáticamente los cambios en el HistorialProveedorDAO.
- */
 public class ProveedorDAO {
 
-    private static final String ARCHIVO_CSV = "C:\\Users\\Fabri\\Documents\\NetBeansProjects\\Proyecto-de-Sistemas\\proveedores.csv";
-    private static final List<Proveedor> proveedores = new ArrayList<>();
-    private static int contadorId = 1; // Generador de IDs únicos
-    // DAO auxiliar para historial
-    private final HistorialProveedorDAO historialDAO = new HistorialProveedorDAO();
-    // Constructor: carga los datos al iniciar
-    public ProveedorDAO() {
-        cargarDesdeCSV();
-        // Reinicia contadorId basado en el mayor ID existente
-        proveedores.stream()
-                .mapToInt(Proveedor::getIdProveedor)
-                .max()
-                .ifPresent(maxId -> contadorId = maxId + 1);
-    }
-
-    /** Agrega un nuevo proveedor y guarda en CSV
-     * @param proveedor */
-    public void agregar(Proveedor proveedor) {
-        if (buscarPorRuc(proveedor.getRuc()) != null) {
-            throw new IllegalArgumentException("Ya existe un proveedor con el RUC: " + proveedor.getRuc());
-        }
-        proveedor.setIdProveedor(contadorId++);
-        if (proveedor.getFechaRegistro() == null) {
-            proveedor.setFechaRegistro(LocalDate.now());
-        }
-        proveedores.add(proveedor);
-        guardarEnCSV();
-          historialDAO.registrarEvento(
-                proveedor.getIdProveedor(),
-                "REGISTRO",
-                "Proveedor agregado: " + proveedor.getNombre()
-        );
-    }
-
-    /** Lista todos los proveedores (copiado para evitar modificaciones directas)
-     * @return  */
-    public List<Proveedor> listar() {
-        return new ArrayList<>(proveedores);
-    }
-
-    public Proveedor buscarPorId(int id) {
-        return proveedores.stream()
-                .filter(p -> p.getIdProveedor() == id)
-                .findFirst()
-                .orElse(null);
-    }
-
-    public Proveedor buscarPorRuc(String ruc) {
-        return proveedores.stream()
-                .filter(p -> p.getRuc().equalsIgnoreCase(ruc))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /** Actualiza campos específicos del proveedor
-     * @param id
-     * @param nombre
-     * @param ruc
-     * @param telefono
-     * @param correo
-     * @param direccion
-     * @param contactoPrincipal
-     * @return  */
-    public boolean actualizarCampos(int id, String nombre, String ruc, String telefono, String correo,
-                                    String direccion, String contactoPrincipal) {
-        Proveedor proveedor = buscarPorId(id);
-        if (proveedor == null) {
-            return false;
-        }
-StringBuilder cambios = new StringBuilder();
-
-        if (nombre != null && !nombre.isBlank()) {
-            proveedor.setNombre(nombre);
-            cambios.append("Nombre, ");
-        }
-        if (ruc != null && !ruc.isBlank()) {
-            Proveedor existente = buscarPorRuc(ruc);
-            if (existente != null && existente.getIdProveedor() != id) {
-                throw new IllegalArgumentException("Ya existe otro proveedor con el RUC: " + ruc);
+    // Genera ID con formato correcto PROV000X
+    private String generarNuevoIdProveedor(Connection cn) throws SQLException {
+        String sql = "SELECT MAX(id_proveedor) AS max_id FROM proveedor";
+        try (PreparedStatement ps = cn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String maxId = rs.getString("max_id");
+                if (maxId != null && maxId.startsWith("PROV")) {
+                    try {
+                        String numeroStr = maxId.substring(4);
+                        int correlativo = Integer.parseInt(numeroStr);
+                        return String.format("PROV%04d", correlativo + 1);
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error al parsear ID: " + e.getMessage());
+                    }
+                }
             }
-            proveedor.setRuc(ruc);
-            cambios.append("RUC, ");
         }
-        if (telefono != null && !telefono.isBlank()) {
-            proveedor.setTelefono(telefono);
-            cambios.append("Teléfono, ");
-        }
-        if (correo != null && !correo.isBlank()) {
-            proveedor.setCorreo(correo);
-            cambios.append("Correo, ");
-        }
-        if (direccion != null && !direccion.isBlank()) {
-            proveedor.setDireccion(direccion);
-            cambios.append("Dirección, ");
-        }
-        if (contactoPrincipal != null && !contactoPrincipal.isBlank()) {
-            proveedor.setContactoPrincipal(contactoPrincipal);
-            cambios.append("Contacto principal, ");
-        }
-
-        guardarEnCSV();
-
-        // Registrar en historial
-        if (cambios.length() > 0) {
-            historialDAO.registrarEvento(
-                    id,
-                    "ACTUALIZACION",
-                    "Se actualizaron los campos: " + cambios.substring(0, cambios.length() - 2)
-            );
-        }
-
-        return true;
+        return "PROV0001";
     }
 
-    /** Cambia el estado activo/inactivo */
-    public void cambiarEstado(int id, boolean activo) {
-        Proveedor p = buscarPorId(id);
-        if (p != null) {
-            p.setActivo(activo);
-            guardarEnCSV();
+    public List<Proveedor> listar(String filtro) {
+        List<Proveedor> lista = new ArrayList<>();
+        // CORRECCIÓN AQUÍ: Seleccionamos pr.dni en vez de pe.dni para asegurar que siempre salga
+        String sql = "SELECT pr.id_proveedor, pr.Razon_Social, pr.ruc, pr.direccion, pr.estado, pr.id_sucursal, "
+                + "pr.dni AS dni_proveedor, "
+                + // <--- CLAVE: Tomar DNI de la tabla proveedor
+                "pe.nombres, pe.apellidos, pe.telefono "
+                + "FROM proveedor pr "
+                + "LEFT JOIN persona pe ON pr.dni = pe.dni "
+                + "WHERE pr.Razon_Social LIKE ? OR pr.ruc LIKE ? OR pr.dni LIKE ?"; // Filtramos también por pr.dni
 
-            // Registrar en historial
-            historialDAO.registrarEvento(
-                    id,
-                    activo ? "ACTIVACION" : "DESACTIVACION",
-                    "Proveedor " + (activo ? "activado" : "desactivado")
-            );
+        String parametroFiltro = "%" + (filtro == null ? "" : filtro.trim()) + "%";
+
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, parametroFiltro);
+            ps.setString(2, parametroFiltro);
+            ps.setString(3, parametroFiltro);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Proveedor p = new Proveedor();
+                    p.setIdProveedor(rs.getString("id_proveedor"));
+                    p.setRazonSocial(rs.getString("Razon_Social"));
+                    p.setRuc(rs.getString("ruc"));
+                    p.setDireccion(rs.getString("direccion"));
+                    p.setEstado(rs.getString("estado"));
+                    p.setIdSucursal(rs.getInt("id_sucursal"));
+
+                    // Ahora el DNI nunca será nulo porque viene de la tabla proveedor
+                    p.setDniAsociado(rs.getString("dni_proveedor"));
+
+                    // Estos datos sí pueden ser nulos si la persona no existe, controlamos con ""
+                    p.setNombresContacto(rs.getString("nombres") != null ? rs.getString("nombres") : "");
+                    p.setApellidosContacto(rs.getString("apellidos") != null ? rs.getString("apellidos") : "");
+
+                    // Preferencia: Si hay teléfono en persona úsalo, si no, vacío
+                    p.setTelefonoContacto(rs.getString("telefono") != null ? rs.getString("telefono") : "");
+
+                    lista.add(p);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error SQL listar: " + e.getMessage());
+            e.printStackTrace();
         }
+        return lista;
     }
 
-    // ==============================
-    //  MÉTODOS PRIVADOS DE ARCHIVO
-    // ==============================
+    public boolean guardar(Proveedor p) {
+        // Aseguramos que la persona exista o se actualice
+        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, estado) "
+                + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') "
+                + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
 
-    /** Carga los proveedores desde el archivo CSV */
-    private void cargarDesdeCSV() {
-        proveedores.clear();
-        File archivo = new File(ARCHIVO_CSV);
-        if (!archivo.exists()) {
-            System.out.println("Archivo CSV no encontrado, se creará uno nuevo.");
-            return;
-        }
+        String sqlProveedor = "INSERT INTO proveedor (id_proveedor, Razon_Social, dni, ruc, direccion, id_sucursal, estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (BufferedReader br = new BufferedReader(new FileReader(archivo))) {
-            String linea;
-            br.readLine(); // saltar encabezado
-            while ((linea = br.readLine()) != null) {
-                if (linea.trim().isEmpty()) continue;
-                String[] c = linea.split(",", -1); // -1 conserva campos vacíos
-                if (c.length < 9) continue;
-
-                int id = Integer.parseInt(c[0].trim());
-                String nombre = c[1].trim();
-                String ruc = c[2].trim();
-                String direccion = c[3].trim();
-                String telefono = c[4].trim();
-                String correo = c[5].trim();
-                String contacto = c[6].trim();
-                boolean activo = Boolean.parseBoolean(c[7].trim());
-                String fechaStr = c[8].trim();
-
-                LocalDate fechaRegistro;
-                if (fechaStr.contains("T")) {
-                    fechaRegistro = LocalDateTime.parse(fechaStr).toLocalDate();
-                } else {
-                    fechaRegistro = LocalDate.parse(fechaStr);
+        try (Connection cn = new Conexion().establecerConexion()) {
+            cn.setAutoCommit(false);
+            try {
+                // a) Insertar Persona
+                try (PreparedStatement psPe = cn.prepareStatement(sqlPersona)) {
+                    psPe.setString(1, p.getDniAsociado());
+                    psPe.setString(2, p.getRazonSocial());
+                    psPe.setString(3, p.getTelefonoContacto());
+                    psPe.executeUpdate();
                 }
 
-                proveedores.add(new Proveedor(id, nombre, ruc, telefono, correo, direccion, contacto, fechaRegistro, activo));
+                // b) Insertar Proveedor
+                String nuevoId = generarNuevoIdProveedor(cn);
+                try (PreparedStatement psPr = cn.prepareStatement(sqlProveedor)) {
+                    psPr.setString(1, nuevoId);
+                    psPr.setString(2, p.getRazonSocial());
+                    psPr.setString(3, p.getDniAsociado());
+                    psPr.setString(4, p.getRuc());
+                    psPr.setString(5, p.getDireccion());
+                    psPr.setInt(6, p.getIdSucursal());
+                    psPr.setString(7, p.getEstado());
+                    psPr.executeUpdate();
+                }
+
+                cn.commit();
+                return true;
+            } catch (SQLException ex) {
+                cn.rollback();
+                ex.printStackTrace();
+                return false;
             }
-        } catch (IOException e) {
-            System.err.println("Error al leer CSV: " + e.getMessage());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 
-    /** Guarda la lista actual de proveedores en el CSV */
-    private void guardarEnCSV() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(ARCHIVO_CSV))) {
-            bw.write("idProveedor,nombre,ruc,direccion,telefono,correo,contactoPrincipal,activo,fechaRegistro\n");
-            for (Proveedor p : proveedores) {
-                bw.write(String.format("%d,%s,%s,%s,%s,%s,%s,%s,%s\n",
-                        p.getIdProveedor(),
-                        p.getNombre(),
-                        p.getRuc(),
-                        p.getDireccion(),
-                        p.getTelefono(),
-                        p.getCorreo(),
-                        p.getContactoPrincipal(),
-                        p.isActivo(),
-                        p.getFechaRegistro().toString()
-                ));
+    public boolean actualizar(Proveedor p) {
+        // CAMBIO CRÍTICO: Usamos INSERT... ON DUPLICATE KEY en vez de UPDATE simple.
+        // Esto arregla el problema de que no se guarde el teléfono si la persona no existía antes.
+        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, estado) "
+                + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') "
+                + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
+
+        String sqlProveedor = "UPDATE proveedor SET Razon_Social=?, ruc=?, direccion=?, estado=? WHERE id_proveedor=?";
+
+        try (Connection cn = new Conexion().establecerConexion()) {
+            cn.setAutoCommit(false); // Iniciar transacción
+            try {
+                // a) Insertar o Actualizar Persona (Aseguramos que el contacto exista)
+                try (PreparedStatement psPe = cn.prepareStatement(sqlPersona)) {
+                    psPe.setString(1, p.getDniAsociado());
+                    // Usamos la Razón Social como nombre temporal si se crea un contacto nuevo
+                    psPe.setString(2, p.getRazonSocial());
+                    psPe.setString(3, p.getTelefonoContacto());
+                    psPe.executeUpdate();
+                }
+
+                // b) Actualizar datos del Proveedor
+                try (PreparedStatement psPr = cn.prepareStatement(sqlProveedor)) {
+                    psPr.setString(1, p.getRazonSocial());
+                    psPr.setString(2, p.getRuc());
+                    psPr.setString(3, p.getDireccion());
+                    psPr.setString(4, p.getEstado());
+                    psPr.setString(5, p.getIdProveedor());
+                    psPr.executeUpdate();
+                }
+
+                cn.commit(); // Confirmar cambios
+                return true;
+            } catch (SQLException ex) {
+                cn.rollback(); // Deshacer si falla
+                System.err.println("Error SQL al actualizar: " + ex.getMessage());
+                return false;
             }
-        } catch (IOException e) {
-            System.err.println("Error al guardar CSV: " + e.getMessage());
+        } catch (SQLException e) {
+            System.err.println("Error de conexión: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean existeRuc(String ruc) {
+        String sql = "SELECT 1 FROM proveedor WHERE ruc = ?";
+        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
+            ps.setString(1, ruc);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            return false;
         }
     }
 }

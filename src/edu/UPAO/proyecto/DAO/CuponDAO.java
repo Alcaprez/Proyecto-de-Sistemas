@@ -1,112 +1,169 @@
 package edu.UPAO.proyecto.DAO;
 
+import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Cupon;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class CuponDAO {
-    // Se crea en la RAÍZ del proyecto (al lado de build.gradle/pom, no en src)
-    private static final String RUTA = "data/cupones.csv";
 
-    public static List<Cupon> listar() {
-        File f = new File(RUTA);
-        if (!f.exists()) return new ArrayList<>();
-        List<Cupon> out = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(f), StandardCharsets.UTF_8))) {
-            String header = br.readLine(); // skip
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.isBlank()) continue;
-                out.add(parse(line));
-            }
+    private Connection getConexion() {
+        try {
+            return new Conexion().establecerConexion();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("❌ Error conectando CuponDAO: " + e.getMessage());
+            return null;
         }
-        return out;
     }
 
-    public static void guardarTodos(List<Cupon> cupones) {
-        File f = new File(RUTA);
-        f.getParentFile().mkdirs();
-        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(f, false), StandardCharsets.UTF_8))) {
-            bw.write(Cupon.csvHeader());
-            bw.newLine();
-            for (Cupon c : cupones) {
-                bw.write(c.toCsvLine());
-                bw.newLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+    public static List<Cupon> listar() {
+        List<Cupon> lista = new ArrayList<>();
+        String sql = "SELECT * FROM cupon";
+        CuponDAO dao = new CuponDAO();
+        
+        try (Connection con = dao.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) lista.add(mapearCupon(rs));
+        } catch (SQLException e) {
+            System.err.println("❌ Error listando cupones: " + e.getMessage());
         }
+        return lista;
     }
 
     public static void upsert(Cupon cupon) {
-        List<Cupon> all = listar();
-        int idx = -1;
-        for (int i = 0; i < all.size(); i++) {
-            if (all.get(i).getCodigo().equalsIgnoreCase(cupon.getCodigo())) {
-                idx = i; break;
-            }
+        if (buscarPorCodigo(cupon.getCodigo()).isPresent()) {
+            actualizar(cupon);
+        } else {
+            insertar(cupon);
         }
-        if (idx >= 0) all.set(idx, cupon); else all.add(cupon);
-        guardarTodos(all);
     }
+    
+    
 
     public static Optional<Cupon> buscarPorCodigo(String codigo) {
-        return listar().stream().filter(c -> c.getCodigo().equalsIgnoreCase(codigo)).findFirst();
+        String sql = "SELECT * FROM cupon WHERE codigo = ?";
+        CuponDAO dao = new CuponDAO();
+        try (Connection con = dao.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, codigo);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(mapearCupon(rs));
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Error buscando: " + e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    // ✅ INSERTAR (Usando 'descripcion' correctamente)
+    private static void insertar(Cupon c) {
+        String sql = "INSERT INTO cupon (codigo, tipo, valor, descripcion, min_compra, " +
+                     "fecha_inicio, fecha_fin, estado, max_usos, usos_actuales) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        CuponDAO dao = new CuponDAO();
+        
+        try (Connection con = dao.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, c.getCodigo());
+            ps.setString(2, c.getTipo() == Cupon.TipoDescuento.PERCENT ? "PORCENTAJE" : "MONTO_FIJO");
+            ps.setDouble(3, c.getValor());
+            ps.setString(4, c.getDescripcion()); // ✅ Ahora guarda en descripcion
+            ps.setDouble(5, c.getMinimoCompra());
+            ps.setDate(6, c.getInicio() != null ? java.sql.Date.valueOf(c.getInicio()) : null);
+            ps.setDate(7, c.getFin() != null ? java.sql.Date.valueOf(c.getFin()) : null);
+            ps.setString(8, c.isActivo() ? "ACTIVO" : "INACTIVO");
+            ps.setInt(9, c.getMaxUsos());
+            ps.setInt(10, c.getUsos());
+
+            ps.executeUpdate();
+            System.out.println("✅ Cupón insertado: " + c.getCodigo());
+
+        } catch (SQLException e) {
+            System.err.println("❌ Error insertando cupón: " + e.getMessage());
+        }
+    }
+
+    private static void actualizar(Cupon c) {
+        String sql = "UPDATE cupon SET tipo=?, valor=?, descripcion=?, min_compra=?, " +
+                     "fecha_inicio=?, fecha_fin=?, estado=?, max_usos=?, usos_actuales=? " +
+                     "WHERE codigo=?";
+        CuponDAO dao = new CuponDAO();
+        
+        try (Connection con = dao.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+             
+            ps.setString(1, c.getTipo() == Cupon.TipoDescuento.PERCENT ? "PORCENTAJE" : "MONTO_FIJO");
+            ps.setDouble(2, c.getValor());
+            ps.setString(3, c.getDescripcion()); // ✅ Actualiza descripcion
+            ps.setDouble(4, c.getMinimoCompra());
+            ps.setDate(5, c.getInicio() != null ? java.sql.Date.valueOf(c.getInicio()) : null);
+            ps.setDate(6, c.getFin() != null ? java.sql.Date.valueOf(c.getFin()) : null);
+            ps.setString(7, c.isActivo() ? "ACTIVO" : "INACTIVO");
+            ps.setInt(8, c.getMaxUsos());
+            ps.setInt(9, c.getUsos());
+            ps.setString(10, c.getCodigo());
+
+            ps.executeUpdate();
+            System.out.println("✅ Cupón actualizado: " + c.getCodigo());
+
+        } catch (SQLException e) {
+            System.err.println("❌ Error actualizando: " + e.getMessage());
+        }
     }
 
     public static void eliminar(String codigo) {
-        List<Cupon> all = listar().stream()
-            .filter(c -> !c.getCodigo().equalsIgnoreCase(codigo))
-            .collect(Collectors.toList());
-        guardarTodos(all);
-    }
-
-    private static Cupon parse(String line) {
-        // codigo,tipo,valor,sku_aplicado,minimo_compra,inicio,fin,activo,max_usos,usos
-        List<String> t = splitCsv(line);
-        String codigo = t.get(0);
-        Cupon.TipoDescuento tipo = Cupon.TipoDescuento.valueOf(t.get(1));
-        double valor = Double.parseDouble(t.get(2));
-        String sku = t.get(3).isBlank() ? null : t.get(3);
-        double minimo = Double.parseDouble(t.get(4));
-        LocalDate inicio = t.get(5).isBlank() ? null : LocalDate.parse(t.get(5));
-        LocalDate fin = t.get(6).isBlank() ? null : LocalDate.parse(t.get(6));
-        boolean activo = Boolean.parseBoolean(t.get(7));
-        int maxUsos = Integer.parseInt(t.get(8));
-        int usos = Integer.parseInt(t.get(9));
-        return new Cupon(codigo, tipo, valor, sku, minimo, inicio, fin, activo, maxUsos, usos);
-    }
-
-    private static List<String> splitCsv(String line) {
-        List<String> out = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        boolean inQuotes = false;
-        for (int i = 0; i < line.length(); i++) {
-            char ch = line.charAt(i);
-            if (inQuotes) {
-                if (ch == '"') {
-                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
-                        sb.append('"'); i++;
-                    } else {
-                        inQuotes = false;
-                    }
-                } else sb.append(ch);
-            } else {
-                if (ch == ',') {
-                    out.add(sb.toString()); sb.setLength(0);
-                } else if (ch == '"') {
-                    inQuotes = true;
-                } else sb.append(ch);
-            }
+        String sql = "DELETE FROM cupon WHERE codigo = ?";
+        CuponDAO dao = new CuponDAO();
+        try (Connection con = dao.getConexion();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, codigo);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error eliminando: " + e.getMessage());
         }
-        out.add(sb.toString());
-        return out;
+    }
+
+    private static Cupon mapearCupon(ResultSet rs) throws SQLException {
+        String codigo = rs.getString("codigo");
+        String tipoStr = rs.getString("tipo");
+        Cupon.TipoDescuento tipo = "PORCENTAJE".equalsIgnoreCase(tipoStr) ? 
+                Cupon.TipoDescuento.PERCENT : Cupon.TipoDescuento.FLAT;
+        
+        double valor = rs.getDouble("valor");
+        String desc = rs.getString("descripcion"); // ✅ Lee de descripcion
+        double min = rs.getDouble("min_compra");
+        
+        java.sql.Date ini = rs.getDate("fecha_inicio");
+        java.sql.Date fin = rs.getDate("fecha_fin");
+        boolean activo = "ACTIVO".equalsIgnoreCase(rs.getString("estado"));
+        int max = rs.getInt("max_usos");
+        int usos = rs.getInt("usos_actuales");
+
+        return new Cupon(codigo, tipo, valor, desc, min,
+            ini != null ? ini.toLocalDate() : null,
+            fin != null ? fin.toLocalDate() : null,
+            activo, max, usos);
+    }
+    
+    
+public static boolean incrementarUso(int idCupon) {
+        // Asegúrate de que tu tabla en la BD se llame 'id_cupon' o como la tengas definida
+        String sql = "UPDATE cupon SET usos = usos + 1 WHERE id_cupon = ?";
+        
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, idCupon);
+            int filas = ps.executeUpdate();
+            return filas > 0;
+            
+        } catch (Exception e) {
+            System.err.println("Error incrementando uso de cupón: " + e.getMessage());
+            return false;
+        }
     }
 }

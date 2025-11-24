@@ -1,60 +1,149 @@
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.ProductoDAO;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+
 import java.util.List;
 import java.util.Random;
-import javax.swing.JFrame;
-import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 import javax.swing.table.DefaultTableModel;
-import edu.UPAO.proyecto.ProductoController;
-import edu.UPAO.proyecto.PromocionController;
 import edu.UPAO.proyecto.Modelo.Producto;
-import java.io.File;
 import java.util.ArrayList;
+import javax.swing.JFrame;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import edu.UPAO.proyecto.Modelo.VentaItem;
-import edu.UPAO.proyecto.app.panel_Rproductos;
 
 public class Menu2 extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Menu2.class.getName());
     private String idEmpleado;
+    private int idSucursal;
 
-    /**
-     * Creates new form Menu2
-     */
+    private int idCaja;
+
     public Menu2(String idEmpleado) {
         initComponents();
-        btn_validar.addActionListener(e -> onValidarCupon());
+        //btn_validar.addActionListener(e -> onValidarCupon());
         this.idEmpleado = idEmpleado;
-        System.out.println("✅ Menu2 - Empleado en sesión: " + this.idEmpleado);
+        this.idSucursal = obtenerSucursalEmpleado(idEmpleado);
+        this.idCaja = idCaja;
+        System.out.println("Cajero - Empleado: " + this.idEmpleado + ", Sucursal: " + this.idSucursal);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setTitle("Sistema Kuyay - Menú Principal");
-        inicializarTablaProductos(); // ✅ Esto asegura el orden correcto
+
+        inicializarComponentes();
+        verificarStockCajero(idEmpleado);
+    }
+
+    private int obtenerIdCajaAbierta() {
+        int idCaja = -1;
+        String sql = "SELECT id_caja FROM caja WHERE id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
+
+        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
+
+            ps.setString(1, this.idEmpleado); // Usamos el ID del empleado logueado
+            java.sql.ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                idCaja = rs.getInt("id_caja");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al buscar caja abierta: " + e.getMessage());
+        }
+        return idCaja;
+    }
+
+    private void verificarStockCajero(String idEmpleado) {
+        // Usar un hilo secundario para no congelar la ventana mientras carga
+        new Thread(() -> {
+            try {
+                // 1. Obtener la sucursal del empleado
+                edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+                int idSucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
+
+                // 2. Buscar alertas para ESA sucursal
+                edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
+                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
+
+                // 3. Mostrar si hay alertas
+                if (!alertas.isEmpty()) {
+                    StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK BAJO ⚠️\n\n");
+                    // Mostrar solo los primeros 10 para no saturar la pantalla
+                    int limite = Math.min(alertas.size(), 10);
+                    for (int i = 0; i < limite; i++) {
+                        mensaje.append(alertas.get(i)).append("\n\n");
+                    }
+
+                    if (alertas.size() > 10) {
+                        mensaje.append("... y ").append(alertas.size() - 10).append(" productos más.");
+                    }
+
+                    mensaje.append("\nPor favor, notifique al administrador.");
+
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                mensaje.toString(),
+                                "Stock Crítico en Sucursal",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Error verificando stock cajero: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    public void finalizarVenta() {
+        // 1. Limpiar campos de texto
+        txtBuscarCodigo.setText("");
+        txtCupon.setText("");
+        txtObservaciones.setText("");
+
+        // 2. Reiniciar etiquetas y spinners
+        lbl_subtotal.setText("Subtotal: S/ 0.00");
+        lbl_descuento.setText("Descuento: S/ 0.00");
+        resultadoTotal.setText("S/ 0.00");
+        spCantidad.setValue(1);
+
+        // 3. Vaciar la tabla del carrito
+        javax.swing.table.DefaultTableModel modeloCarrito = (javax.swing.table.DefaultTableModel) miniTabla.getModel();
+        modeloCarrito.setRowCount(0);
+
+        // 4. Desactivar controles opcionales
+        rb_cupon.setSelected(false);
+        txtCupon.setEnabled(false);
+        rb_observacion.setSelected(false);
+        txtObservaciones.setEnabled(false);
+
+        // 5. 🔥 RECARGAR EL STOCK DE LA TABLA DE PRODUCTOS (Actualizar vista)
         cargarProductosEnTabla();
+
+        System.out.println("🔄 Venta finalizada: Interfaz limpia y stock actualizado.");
+    }
+
+    private void inicializarComponentes() {
+        inicializarTablaProductos();
         txtObservaciones.setEnabled(false);
         txtCupon.setEnabled(false);
 
-        spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
-
-        SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1);
-        sp_item.setModel(spinnerModel);
-
-        btn_validar.addActionListener(e -> onValidarCupon());
-
+        // Configurar spinners
         spCantidad.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
         sp_item.setModel(new SpinnerNumberModel(1, 1, Integer.MAX_VALUE, 1));
 
-        ///////////////////////ACA SOLO PARA LA RUEDITA/////////////////////////
+        // Listeners
+        configurarListeners();
+
+        // Cargar productos iniciales
+        cargarProductosEnTabla();
+    }
+
+    private void configurarListeners() {
+        // Mouse wheel para spinners
         sp_item.addMouseWheelListener(e -> {
             int rot = e.getWheelRotation();
             int val = (int) sp_item.getValue();
@@ -67,75 +156,51 @@ public class Menu2 extends javax.swing.JFrame {
 
         tablaProductos.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                spCantidad.setValue(1); // 👈 Reinicia cantidad
+                spCantidad.setValue(1);
             }
         });
 
-        // Al inicializar tu formulario
+        // ✅ CORREGIDO: MouseWheelListener para cantidad
         spCantidad.addMouseWheelListener(e -> {
-            int notches = e.getWheelRotation(); // movimiento de la rueda
+            int notches = e.getWheelRotation();
             int valorActual = (int) spCantidad.getValue();
 
-            // ✅ Recuperar la fila seleccionada en la tabla de productos
             int fila = tablaProductos.getSelectedRow();
             if (fila == -1) {
-                return; // no hay producto seleccionado
+                return;
             }
-            DefaultTableModel modeloProductos = new DefaultTableModel(
-                    new Object[]{"Código", "Nombre", "Precio", "Stock"}, 0
-            ) {
-                @Override
-                public boolean isCellEditable(int row, int column) {
-                    return false; // Hacer la tabla no editable
-                }
-            };
-            tablaProductos.setModel(modeloProductos);
 
-            // Asegurar que las columnas tengan el ancho adecuado
-            tablaProductos.getColumnModel().getColumn(0).setPreferredWidth(80);  // Código
-            tablaProductos.getColumnModel().getColumn(1).setPreferredWidth(200); // Nombre
-            tablaProductos.getColumnModel().getColumn(2).setPreferredWidth(60);  // Precio
-            tablaProductos.getColumnModel().getColumn(3).setPreferredWidth(50);  // Stock
-            String codigo = modeloProductos.getValueAt(fila, 0).toString();
-
+            String codigo = tablaProductos.getValueAt(fila, 0).toString();
             ProductoDAO productoDAO = new ProductoDAO();
-            Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+            // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+            Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
+
             if (producto == null) {
+                productoDAO.cerrarConexion();
                 return;
             }
 
             int stock = producto.getStock();
             int nuevoValor = valorActual;
 
-            if (notches < 0) {
-                // Rueda hacia arriba → aumentar
-                if (valorActual < stock) {
-                    nuevoValor++;
-                }
-            } else {
-                // Rueda hacia abajo → disminuir
-                if (valorActual > 1) {
-                    nuevoValor--;
-                }
+            if (notches < 0 && valorActual < stock) {
+                nuevoValor++;
+            } else if (notches > 0 && valorActual > 1) {
+                nuevoValor--;
             }
 
             spCantidad.setValue(nuevoValor);
+            productoDAO.cerrarConexion();
         });
 
-        // 🔄 Resetear spinner al seleccionar otro ítem en miniTabla
         miniTabla.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && miniTabla.getSelectedRow() != -1) {
-                sp_item.setValue(1); // tu spinner de actualizar carrito
+                sp_item.setValue(1);
             }
         });
-        ///////////////////////ACA SOLO PARA LA RUEDITA/////////////////////////
 
-        //////////OCULATMOS LA COLUMNA DE "CODIGO DE LA MINITABLA"//////////////
-        miniTabla.getColumnModel().getColumn(4).setMinWidth(0);
-        miniTabla.getColumnModel().getColumn(4).setMaxWidth(0);
-        miniTabla.getColumnModel().getColumn(4).setWidth(0);
-        //////////OCULATMOS LA COLUMNA DE "CODIGO DE LA MINITABLA"//////////////
-
+        // ✅ CORREGIDO: DocumentListener para búsqueda
         txtBuscarCodigo.getDocument().addDocumentListener(new DocumentListener() {
             private void filtrar() {
                 String texto = txtBuscarCodigo.getText();
@@ -169,7 +234,23 @@ public class Menu2 extends javax.swing.JFrame {
                 filtrar();
             }
         });
-        btn_inicio.doClick();
+
+        // Ocultar columna código en miniTabla
+        miniTabla.getColumnModel().getColumn(4).setMinWidth(0);
+        miniTabla.getColumnModel().getColumn(4).setMaxWidth(0);
+        miniTabla.getColumnModel().getColumn(4).setWidth(0);
+    }
+
+    private int obtenerSucursalEmpleado(String idEmpleado) {
+        try {
+            EmpleadoDAO empleadoDAO = new EmpleadoDAO();
+            int sucursal = empleadoDAO.obtenerSucursalEmpleado(idEmpleado);
+            empleadoDAO.cerrarConexion();
+            return sucursal;
+        } catch (Exception e) {
+            System.err.println("❌ Error obteniendo sucursal: " + e.getMessage());
+            return 1; // Por defecto
+        }
     }
 
     public String getIdEmpleado() {
@@ -179,41 +260,26 @@ public class Menu2 extends javax.swing.JFrame {
     public void cargarProductosEnTabla() {
         try {
             ProductoDAO dao = new ProductoDAO();
-            List<Producto> productos = dao.listar();
-
-            System.out.println("🔍 DEBUG: Se encontraron " + productos.size() + " productos");
+            List<Producto> productos = dao.listarPorSucursal(this.idSucursal);
 
             DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
             modelo.setRowCount(0);
 
-            if (productos.isEmpty()) {
-                System.out.println("⚠️ ADVERTENCIA: No se encontraron productos en la BD");
-                JOptionPane.showMessageDialog(this,
-                        "No se encontraron productos en la base de datos.\nVerifica que haya productos cargados.",
-                        "Sin productos",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
             for (Producto p : productos) {
-                System.out.println("📦 Producto: " + p.getCodigo() + " - " + p.getNombre() + " - S/" + p.getPrecioVenta());
                 modelo.addRow(new Object[]{
-                    p.getCodigo(), // Columna 0: Código
-                    p.getNombre(), // Columna 1: Nombre  
-                    p.getPrecioVenta(), // Columna 2: Precio
-                    p.getStock() // Columna 3: Stock
+                    p.getCodigo(),
+                    p.getNombre(),
+                    p.getPrecioVenta(),
+                    p.getStock()
                 });
             }
 
-            System.out.println("✅ Tabla actualizada con " + modelo.getRowCount() + " productos");
+            dao.cerrarConexion();
+            System.out.println("Productos cargados para sucursal: " + this.idSucursal);
 
         } catch (Exception e) {
-            System.err.println("❌ ERROR en cargarProductosEnTabla: " + e.getMessage());
+            System.err.println("ERROR en cargarProductosEnTabla: " + e.getMessage());
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Error al cargar productos: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -223,7 +289,6 @@ public class Menu2 extends javax.swing.JFrame {
         );
         tablaProductos.setModel(modelo);
     }
-// ====== MÉTODO REUTILIZABLE ======
 
     private void onValidarCupon() {
         try {
@@ -308,13 +373,12 @@ public class Menu2 extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         lblFrase = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
-        tb_reportes = new javax.swing.JToggleButton();
         tb_entrada = new javax.swing.JToggleButton();
-        jButton1 = new javax.swing.JButton();
+        btn_devolver = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
         btn_ventas = new javax.swing.JButton();
-        btn_inicio = new javax.swing.JButton();
-        panel_contenido = new javax.swing.JInternalFrame();
+        btn_cuenta = new javax.swing.JButton();
+        btn_compras = new javax.swing.JButton();
         panelFormulario = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
         btn_agregar = new javax.swing.JButton();
@@ -403,15 +467,6 @@ public class Menu2 extends javax.swing.JFrame {
 
         jPanel2.setBackground(new java.awt.Color(179, 9, 1));
 
-        tb_reportes.setBackground(new java.awt.Color(118, 158, 139));
-        tb_reportes.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
-        tb_reportes.setText("REPORTES");
-        tb_reportes.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tb_reportesActionPerformed(evt);
-            }
-        });
-
         tb_entrada.setBackground(new java.awt.Color(118, 158, 139));
         tb_entrada.setFont(new java.awt.Font("Dialog", 1, 14)); // NOI18N
         tb_entrada.setText("R. ENT / SAL");
@@ -421,46 +476,54 @@ public class Menu2 extends javax.swing.JFrame {
             }
         });
 
-        jButton1.setBackground(new java.awt.Color(113, 153, 143));
-        jButton1.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
-        jButton1.setText("R- PRODUCTOS");
-        jButton1.addComponentListener(new java.awt.event.ComponentAdapter() {
+        btn_devolver.setBackground(new java.awt.Color(113, 153, 143));
+        btn_devolver.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_devolver.setText("HACER DEVOLUCION");
+        btn_devolver.setPreferredSize(new java.awt.Dimension(129, 30));
+        btn_devolver.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentMoved(java.awt.event.ComponentEvent evt) {
-                jButton1ComponentMoved(evt);
+                btn_devolverComponentMoved(evt);
             }
         });
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
+        btn_devolver.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
+                btn_devolverActionPerformed(evt);
             }
         });
 
+        btn_ventas.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         btn_ventas.setText("VENTAS");
+        btn_ventas.setPreferredSize(new java.awt.Dimension(58, 30));
         btn_ventas.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_ventasActionPerformed(evt);
             }
         });
 
-        btn_inicio.setText("iNICIO");
-        btn_inicio.addActionListener(new java.awt.event.ActionListener() {
+        btn_cuenta.setBackground(new java.awt.Color(186, 224, 186));
+        btn_cuenta.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_cuenta.setText("MI CUENTA");
+        btn_cuenta.setPreferredSize(new java.awt.Dimension(76, 30));
+        btn_cuenta.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_inicioActionPerformed(evt);
+                btn_cuentaActionPerformed(evt);
             }
         });
 
-        panel_contenido.setVisible(true);
-
-        javax.swing.GroupLayout panel_contenidoLayout = new javax.swing.GroupLayout(panel_contenido.getContentPane());
-        panel_contenido.getContentPane().setLayout(panel_contenidoLayout);
-        panel_contenidoLayout.setHorizontalGroup(
-            panel_contenidoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        panel_contenidoLayout.setVerticalGroup(
-            panel_contenidoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        btn_compras.setBackground(new java.awt.Color(113, 153, 143));
+        btn_compras.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
+        btn_compras.setText("COMPRAS");
+        btn_compras.setPreferredSize(new java.awt.Dimension(129, 30));
+        btn_compras.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentMoved(java.awt.event.ComponentEvent evt) {
+                btn_comprasComponentMoved(evt);
+            }
+        });
+        btn_compras.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_comprasActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -471,34 +534,28 @@ public class Menu2 extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 426, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(btn_inicio, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(tb_reportes, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(btn_cuenta, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(tb_entrada, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(26, 26, 26)
+                        .addGap(18, 18, 18)
                         .addComponent(btn_ventas, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(647, Short.MAX_VALUE))
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(panel_contenido)
-                .addGap(17, 17, 17))
+                        .addComponent(btn_devolver, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btn_compras, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(646, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tb_reportes, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
                     .addComponent(tb_entrada, javax.swing.GroupLayout.DEFAULT_SIZE, 30, Short.MAX_VALUE)
-                    .addComponent(btn_inicio, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_cuenta, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(btn_ventas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(panel_contenido, javax.swing.GroupLayout.PREFERRED_SIZE, 2, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(107, 107, 107)
+                    .addComponent(btn_devolver, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_compras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(115, 115, 115)
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(685, 685, 685))
         );
@@ -525,7 +582,7 @@ public class Menu2 extends javax.swing.JFrame {
         jButton11.setBackground(new java.awt.Color(110, 149, 106));
         jButton11.setFont(new java.awt.Font("Dialog", 1, 12)); // NOI18N
         jButton11.setForeground(new java.awt.Color(255, 255, 255));
-        jButton11.setText("REPORTAR PRODUCTO");
+        jButton11.setText("GESTIONAR CAJA");
         jButton11.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton11ActionPerformed(evt);
@@ -858,20 +915,9 @@ public class Menu2 extends javax.swing.JFrame {
 
     private List<Producto> buscarProductosPorNombre(String texto) {
         ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar(); // o como cargues tus productos
-        List<Producto> filtrados = new ArrayList<>();
-
-        if (texto == null || texto.trim().isEmpty()) {
-            return productos; // si no escribe nada, mostramos todos
-        }
-
-        String query = texto.trim().toLowerCase();
-        for (Producto p : productos) {
-            if (p.getNombre() != null && p.getNombre().toLowerCase().contains(query)) {
-                filtrados.add(p);
-            }
-        }
-        return filtrados;
+        List<Producto> productos = dao.buscarPorNombre(texto, this.idSucursal);
+        dao.cerrarConexion();
+        return productos;
     }
 
     public void vaciarCarrito() {
@@ -886,29 +932,36 @@ public class Menu2 extends javax.swing.JFrame {
         txtCupon.setText("");
     }
 
-// 🚀 Recalcula subtotal, descuento y total
     public void actualizarTotal() {
-        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
+        javax.swing.table.DefaultTableModel modeloCarrito = (javax.swing.table.DefaultTableModel) miniTabla.getModel();
         double subtotal = 0.0;
 
         for (int i = 0; i < modeloCarrito.getRowCount(); i++) {
-            Object valorSubtotal = modeloCarrito.getValueAt(i, 3); // Columna 3 = Subtotal
+            Object valorSubtotal = modeloCarrito.getValueAt(i, 3);
             if (valorSubtotal != null) {
                 try {
                     subtotal += Double.parseDouble(valorSubtotal.toString());
                 } catch (NumberFormatException e) {
-                    System.err.println("⚠ Error en fila " + i + ": " + valorSubtotal);
+                    System.err.println("⚠ Error en fila " + i);
                 }
             }
         }
 
-        // 🔥 Aplicar reglas de negocio
-        PromocionController promoCtrl = new PromocionController();
-        double descuento = promoCtrl.calcularDescuentoReglas(modeloCarrito);
+        // ---------------------------------------------------------
+        // 🔴 CÓDIGO VIEJO (CAUSANTE DEL ERROR): COMENTAR O BORRAR
+        // PromocionController promoCtrl = new PromocionController();
+        // double descuento = promoCtrl.calcularDescuentoReglas(modeloCarrito);
+        // ---------------------------------------------------------
+        // ✅ CÓDIGO NUEVO:
+        // Por ahora ponemos 0 en automático. El descuento real se aplica
+        // cuando presionas el botón "VALIDAR CUPÓN".
+        double descuento = 0.0;
 
+        // Si quisieras que el descuento del cupón se mantenga al agregar productos,
+        // necesitarías una variable global 'descuentoActual', pero por ahora esto
+        // elimina los errores.
         double total = subtotal - descuento;
 
-        // Actualiza los labels
         lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
         lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
         resultadoTotal.setText("S/ " + String.format("%.2f", total));
@@ -934,91 +987,112 @@ public class Menu2 extends javax.swing.JFrame {
         return j == patron.length();
     }
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        jFrame_añadirProducto jFrame_añadirProducto1 = new jFrame_añadirProducto();
-        jFrame_añadirProducto1.setVisible(true);
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
-        jFrame_Asistncias jFrame_Asistncias1;
-        jFrame_Asistncias1 = new jFrame_Asistncias();
-        jFrame_Asistncias1.setVisible(true);
-    }//GEN-LAST:event_tb_entradaActionPerformed
-
-    private void tb_reportesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_reportesActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tb_reportesActionPerformed
-
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-        int confirmacion = JOptionPane.showConfirmDialog(
-                this,
-                "¿Está seguro que desea cerrar sesión?",
-                "Cerrar Sesión",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
+        Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja)", "Cancelar"};
 
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            // ✅ Volver al login
-            LoginjFrame login = new LoginjFrame();
-            login.setVisible(true);
+        int seleccion = JOptionPane.showOptionDialog(this,
+                "¿Qué desea hacer?\n\n"
+                + "• Cerrar Sesión: La caja queda ABIERTA. Use esto para descansos.\n"
+                + "• Finalizar Turno: Se realizará el ARQUEO y se CERRARÁ la caja.",
+                "Control de Salida",
+                JOptionPane.YES_NO_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[2]);
 
-            // ✅ Cerrar el panel de gerente
-            this.dispose();
+        if (seleccion == 0) {
+            // --- OPCIÓN 1: SOLO SALIR (Caja queda abierta) ---
+            System.out.println("Sesión pausada. Caja sigue abierta.");
+            irALogin();
+
+        } else if (seleccion == 1) {
+            // --- OPCIÓN 2: FINALIZAR TURNO (Obliga Arqueo) ---
+            int idCaja = obtenerIdCajaAbierta();
+
+            if (idCaja == -1) {
+                // Si por alguna razón no tiene caja (ej. error sistema), lo dejamos salir
+                JOptionPane.showMessageDialog(this, "No se detectó caja abierta. Saliendo...");
+                irALogin();
+            } else {
+                // Abrir ventana OBLIGATORIA de Arqueo
+                DialogoArqueoCaja dialogo = new DialogoArqueoCaja(this, true, idCaja);
+                dialogo.setVisible(true);
+
+                // Solo salimos si el arqueo fue exitoso
+                if (dialogo.cajaCerradaExito) {
+                    irALogin();
+                } else {
+                    // Si canceló el arqueo, no hacemos nada (se queda en el menú)
+                }
+            }
         }
     }//GEN-LAST:event_btn_salirActionPerformed
 
+    private void irALogin() {
+        LoginjFrame login = new LoginjFrame();
+        login.setVisible(true);
+        this.dispose();
+    }
+
+    private void cerrarCajaAutomatica() {
+        try {
+            edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+
+            // 1. Buscar mi caja abierta
+            int idCaja = obtenerIdCajaAbierta(); // Método que ya creamos en la respuesta anterior
+
+            if (idCaja != -1) {
+                // 2. Calcular saldo final real
+                double saldoFinal = cajaDAO.obtenerSaldoAcumuladoHistorico(this.idSucursal);
+
+                // 3. Cerrar en BD
+                boolean exito = cajaDAO.cerrarCaja(idCaja, saldoFinal);
+
+                if (exito) {
+                    System.out.println("✅ CAJA CERRADA CORRECTAMENTE. Saldo Final: " + saldoFinal);
+                    JOptionPane.showMessageDialog(this, "Turno finalizado. Caja cerrada con: S/ " + saldoFinal);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al cerrar caja automática: " + e.getMessage());
+        }
+    }
+
     private void btn_buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_buscarActionPerformed
         String texto = txtBuscarCodigo.getText().trim().toLowerCase();
-
         if (texto.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Ingrese un texto para buscar.");
             return;
         }
 
         ProductoDAO dao = new ProductoDAO();
-        List<Producto> productos = dao.listar();
-        List<Producto> filtrados = new ArrayList<>();
+        List<Producto> productos = dao.buscarPorNombre(texto, this.idSucursal);
 
-        for (Producto p : productos) {
-            // 🔎 Coincidencias no necesariamente en orden exacto
-            String nombre = p.getNombre().toLowerCase();
-            if (contieneSalteado(nombre, texto)) {
-                filtrados.add(p);
-            }
-        }
-
-        // Mostrar resultados en tabla
         DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
         modelo.setRowCount(0);
-        for (Producto p : filtrados) {
+
+        for (Producto p : productos) {
             modelo.addRow(new Object[]{p.getCodigo(), p.getNombre(), p.getPrecioVenta(), p.getStock()});
+        }
+
+        dao.cerrarConexion();
+
+        if (productos.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No se encontraron productos con: '" + texto + "'");
         }
     }//GEN-LAST:event_btn_buscarActionPerformed
 
     private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton12ActionPerformed
-        ProductoController pc = new ProductoController();
 
         try {
-            // Usar cargarProductos en lugar de productosMasVendidos temporalmente
-            List<Producto> productos = pc.cargarProductos();
-
-            // Mostrar en tablaProductos (sin la columna de vendidos por ahora)
-            DefaultTableModel modelo = (DefaultTableModel) tablaProductos.getModel();
-            modelo.setRowCount(0);
-
-            for (Producto p : productos) {
-                modelo.addRow(new Object[]{
-                    p.getNombre(),
-                    p.getPrecioVenta(),
-                    p.getStock()
-                // p.getVendidos() // ❌ Comentado temporalmente
-                });
-            }
-
-            JOptionPane.showMessageDialog(this, "Productos cargados (función de más vendidos temporalmente deshabilitada)");
+            // ✅ CORREGIDO: Usar nuestro método que sí considera sucursal
+            cargarProductosEnTabla();
+            JOptionPane.showMessageDialog(this,
+                    "Productos cargados para sucursal " + this.idSucursal);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error al cargar productos: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                    "Error al cargar productos: " + e.getMessage());
             e.printStackTrace();
         }
     }//GEN-LAST:event_jButton12ActionPerformed
@@ -1028,29 +1102,48 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_txtBuscarCodigoActionPerformed
 
     private void btn_validarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_validarActionPerformed
-        String cupon = txtCupon.getText().trim().replaceAll("\\s+", ""); // limpia espacios
+        try {
+            String codigo = txtCupon.getText().trim();
+            if (codigo.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Ingrese un cupón.");
+                return;
+            }
 
-        if (cupon.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Ingrese un cupón primero.");
-            return;
+            java.util.Optional<edu.UPAO.proyecto.Modelo.Cupon> opt
+                    = edu.UPAO.proyecto.DAO.CuponDAO.buscarPorCodigo(codigo);
+
+            if (opt.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "❌ Cupón no existe.");
+                return;
+            }
+
+            edu.UPAO.proyecto.Modelo.Cupon cupon = opt.get();
+            double subtotal = calcularSubtotalCarrito();
+
+            // Validaciones
+            if (!cupon.isVigente(java.time.LocalDate.now())) {
+                JOptionPane.showMessageDialog(this, "⛔ Cupón vencido o inactivo.");
+                return;
+            }
+            if (!cupon.cumpleMinimo(subtotal)) {
+                JOptionPane.showMessageDialog(this, "⚠️ Compra mínima: S/. " + cupon.getMinimoCompra());
+                return;
+            }
+
+            // ✅ CORREGIDO: Solo pasamos subtotal (eliminamos 'items')
+            double descuento = cupon.calcularDescuento(subtotal);
+
+            if (descuento > 0) {
+                JOptionPane.showMessageDialog(this, "✅ ¡Descuento aplicado! S/. " + descuento);
+                lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
+
+                double total = Math.max(0, subtotal - descuento);
+                resultadoTotal.setText("S/ " + String.format("%.2f", total));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        double subtotal = calcularSubtotalCarrito();
-        List<edu.UPAO.proyecto.Modelo.VentaItem> itemsDelCarrito = obtenerItemsDelCarrito();
-
-        double descuento = edu.UPAO.proyecto.PromocionController.aplicarCupon(cupon, itemsDelCarrito, subtotal);
-        double totalConCupon = subtotal - descuento;
-
-        if (descuento > 0) {
-            double porcentaje = (subtotal > 0) ? (descuento / subtotal) * 100 : 0;
-            JOptionPane.showMessageDialog(this, "✓ Cupón válido: " + (int) porcentaje + "% aplicado.");
-        } else {
-            JOptionPane.showMessageDialog(this, "✗ Cupón inválido, caducado o inactivo.");
-        }
-
-        lbl_subtotal.setText("Subtotal: S/ " + String.format("%.2f", subtotal));
-        lbl_descuento.setText("Descuento: S/ " + String.format("%.2f", descuento));
-        resultadoTotal.setText(String.format("S/ %.2f", totalConCupon));
     }//GEN-LAST:event_btn_validarActionPerformed
 
     private void btn_eliminarItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarItemActionPerformed
@@ -1086,30 +1179,32 @@ public class Menu2 extends javax.swing.JFrame {
         }
 
         DefaultTableModel modelo = (DefaultTableModel) miniTabla.getModel();
-
-        // ✅ Recuperar el código oculto (columna 0)
         String codigo = modelo.getValueAt(fila, 4).toString();
 
         ProductoDAO productoDAO = new ProductoDAO();
-        Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+        // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+        Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
 
         if (producto == null) {
             JOptionPane.showMessageDialog(this, "No se encontró el producto en la base de datos.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // ✅ Validar stock
         if (nuevaCantidad > producto.getStock()) {
-            JOptionPane.showMessageDialog(this, "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            JOptionPane.showMessageDialog(this,
+                    "Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // ✅ Actualizar cantidad y subtotal en la tabla
-        modelo.setValueAt(nuevaCantidad, fila, 1); // cantidad
-        modelo.setValueAt(producto.getPrecioVenta(), fila, 2); // P/U
-        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3); // subtotal
+        modelo.setValueAt(nuevaCantidad, fila, 1);
+        modelo.setValueAt(producto.getPrecioVenta(), fila, 2);
+        modelo.setValueAt(producto.getPrecioVenta() * nuevaCantidad, fila, 3);
 
         actualizarTotal();
+        productoDAO.cerrarConexion();
     }//GEN-LAST:event_btn_actualizarItemActionPerformed
 
     private void rb_cuponActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rb_cuponActionPerformed
@@ -1147,11 +1242,17 @@ public class Menu2 extends javax.swing.JFrame {
         // ✅ OBTENER OBSERVACIONES DEL TEXTAREA
         String observaciones = txtObservaciones.getText().trim();
 
-        // ✅ PASAR id_empleado al crear jFrame_GenerarBoleta
-        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(this, carritoClonado, subtotal, descuento, total, this.idEmpleado);
-
-        // ✅ PASAR OBSERVACIONES
-        boletaFrame.setObservaciones(observaciones);
+        // ✅ PASAR TODOS LOS PARÁMETROS INCLUYENDO OBSERVACIONES
+        jFrame_GenerarBoleta boletaFrame = new jFrame_GenerarBoleta(
+                this,
+                carritoClonado,
+                subtotal,
+                descuento,
+                total,
+                this.idEmpleado,
+                this.idSucursal,
+                observaciones // ✅ NUEVO PARÁMETRO
+        );
 
         boletaFrame.setLocationRelativeTo(this);
         boletaFrame.setVisible(true);
@@ -1172,22 +1273,18 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_cancelarActionPerformed
 
     private void btn_SKUActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_SKUActionPerformed
-        // Cambiar texto y bloquear botón mientras simula escaneo
         btn_SKU.setText("Escaneando...");
         btn_SKU.setEnabled(false);
 
-        // Crear Timer (ejecuta la acción tras 2000 ms)
         Timer t = new Timer(2000, e -> {
-            ProductoController pc = new ProductoController();
-            List<Producto> productos = pc.cargarProductos();
+            ProductoDAO productoDAO = new ProductoDAO();
+            List<Producto> productos = productoDAO.listarPorSucursal(this.idSucursal);
 
             if (productos.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "No hay productos cargados.");
             } else {
                 Random rand = new Random();
                 Producto producto = productos.get(rand.nextInt(productos.size()));
-
-                // 🔹 Cantidad fija = 1 (como un escaneo real)
                 int cantidad = 1;
 
                 if (producto.getStock() <= 0) {
@@ -1195,34 +1292,28 @@ public class Menu2 extends javax.swing.JFrame {
                 } else {
                     DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
 
-                    // 🔹 Validar stock
                     if (cantidad > producto.getStock()) {
                         JOptionPane.showMessageDialog(this,
                                 "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
-                        return;
+                    } else {
+                        double precioUnitario = producto.getPrecioVenta();
+                        double subtotal = precioUnitario * cantidad;
+
+                        modeloCarrito.addRow(new Object[]{
+                            producto.getNombre(),
+                            cantidad,
+                            precioUnitario,
+                            subtotal,
+                            producto.getCodigo()
+                        });
+
+                        actualizarTotal();
+                        JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
                     }
-
-                    // 🔹 Calcular subtotal
-                    double precioUnitario = producto.getPrecioVenta();
-                    double subtotal = precioUnitario * cantidad;
-
-                    // 🚀 Agregar al carrito en el mismo orden que btn_agregar
-                    modeloCarrito.addRow(new Object[]{
-                        producto.getNombre(), // Columna 0: Nombre
-                        cantidad, // Columna 1: Cantidad
-                        precioUnitario, // Columna 2: P/U
-                        subtotal, // Columna 3: Subtotal
-                        producto.getCodigo() // Columna 4: Código (oculto)
-                    });
-
-                    // 🔹 Recalcular total
-                    actualizarTotal();
-
-                    JOptionPane.showMessageDialog(this, "✅ Producto escaneado: " + producto.getNombre());
                 }
             }
 
-            // Restaurar el botón
+            productoDAO.cerrarConexion();
             btn_SKU.setText("ESCANEAR SKU");
             btn_SKU.setEnabled(true);
         });
@@ -1232,91 +1323,142 @@ public class Menu2 extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_SKUActionPerformed
 
     private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
-        int fila = tablaProductos.getSelectedRow();
-        if (fila != -1) {
-            String nombre = tablaProductos.getValueAt(fila, 0).toString();
-            String codigo = tablaProductos.getValueAt(fila, 3).toString();
-
-            String reporte = JOptionPane.showInputDialog(this, "Ingrese el reporte del producto " + nombre + ":");
-
-            if (reporte != null && !reporte.trim().isEmpty()) {
-                try (BufferedWriter bw = new BufferedWriter(new FileWriter("reportes.txt", true))) {
-                    bw.write("Producto: " + nombre + " (" + codigo + ") - Reporte: " + reporte);
-                    bw.newLine();
-                    JOptionPane.showMessageDialog(this, "Reporte guardado correctamente.");
-                } catch (IOException e) {
-                    JOptionPane.showMessageDialog(this, "Error al guardar el reporte.");
-                }
-            }
-        } else {
-            JOptionPane.showMessageDialog(this, "Seleccione un producto para reportar.");
-        }
+        GestionCajaFrame cajaFrame = new GestionCajaFrame(this.idSucursal);
+        cajaFrame.setVisible(true);
     }//GEN-LAST:event_jButton11ActionPerformed
 
     private void btn_agregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_agregarActionPerformed
         int filaSeleccionada = tablaProductos.getSelectedRow();
-
         if (filaSeleccionada == -1) {
             JOptionPane.showMessageDialog(this, "Selecciona un producto primero.");
             return;
         }
 
-        DefaultTableModel modeloProductos = (DefaultTableModel) tablaProductos.getModel();
-        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
-
         String codigo = tablaProductos.getValueAt(filaSeleccionada, 0).toString().trim();
-        System.out.println("Código seleccionado: " + codigo);
-
-        // 🔹 Usar DAO para obtener el objeto producto
         ProductoDAO productoDAO = new ProductoDAO();
-        Producto producto = productoDAO.buscarPorCodigo(codigo);
+
+        // ✅ USAR NUEVO MÉTODO CON SUCURSAL
+        Producto producto = productoDAO.buscarPorCodigo(codigo, this.idSucursal);
 
         if (producto == null) {
-            JOptionPane.showMessageDialog(this, "❌ No se encontró el producto en el DAO");
+            JOptionPane.showMessageDialog(this, "❌ No se encontró el producto");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // 🔹 Obtener la cantidad del spinner
         int cantidad = (int) spCantidad.getValue();
 
-        // 🔹 Validar stock
         if (cantidad > producto.getStock()) {
-            JOptionPane.showMessageDialog(this, "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            JOptionPane.showMessageDialog(this,
+                    "⚠ Stock insuficiente. Solo hay " + producto.getStock() + " unidades.");
+            productoDAO.cerrarConexion();
             return;
         }
 
-        // 🔹 Calcular subtotal
         double precioUnitario = producto.getPrecioVenta();
         double subtotal = precioUnitario * cantidad;
 
+        DefaultTableModel modeloCarrito = (DefaultTableModel) miniTabla.getModel();
         modeloCarrito.addRow(new Object[]{
-            producto.getNombre(), // Columna 0: Nombre
-            cantidad, // Columna 1: Cantidad
-            precioUnitario, // Columna 2: P/U
-            subtotal, // Columna 3: Subtotal
-            producto.getCodigo() // Columna 4: Código (oculto)
+            producto.getNombre(),
+            cantidad,
+            precioUnitario,
+            subtotal,
+            producto.getCodigo()
         });
 
-        // 🔹 Recalcular totales
         actualizarTotal();
+        productoDAO.cerrarConexion();
+        System.out.println("✅ Producto agregado - Stock: " + producto.getStock());
     }//GEN-LAST:event_btn_agregarActionPerformed
 
-    private void jButton1ComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_jButton1ComponentMoved
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton1ComponentMoved
+    private void btn_cuentaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cuentaActionPerformed
+// 1. Crear una ventana nueva (JFrame)
+        javax.swing.JFrame ventanaCuenta = new javax.swing.JFrame("Mi Cuenta - Kuyay");
 
-    private void btn_inicioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_inicioActionPerformed
+        // 2. Crear tu panel pasándole el ID
+        panel_Cuenta miPanel = new panel_Cuenta(this.idEmpleado); // Usamos el ID que ya tiene Menu2
 
-        jPanel2.setSize(1380, 43);        jPanel2.setSize(1380, 43);    }//GEN-LAST:event_btn_inicioActionPerformed
+        // 3. Configurar la ventana
+        ventanaCuenta.setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE); // Solo cerrar esta ventana, no toda la app
+        ventanaCuenta.setContentPane(miPanel); // Metemos el panel dentro
+        ventanaCuenta.pack(); // Ajustar tamaño automáticamente al contenido del panel
+        ventanaCuenta.setLocationRelativeTo(this); // Centrar sobre el menú
+
+        // 4. Mostrar
+        ventanaCuenta.setVisible(true);
+    }//GEN-LAST:event_btn_cuentaActionPerformed
 
     private void btn_ventasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventasActionPerformed
-        panel_contenido.setSize(1380, 661);
-        jPanel2.setSize(1380, 700);
-        panel_contenido.setClosable(false);
-        panel_contenido.setMaximizable(false);
-        panel_contenido.setIconifiable(false);
-
+        HistorialVentasFrame historial = new HistorialVentasFrame(this.idEmpleado);
+        historial.setVisible(true);
     }//GEN-LAST:event_btn_ventasActionPerformed
+
+    private void btn_devolverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_devolverActionPerformed
+        int idCajaActual = obtenerIdCajaAbierta();
+
+        // 2. Validamos que exista una caja abierta
+        if (idCajaActual == -1) {
+            JOptionPane.showMessageDialog(this,
+                    "No tienes una caja abierta actualmente.\nNo se pueden realizar devoluciones de dinero.",
+                    "Caja Cerrada",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 3. Abrimos la ventana de devoluciones pasándole todos los datos
+        DialogoDevolucionVenta dialogo = new DialogoDevolucionVenta(
+                this, // Ventana padre (Menu2)
+                true, // Modal (bloquea la ventana de atrás)
+                idCajaActual, // ID Caja recuperado de la BD
+                this.idSucursal, // ID Sucursal que ya tenías en Menu2
+                this.idEmpleado // ID Empleado que ya tenías en Menu2
+        );
+
+        dialogo.setVisible(true);
+
+        // Opcional: Recargar productos por si hubo devolución a stock
+        cargarProductosEnTabla();
+    }//GEN-LAST:event_btn_devolverActionPerformed
+
+    private void btn_devolverComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_btn_devolverComponentMoved
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_devolverComponentMoved
+
+    private void tb_entradaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tb_entradaActionPerformed
+        jFrame_Asistncias jFrame_Asistncias1;
+        jFrame_Asistncias1 = new jFrame_Asistncias();
+        jFrame_Asistncias1.setVisible(true);
+    }//GEN-LAST:event_tb_entradaActionPerformed
+
+    private void btn_comprasComponentMoved(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_btn_comprasComponentMoved
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_comprasComponentMoved
+
+    private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
+        // 1. Validar si hay caja abierta (Reutilizando tu método existente)
+        int idCajaActual = obtenerIdCajaAbierta(); // O usar this.idCaja si ya lo guardaste en el constructor
+
+        if (idCajaActual == -1 || idCajaActual == 0) {
+            JOptionPane.showMessageDialog(this,
+                    "No hay caja abierta. No se puede sacar dinero.",
+                    "Error de Caja", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 2. Abrir la ventana de Gastos
+        DialogoRegistrarGasto dialogo = new DialogoRegistrarGasto(
+                this,
+                true,
+                idCajaActual,
+                this.idSucursal
+        );
+
+        dialogo.setVisible(true);
+
+        // Opcional: Si tienes un label que muestra el saldo actual en pantalla, aquí podrías actualizarlo
+        // actualizarLabelSaldo();
+    }//GEN-LAST:event_btn_comprasActionPerformed
 
     /**
      * @param args the command line arguments
@@ -1353,12 +1495,13 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JButton btn_agregar;
     private javax.swing.JButton btn_buscar;
     private javax.swing.JButton btn_cancelar;
+    private javax.swing.JButton btn_compras;
+    private javax.swing.JButton btn_cuenta;
+    private javax.swing.JButton btn_devolver;
     private javax.swing.JButton btn_eliminarItem;
-    private javax.swing.JButton btn_inicio;
     private javax.swing.JButton btn_salir;
     private javax.swing.JButton btn_validar;
     private javax.swing.JButton btn_ventas;
-    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton11;
     private javax.swing.JButton jButton12;
     private javax.swing.JLabel jLabel1;
@@ -1380,7 +1523,6 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JTable miniTabla;
     private javax.swing.JPanel panel;
     private javax.swing.JPanel panelFormulario;
-    private javax.swing.JInternalFrame panel_contenido;
     private javax.swing.JRadioButton rb_cupon;
     private javax.swing.JRadioButton rb_observacion;
     private javax.swing.JLabel resultadoTotal;
@@ -1388,7 +1530,6 @@ public class Menu2 extends javax.swing.JFrame {
     private javax.swing.JSpinner sp_item;
     private javax.swing.JTable tablaProductos;
     private javax.swing.JToggleButton tb_entrada;
-    private javax.swing.JToggleButton tb_reportes;
     private javax.swing.JTextField txtBuscarCodigo;
     private javax.swing.JTextField txtCupon;
     private javax.swing.JTextArea txtObservaciones;

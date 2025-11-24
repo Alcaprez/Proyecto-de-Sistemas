@@ -63,7 +63,6 @@ public class DetalleVenta {
                String.format("%.2f", precioUnitario) + ";" +
                String.format("%.2f", getSubtotal());
     }
-    
-    
+       
 }
 

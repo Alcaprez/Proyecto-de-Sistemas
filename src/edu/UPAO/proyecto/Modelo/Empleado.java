@@ -6,14 +6,22 @@ public class Empleado {
     private String idEmpleado;
     private String dni;
     private int idSucursal;
-    private String cargo;
+    private String cargo; 
     private String estado;
     private double sueldo;
+    
+    
+    private String nombres;
+    private String apellidos;
+    private String nombreSucursal; 
+    private String telefono;
+    private String correo;
 
-    // Constructores
+    // Constructor vacío
     public Empleado() {
     }
 
+    // Constructor completo (puedes mantener el que tenías o actualizarlo)
     public Empleado(String idEmpleado, String dni, int idSucursal, String cargo, String estado, double sueldo) {
         this.idEmpleado = idEmpleado;
         this.dni = dni;
@@ -23,52 +31,38 @@ public class Empleado {
         this.sueldo = sueldo;
     }
 
-    // Getters y Setters
-    public String getIdEmpleado() {
-        return idEmpleado;
-    }
+    // --- GETTERS Y SETTERS DE LOS CAMPOS NUEVOS ---
+    public String getNombres() { return nombres; }
+    public void setNombres(String nombres) { this.nombres = nombres; }
 
-    public void setIdEmpleado(String idEmpleado) {
-        this.idEmpleado = idEmpleado;
-    }
+    public String getApellidos() { return apellidos; }
+    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
 
-    public String getDni() {
-        return dni;
-    }
+    public String getNombreSucursal() { return nombreSucursal; }
+    public void setNombreSucursal(String nombreSucursal) { this.nombreSucursal = nombreSucursal; }
 
-    public void setDni(String dni) {
-        this.dni = dni;
-    }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
 
-    public int getIdSucursal() {
-        return idSucursal;
-    }
+    public String getCorreo() { return correo; }
+    public void setCorreo(String correo) { this.correo = correo; }
 
-    public void setIdSucursal(int idSucursal) {
-        this.idSucursal = idSucursal;
-    }
+    // --- GETTERS Y SETTERS ORIGINALES (Déjalos como estaban) ---
+    public String getIdEmpleado() { return idEmpleado; }
+    public void setIdEmpleado(String idEmpleado) { this.idEmpleado = idEmpleado; }
 
-    public String getCargo() {
-        return cargo;
-    }
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
 
-    public void setCargo(String cargo) {
-        this.cargo = cargo;
-    }
+    public int getIdSucursal() { return idSucursal; }
+    public void setIdSucursal(int idSucursal) { this.idSucursal = idSucursal; }
 
-    public String getEstado() {
-        return estado;
-    }
+    public String getCargo() { return cargo; }
+    public void setCargo(String cargo) { this.cargo = cargo; }
 
-    public void setEstado(String estado) {
-        this.estado = estado;
-    }
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
 
-    public double getSueldo() {
-        return sueldo;
-    }
-
-    public void setSueldo(double sueldo) {
-        this.sueldo = sueldo;
-    }
+    public double getSueldo() { return sueldo; }
+    public void setSueldo(double sueldo) { this.sueldo = sueldo; }
 }
