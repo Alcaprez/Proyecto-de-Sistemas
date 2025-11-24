@@ -17,7 +17,7 @@ import java.sql.SQLException;
 import edu.UPAO.proyecto.DAO.VentaDAO;
 import edu.UPAO.proyecto.DAO.ClienteDAO;
 import edu.UPAO.proyecto.DAO.ComprobanteDAO;
-import edu.UPAO.proyecto.util.GeneradorPDF;
+import edu.UPAO.proyecto.Util.GeneradorPDF;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
