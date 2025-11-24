@@ -34,8 +34,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
     String usuario = "root";
     String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
+    private int idSucursalUsuario; // NUEVA VARIABLE
 
-    public ALMACEN_Admin() {
+    public ALMACEN_Admin(int idSucursal) {
+        this.idSucursalUsuario = idSucursal; // Guardamos el ID
         initComponents();
         inicializarTabla();
         configurarComboBoxes();
@@ -45,12 +47,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         configurarBuscador();
         inicializarInventarioTienda();
     }
-    
-    
+
 // /////////////////////////////////////////////////////
     //  1. GESTIÓN DE CADUCIDAD (TABLA Y FILTROS)
     // /////////////////////////////////////////////////////
-
     private void inicializarTabla() {
         modeloTabla = new DefaultTableModel(
                 new Object[]{"Producto (Lote/SKU)", "Proveedor", "Fecha de Caducidad", "Días Restantes", "Cantidad"}, 0
@@ -98,11 +98,13 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         String sql = "SELECT p.nombre, p.codigo, i.stock_actual, i.fecha_caducidad "
                 + "FROM inventario_sucursal i "
                 + "INNER JOIN producto p ON i.id_producto = p.id_producto "
-                + "WHERE i.id_sucursal = 1 AND i.stock_actual > 0 "
-                + "ORDER BY i.fecha_caducidad ASC";
+                + "WHERE i.id_sucursal = ? AND i.stock_actual > 0 "
+                + // CAMBIO AQUÍ
+                "ORDER BY i.fecha_caducidad ASC";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, idSucursalUsuario); // USAMOS LA VARIABLE
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -126,34 +128,41 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     // /////////////////////////////////////////////////////
     //  2. DASHBOARD DE MÉTRICAS (KPIs) - SQL PURO
     // /////////////////////////////////////////////////////
-    private void actualizarMetricasBD() {
+   private void actualizarMetricasBD() {
         // Consultas directas a la BD para velocidad y precisión
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-
+            
             // 1. Vencidos
-            String sqlVencidos = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad < CURDATE() AND id_sucursal=1";
+            String sqlVencidos = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad < CURDATE() AND id_sucursal=?";
             PreparedStatement ps1 = con.prepareStatement(sqlVencidos);
+            ps1.setInt(1, idSucursalUsuario);
             ResultSet rs1 = ps1.executeQuery();
-            int vencidos = rs1.next() ? rs1.getInt(1) : 0;
+            
+            // --- ESTA ES LA LÍNEA QUE FALTABA ---
+            int vencidos = rs1.next() ? rs1.getInt(1) : 0; 
+            // ------------------------------------
 
             // 2. Vencen en 7 días
-            String sql7 = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND id_sucursal=1";
+            String sql7 = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND id_sucursal=?";
             PreparedStatement ps2 = con.prepareStatement(sql7);
+            ps2.setInt(1, idSucursalUsuario);
             ResultSet rs2 = ps2.executeQuery();
             int en7dias = rs2.next() ? rs2.getInt(1) : 0;
 
             // 3. Vencen en 30 días
-            String sql30 = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND id_sucursal=1";
+            String sql30 = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY) AND id_sucursal=?";
             PreparedStatement ps3 = con.prepareStatement(sql30);
+            ps3.setInt(1, idSucursalUsuario);
             ResultSet rs3 = ps3.executeQuery();
             int en30dias = rs3.next() ? rs3.getInt(1) : 0;
 
-            // 4. Valor en Riesgo (Stock * Precio Compra de lo que vence en 7 días o menos)
-            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) "
-                    + "FROM inventario_sucursal i "
-                    + "INNER JOIN producto p ON i.id_producto = p.id_producto "
-                    + "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=1";
+            // 4. Valor en Riesgo
+            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) " +
+                               "FROM inventario_sucursal i " +
+                               "INNER JOIN producto p ON i.id_producto = p.id_producto " +
+                               "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=?";
             PreparedStatement ps4 = con.prepareStatement(sqlRiesgo);
+            ps4.setInt(1, idSucursalUsuario);
             ResultSet rs4 = ps4.executeQuery();
             double riesgo = rs4.next() ? rs4.getDouble(1) : 0.0;
 
@@ -163,14 +172,13 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             jLabel3.setText("<html><center>VENCEN EN 30 DÍAS<br><b style='font-size:18px'>" + en30dias + " UNDS</b></center></html>");
             jLabel4.setText("<html><center>VALOR EN RIESGO<br><b style='font-size:18px'>S/ " + String.format("%.2f", riesgo) + "</b></center></html>");
 
-            // Colores de fondo
-            jPanel6.setBackground(new Color(220, 53, 69)); // Rojo
-            jPanel5.setBackground(new Color(255, 193, 7)); // Amarillo
-            jPanel4.setBackground(new Color(255, 235, 156)); // Beige
-            jPanel7.setBackground(new Color(173, 216, 230)); // Azul
-
+            // Colores
+            jPanel6.setBackground(new Color(220, 53, 69));
+            jPanel5.setBackground(new Color(255, 193, 7));
+            jPanel4.setBackground(new Color(255, 235, 156));
+            jPanel7.setBackground(new Color(173, 216, 230));
             jLabel1.setForeground(Color.WHITE);
-
+            
         } catch (SQLException e) {
             System.out.println("Error en métricas: " + e);
         }
@@ -255,12 +263,12 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 + "FROM categoria c "
                 + "INNER JOIN producto p ON c.id_categoria = p.id_categoria "
                 + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
-                + "WHERE i.stock_actual > 0 AND i.id_sucursal = 1";
+                + "WHERE i.stock_actual > 0 AND i.id_sucursal = ?"; // CAMBIO AQUÍ
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, idSucursalUsuario); // USAMOS LA VARIABLE
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 int id = rs.getInt("id_categoria");
                 String nombre = rs.getString("nombre");
@@ -334,14 +342,15 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jLabel6.setText("Productos: " + categoriaSeleccionada.getNombre());
         jPanel9.add(Box.createVerticalStrut(10));
 
-        String sql = "SELECT p.nombre, i.stock_actual "
-                + "FROM producto p "
-                + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
-                + "WHERE p.id_categoria = ? AND i.id_sucursal = 1 AND i.stock_actual > 0";
+        String sql = "SELECT p.nombre, i.stock_actual " +
+                     "FROM producto p " +
+                     "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto " +
+                     "WHERE p.id_categoria = ? AND i.id_sucursal = ? AND i.stock_actual > 0"; // CAMBIO AQUÍ
 
-        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+      try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, idCategoria);
+            ps.setInt(2, idSucursalUsuario); // USAMOS LA VARIABLE
             ResultSet rs = ps.executeQuery();
 
             boolean hayProductos = false;
@@ -747,12 +756,12 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         }    }//GEN-LAST:event_jButton1ActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
-      JFrame marcoPadre = (JFrame) SwingUtilities.getWindowAncestor(this);
+        JFrame marcoPadre = (JFrame) SwingUtilities.getWindowAncestor(this);
         DialogoNuevaMerma dialogo = new DialogoNuevaMerma(marcoPadre, true);
         dialogo.setVisible(true);
-        
+
         // Opcional: Al cerrar, recargar las métricas por si bajó el stock de algo crítico
-        cargarDatosDesdeBD(); 
+        cargarDatosDesdeBD();
         actualizarMetricasBD();
     }//GEN-LAST:event_jButton2ActionPerformed
 

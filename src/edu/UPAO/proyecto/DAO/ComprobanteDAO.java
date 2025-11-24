@@ -2,7 +2,7 @@ package edu.UPAO.proyecto.DAO;
 
 import BaseDatos.Conexion;
 import edu.UPAO.proyecto.Modelo.Venta;
-import edu.UPAO.proyecto.util.GeneradorPDF;
+import edu.UPAO.proyecto.Util.GeneradorPDF;
 import java.sql.*;
 
 public class ComprobanteDAO {

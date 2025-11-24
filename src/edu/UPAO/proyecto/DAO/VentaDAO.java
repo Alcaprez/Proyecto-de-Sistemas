@@ -235,7 +235,9 @@ public class VentaDAO {
                 stmtDetalle.addBatch();
             }
             stmtDetalle.executeBatch();
-
+            if (venta.getIdCupon() != null && venta.getIdCupon() > 0) {
+                CuponDAO.incrementarUso(venta.getIdCupon());
+            }
             // 4. ACTUALIZAR STOCK (BATCH)
             actualizarInventarioSucursal(venta.getDetalleVenta(), idSucursal, conn);
 

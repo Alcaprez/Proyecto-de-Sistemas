@@ -40,6 +40,8 @@ public class CuponDAO {
             insertar(cupon);
         }
     }
+    
+    
 
     public static Optional<Cupon> buscarPorCodigo(String codigo) {
         String sql = "SELECT * FROM cupon WHERE codigo = ?";
@@ -145,5 +147,23 @@ public class CuponDAO {
             ini != null ? ini.toLocalDate() : null,
             fin != null ? fin.toLocalDate() : null,
             activo, max, usos);
+    }
+    
+    
+public static boolean incrementarUso(int idCupon) {
+        // Asegúrate de que tu tabla en la BD se llame 'id_cupon' o como la tengas definida
+        String sql = "UPDATE cupon SET usos = usos + 1 WHERE id_cupon = ?";
+        
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, idCupon);
+            int filas = ps.executeUpdate();
+            return filas > 0;
+            
+        } catch (Exception e) {
+            System.err.println("Error incrementando uso de cupón: " + e.getMessage());
+            return false;
+        }
     }
 }
