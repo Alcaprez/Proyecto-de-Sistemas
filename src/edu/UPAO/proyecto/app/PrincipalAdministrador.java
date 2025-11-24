@@ -287,8 +287,8 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
     private void btn_personalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_personalActionPerformed
-        panel_PersonalAdministrador panel_PersonalAdministrador1 = new panel_PersonalAdministrador();       
-        MostrarPanel(panel_PersonalAdministrador1);
+        CONTROL_PERSONAL panelPersonal = new CONTROL_PERSONAL();
+        MostrarPanel(panelPersonal);
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
