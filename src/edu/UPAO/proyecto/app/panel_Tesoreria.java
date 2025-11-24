@@ -28,6 +28,36 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
+import edu.UPAO.proyecto.Util.GeneradorExcelRk;
+import edu.UPAO.proyecto.Util.GeneradorPDFRk;
+import org.jfree.chart.ChartPanel;
+import javax.swing.table.DefaultTableModel;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Connection;
+import org.jfree.chart.ChartPanel;
+import javax.swing.table.DefaultTableModel;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.BarRenderer;
+import org.jfree.chart.renderer.category.StandardBarPainter;
+import org.jfree.data.category.DefaultCategoryDataset;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Date;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
 
 public class panel_Tesoreria extends javax.swing.JPanel {
 
@@ -38,6 +68,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
     private Date fechaInicioFiltro;
     private Date fechaFinFiltro;
+    private JFreeChart chartRanking;
 
     private List<Object[]> datosActualesParaExportar;
 
@@ -335,6 +366,171 @@ private void exportarDatosCSV() {
         }
     }
 
+ private void iniciarSistemaRanking() {
+        // 1. Limpiar listeners anteriores para evitar errores
+        for(java.awt.event.ActionListener al : FiltrarporMes.getActionListeners()) FiltrarporMes.removeActionListener(al);
+        for(java.awt.event.ActionListener al : cb_tipoRanking.getActionListeners()) cb_tipoRanking.removeActionListener(al);
+
+        // 2. Activar recarga automática
+        FiltrarporMes.addActionListener(evt -> cargarDatosRanking());
+        cb_tipoRanking.addActionListener(evt -> cargarDatosRanking());
+        
+        // 3. Carga inicial
+        cargarDatosRanking();
+    }
+
+    private void cargarDatosRanking() {
+        // A. Obtener datos de la Interfaz
+        int mesIndex = FiltrarporMes.getSelectedIndex(); // 0=Anual, 1=Enero...
+        String tipoRanking = cb_tipoRanking.getSelectedItem().toString(); // "Ventas" o "Transacciones"
+        
+        // B. Filtros SQL
+        String filtroV = (mesIndex == 0) ? "" : " AND MONTH(v.fecha_hora) = " + mesIndex;
+        String filtroC = (mesIndex == 0) ? "" : " AND MONTH(mc.fecha_hora) = " + mesIndex;
+        
+        // C. Consulta SQL
+        String sql = "SELECT s.nombre_sucursal, " +
+                     "COALESCE(v.total_v, 0) as ventas, " +
+                     "COALESCE(mc.total_count, 0) as transacciones, " +
+                     "(COALESCE(v.total_v, 0) + COALESCE(mc.total_count, 0))/2 as puntaje " +
+                     "FROM sucursal s " +
+                     "LEFT JOIN (SELECT id_sucursal, SUM(total) as total_v FROM venta v WHERE 1=1 " + filtroV + " GROUP BY id_sucursal) v ON s.id_sucursal=v.id_sucursal " +
+                     "LEFT JOIN (SELECT id_sucursal, COUNT(*) as total_count FROM movimiento_caja mc WHERE 1=1 " + filtroC + " GROUP BY id_sucursal) mc ON s.id_sucursal=mc.id_sucursal " +
+                     "ORDER BY puntaje DESC";
+
+        // D. Ejecución (SIN CERRAR CONEXIÓN)
+        java.sql.Connection conn = null;
+        try {
+            conn = rentabilidadDAO.getConexion();
+            if (conn == null || conn.isClosed()) {
+                rentabilidadDAO = new RentabilidadDAO();
+                conn = rentabilidadDAO.getConexion();
+            }
+
+            try (PreparedStatement pstmt = conn.prepareStatement(sql);
+                 ResultSet rs = pstmt.executeQuery()) {
+
+                // 1. Preparar Tabla y Gráfico
+                DefaultTableModel modelo = (DefaultTableModel) TablaRanking.getModel();
+                modelo.setRowCount(0); 
+                DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+                // Variables Labels
+                int puesto = 1;
+                double sumaTotalVentas = 0;
+                String topLocal = "Ninguno";
+                String mejorPromedioLocal = "Ninguno"; 
+
+                // 2. Recorrer
+                while (rs.next()) {
+                    String nom = rs.getString("nombre_sucursal");
+                    double vtas = rs.getDouble("ventas");
+                    int trxs = rs.getInt("transacciones");
+                    
+                    // -> Llenar Tabla
+                    modelo.addRow(new Object[]{
+                        puesto, nom,
+                        "S/ " + String.format("%,.2f", vtas),
+                        trxs
+                    });
+                    
+                    // -> Llenar Gráfico
+                    double valorG = (tipoRanking.equalsIgnoreCase("Ventas")) ? vtas : trxs;
+                    dataset.addValue(valorG, tipoRanking, nom);
+
+                    // -> Calcular Labels
+                    sumaTotalVentas += vtas;
+                    if (puesto == 1) { topLocal = nom; mejorPromedioLocal = nom; }
+                    puesto++;
+                }
+
+                // 3. Actualizar UI
+                TablaRanking.setModel(modelo);
+                lbl_TotalVenta.setText("S/ " + String.format("%,.2f", sumaTotalVentas));
+                lbl_TiendaTOP.setText(topLocal);
+                lbl_promedioVentas.setText(mejorPromedioLocal);
+                
+                // --- DEFINIR ETIQUETA EJE Y ---
+                String etiquetaY = tipoRanking.equalsIgnoreCase("Ventas") ? "Monto (S/)" : "N° Transacciones";
+                
+                // Pintar Gráfico
+                pintarGrafico(dataset, etiquetaY);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error Ranking: " + e.getMessage());
+        }
+    }
+
+    private void pintarGrafico(DefaultCategoryDataset dataset, String labelY) {
+        // Crear gráfico
+        chartRanking = ChartFactory.createBarChart(
+                "", "", labelY, // <--- AQUÍ SE USA EL NOMBRE DINÁMICO
+                dataset, 
+                PlotOrientation.VERTICAL, 
+                true, true, false
+        );
+        
+        // Estilo Mate (Sin brillo)
+        CategoryPlot plot = chartRanking.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(245, 245, 245));
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+        chartRanking.setBackgroundPaint(Color.WHITE);
+
+        // Barras planas
+        BarRenderer renderer = (BarRenderer) plot.getRenderer();
+        renderer.setBarPainter(new StandardBarPainter());
+        renderer.setShadowVisible(false);
+        renderer.setSeriesPaint(0, new Color(70, 130, 180)); // Azul profesional
+
+        // Insertar en panel 'GraficoBarras'
+        ChartPanel cp = new ChartPanel(chartRanking);
+        cp.setPreferredSize(new java.awt.Dimension(GraficoBarras.getWidth(), 250)); // Altura controlada
+        
+        GraficoBarras.removeAll();
+        GraficoBarras.setLayout(new BorderLayout());
+        GraficoBarras.add(cp, BorderLayout.CENTER);
+        GraficoBarras.validate();
+        GraficoBarras.repaint();
+    }
+    
+   // =======================================================
+    // MAIN (DISEÑO ORIGINAL NETBEANS - NIMBUS)
+    // =======================================================
+    public static void main(String args[]) {
+        // ESTE BLOQUE PONE EL DISEÑO "ORIGINAL" DE NETBEANS
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+
+        // MOSTRAR VENTANA
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                javax.swing.JFrame frame = new javax.swing.JFrame("Prueba Panel Tesorería");
+                frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+                
+                panel_Tesoreria panel = new panel_Tesoreria();
+                frame.add(panel);
+                
+                frame.setSize(1300, 750);
+                frame.setLocationRelativeTo(null); // Centrar
+                frame.setVisible(true);
+            }
+        });
+    }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -380,22 +576,26 @@ private void exportarDatosCSV() {
         Tabbed_Estadisticas = new javax.swing.JTabbedPane();
         panel_Ranking = new javax.swing.JPanel();
         jPanel15 = new javax.swing.JPanel();
-        btn_gananciaNeta = new javax.swing.JButton();
-        btn_rentabilidad = new javax.swing.JButton();
-        cb_tipoRanking = new javax.swing.JComboBox<>();
-        jLabel6 = new javax.swing.JLabel();
-        jPanel16 = new javax.swing.JPanel();
-        lbl_totalVentas1 = new javax.swing.JLabel();
+        jPanelVentasTotales = new javax.swing.JPanel();
+        lbl_TotalVenta = new javax.swing.JLabel();
         lbl_totalVentas5 = new javax.swing.JLabel();
-        jPanel17 = new javax.swing.JPanel();
-        lbl_totalVentas2 = new javax.swing.JLabel();
+        jPanelTiendaTOP = new javax.swing.JPanel();
+        lbl_TiendaTOP = new javax.swing.JLabel();
         lbl_totalVentas4 = new javax.swing.JLabel();
-        jPanel18 = new javax.swing.JPanel();
+        jPanelPromedioVentas = new javax.swing.JPanel();
         lbl_totalVentas3 = new javax.swing.JLabel();
         lbl_promedioVentas = new javax.swing.JLabel();
         panel_rankingXVentas = new javax.swing.JPanel();
+        cb_tipoRanking = new javax.swing.JComboBox<>();
+        GraficoBarras = new javax.swing.JPanel();
         jScrollPane5 = new javax.swing.JScrollPane();
-        jTable5 = new javax.swing.JTable();
+        TablaRanking = new javax.swing.JTable();
+        FiltrarporFecha = new javax.swing.JLabel();
+        FiltrarporMes = new javax.swing.JComboBox<>();
+        jSplitPane1 = new javax.swing.JSplitPane();
+        PDF = new javax.swing.JButton();
+        Excel = new javax.swing.JButton();
+        Exportar = new javax.swing.JLabel();
         panel_Rentabilidad = new javax.swing.JPanel();
         jPanel9 = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
@@ -657,84 +857,78 @@ private void exportarDatosCSV() {
                     .addComponent(btn_exportar1))
                 .addGap(56, 56, 56)
                 .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 511, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(129, Short.MAX_VALUE))
+                .addContainerGap(403, Short.MAX_VALUE))
         );
 
         Tabbed_Tesoreria.addTab("COMPRAS", panel_COMPRAS);
 
-        btn_gananciaNeta.setText("GANANCCIA NETA");
+        jPanelVentasTotales.setBackground(new java.awt.Color(204, 255, 204));
 
-        btn_rentabilidad.setText("RENTABILIDAD");
-
-        cb_tipoRanking.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-
-        jLabel6.setText("RANKING POR :");
-
-        jPanel16.setBackground(new java.awt.Color(204, 255, 204));
-
-        lbl_totalVentas1.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
-        lbl_totalVentas1.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_totalVentas1.setText("0.00");
+        lbl_TotalVenta.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        lbl_TotalVenta.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_TotalVenta.setText("0.00");
 
         lbl_totalVentas5.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
         lbl_totalVentas5.setForeground(new java.awt.Color(0, 0, 0));
         lbl_totalVentas5.setText("Ventas totales");
 
-        javax.swing.GroupLayout jPanel16Layout = new javax.swing.GroupLayout(jPanel16);
-        jPanel16.setLayout(jPanel16Layout);
-        jPanel16Layout.setHorizontalGroup(
-            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel16Layout.createSequentialGroup()
+        javax.swing.GroupLayout jPanelVentasTotalesLayout = new javax.swing.GroupLayout(jPanelVentasTotales);
+        jPanelVentasTotales.setLayout(jPanelVentasTotalesLayout);
+        jPanelVentasTotalesLayout.setHorizontalGroup(
+            jPanelVentasTotalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelVentasTotalesLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lbl_totalVentas1)
+                .addComponent(lbl_TotalVenta)
                 .addGap(80, 80, 80))
-            .addGroup(jPanel16Layout.createSequentialGroup()
+            .addGroup(jPanelVentasTotalesLayout.createSequentialGroup()
                 .addGap(42, 42, 42)
                 .addComponent(lbl_totalVentas5)
-                .addContainerGap(49, Short.MAX_VALUE))
+                .addContainerGap(48, Short.MAX_VALUE))
         );
-        jPanel16Layout.setVerticalGroup(
-            jPanel16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel16Layout.createSequentialGroup()
+        jPanelVentasTotalesLayout.setVerticalGroup(
+            jPanelVentasTotalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelVentasTotalesLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(lbl_totalVentas5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(lbl_totalVentas1)
+                .addComponent(lbl_TotalVenta)
                 .addGap(18, 18, 18))
         );
 
-        jPanel17.setBackground(new java.awt.Color(204, 204, 204));
+        jPanelTiendaTOP.setBackground(new java.awt.Color(204, 204, 204));
 
-        lbl_totalVentas2.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_totalVentas2.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_totalVentas2.setText("SUCURSAL A");
+        lbl_TiendaTOP.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
+        lbl_TiendaTOP.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_TiendaTOP.setText("SUCURSAL A");
 
         lbl_totalVentas4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
         lbl_totalVentas4.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_totalVentas4.setText("Tienda top");
+        lbl_totalVentas4.setText("Tienda TOP");
 
-        javax.swing.GroupLayout jPanel17Layout = new javax.swing.GroupLayout(jPanel17);
-        jPanel17.setLayout(jPanel17Layout);
-        jPanel17Layout.setHorizontalGroup(
-            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel17Layout.createSequentialGroup()
+        javax.swing.GroupLayout jPanelTiendaTOPLayout = new javax.swing.GroupLayout(jPanelTiendaTOP);
+        jPanelTiendaTOP.setLayout(jPanelTiendaTOPLayout);
+        jPanelTiendaTOPLayout.setHorizontalGroup(
+            jPanelTiendaTOPLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lbl_totalVentas4)
-                    .addComponent(lbl_totalVentas2))
+                .addComponent(lbl_totalVentas4)
                 .addGap(30, 30, 30))
+            .addGroup(jPanelTiendaTOPLayout.createSequentialGroup()
+                .addGap(17, 17, 17)
+                .addComponent(lbl_TiendaTOP)
+                .addContainerGap(26, Short.MAX_VALUE))
         );
-        jPanel17Layout.setVerticalGroup(
-            jPanel17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel17Layout.createSequentialGroup()
+        jPanelTiendaTOPLayout.setVerticalGroup(
+            jPanelTiendaTOPLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(lbl_totalVentas4)
                 .addGap(18, 18, 18)
-                .addComponent(lbl_totalVentas2)
+                .addComponent(lbl_TiendaTOP)
                 .addGap(24, 24, 24))
         );
 
-        jPanel18.setBackground(new java.awt.Color(153, 204, 255));
+        jPanelPromedioVentas.setBackground(new java.awt.Color(153, 204, 255));
 
         lbl_totalVentas3.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
         lbl_totalVentas3.setForeground(new java.awt.Color(0, 0, 0));
@@ -744,44 +938,57 @@ private void exportarDatosCSV() {
         lbl_promedioVentas.setForeground(new java.awt.Color(0, 0, 0));
         lbl_promedioVentas.setText("SUCURSAL A");
 
-        javax.swing.GroupLayout jPanel18Layout = new javax.swing.GroupLayout(jPanel18);
-        jPanel18.setLayout(jPanel18Layout);
-        jPanel18Layout.setHorizontalGroup(
-            jPanel18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel18Layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGroup(jPanel18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel18Layout.createSequentialGroup()
+        javax.swing.GroupLayout jPanelPromedioVentasLayout = new javax.swing.GroupLayout(jPanelPromedioVentas);
+        jPanelPromedioVentas.setLayout(jPanelPromedioVentasLayout);
+        jPanelPromedioVentasLayout.setHorizontalGroup(
+            jPanelPromedioVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelPromedioVentasLayout.createSequentialGroup()
+                .addContainerGap(34, Short.MAX_VALUE)
+                .addGroup(jPanelPromedioVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanelPromedioVentasLayout.createSequentialGroup()
                         .addGap(6, 6, 6)
                         .addComponent(lbl_promedioVentas))
                     .addComponent(lbl_totalVentas3))
                 .addGap(34, 34, 34))
         );
-        jPanel18Layout.setVerticalGroup(
-            jPanel18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel18Layout.createSequentialGroup()
+        jPanelPromedioVentasLayout.setVerticalGroup(
+            jPanelPromedioVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanelPromedioVentasLayout.createSequentialGroup()
                 .addGap(28, 28, 28)
                 .addComponent(lbl_totalVentas3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lbl_promedioVentas)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(23, Short.MAX_VALUE))
         );
 
         panel_rankingXVentas.setBackground(new java.awt.Color(255, 255, 255));
+        panel_rankingXVentas.setLayout(new java.awt.BorderLayout());
 
-        javax.swing.GroupLayout panel_rankingXVentasLayout = new javax.swing.GroupLayout(panel_rankingXVentas);
-        panel_rankingXVentas.setLayout(panel_rankingXVentasLayout);
-        panel_rankingXVentasLayout.setHorizontalGroup(
-            panel_rankingXVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 351, Short.MAX_VALUE)
+        cb_tipoRanking.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ventas", "Transacciones" }));
+        cb_tipoRanking.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cb_tipoRankingActionPerformed(evt);
+            }
+        });
+        panel_rankingXVentas.add(cb_tipoRanking, java.awt.BorderLayout.PAGE_START);
+
+        GraficoBarras.setPreferredSize(new java.awt.Dimension(200, 415));
+
+        javax.swing.GroupLayout GraficoBarrasLayout = new javax.swing.GroupLayout(GraficoBarras);
+        GraficoBarras.setLayout(GraficoBarrasLayout);
+        GraficoBarrasLayout.setHorizontalGroup(
+            GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 443, Short.MAX_VALUE)
         );
-        panel_rankingXVentasLayout.setVerticalGroup(
-            panel_rankingXVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 432, Short.MAX_VALUE)
+        GraficoBarrasLayout.setVerticalGroup(
+            GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 415, Short.MAX_VALUE)
         );
 
-        jTable5.setBackground(new java.awt.Color(255, 255, 255));
-        jTable5.setModel(new javax.swing.table.DefaultTableModel(
+        panel_rankingXVentas.add(GraficoBarras, java.awt.BorderLayout.CENTER);
+
+        TablaRanking.setBackground(new java.awt.Color(255, 255, 255));
+        TablaRanking.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -789,64 +996,96 @@ private void exportarDatosCSV() {
                 {null, null, null, null}
             },
             new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
+                "TOP", "LOCALES", "VENTAS", "TRANSACCIONES"
             }
         ));
-        jScrollPane5.setViewportView(jTable5);
+        jScrollPane5.setViewportView(TablaRanking);
+
+        FiltrarporFecha.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        FiltrarporFecha.setText("FILTRAR POR FECHA:");
+
+        FiltrarporMes.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Anual", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" }));
+        FiltrarporMes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                FiltrarporMesActionPerformed(evt);
+            }
+        });
+
+        PDF.setText("PDF");
+        PDF.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                PDFActionPerformed(evt);
+            }
+        });
+        jSplitPane1.setLeftComponent(PDF);
+
+        Excel.setText("Excel");
+        Excel.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                ExcelActionPerformed(evt);
+            }
+        });
+        jSplitPane1.setRightComponent(Excel);
+
+        Exportar.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        Exportar.setText("EXPORTAR:");
 
         javax.swing.GroupLayout jPanel15Layout = new javax.swing.GroupLayout(jPanel15);
         jPanel15.setLayout(jPanel15Layout);
         jPanel15Layout.setHorizontalGroup(
             jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel15Layout.createSequentialGroup()
-                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel15Layout.createSequentialGroup()
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addGap(83, 83, 83)
-                        .addComponent(jLabel6)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(cb_tipoRanking, javax.swing.GroupLayout.PREFERRED_SIZE, 183, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(btn_gananciaNeta, javax.swing.GroupLayout.PREFERRED_SIZE, 261, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(btn_rentabilidad, javax.swing.GroupLayout.PREFERRED_SIZE, 244, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 613, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, 443, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addGap(49, 49, 49)
-                        .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                        .addGap(25, 25, 25)
+                        .addComponent(jPanelVentasTotales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(32, 32, 32)
+                        .addComponent(jPanelTiendaTOP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel15Layout.createSequentialGroup()
-                                .addComponent(jPanel16, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(35, 35, 35)
-                                .addComponent(jPanel17, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(51, 51, 51)
-                                .addComponent(jPanel18, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jScrollPane5))
-                        .addGap(39, 39, 39)
-                        .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(151, Short.MAX_VALUE))
+                                .addGap(44, 44, 44)
+                                .addComponent(jPanelPromedioVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(67, 67, 67)
+                                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(jPanel15Layout.createSequentialGroup()
+                                        .addComponent(FiltrarporFecha)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(FiltrarporMes, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addComponent(Exportar)))
+                            .addGroup(jPanel15Layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jSplitPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addGap(68, 68, 68))
         );
         jPanel15Layout.setVerticalGroup(
             jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel15Layout.createSequentialGroup()
-                .addGap(43, 43, 43)
+                .addGap(6, 6, 6)
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jPanelVentasTotales, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel15Layout.createSequentialGroup()
+                        .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel15Layout.createSequentialGroup()
+                                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(FiltrarporFecha)
+                                    .addComponent(FiltrarporMes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(28, 28, 28)
+                                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(Exportar)
+                                    .addComponent(jSplitPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(jPanelPromedioVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(0, 8, Short.MAX_VALUE))
+                    .addComponent(jPanelTiendaTOP, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(37, 37, 37)
                 .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(cb_tipoRanking)
-                        .addComponent(jLabel6))
-                    .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(btn_rentabilidad, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(btn_gananciaNeta, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addGap(37, 37, 37)
-                        .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jPanel16, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jPanel17, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jPanel18, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(42, 42, 42)
-                        .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 321, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addGap(82, 82, 82)
-                        .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(89, Short.MAX_VALUE))
+                    .addComponent(jScrollPane5)
+                    .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(399, 399, 399))
         );
 
         javax.swing.GroupLayout panel_RankingLayout = new javax.swing.GroupLayout(panel_Ranking);
@@ -1076,7 +1315,7 @@ private void exportarDatosCSV() {
         panel_RentabilidadLayout.setVerticalGroup(
             panel_RentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panel_RentabilidadLayout.createSequentialGroup()
-                .addGap(0, 104, Short.MAX_VALUE)
+                .addGap(0, 378, Short.MAX_VALUE)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -1086,7 +1325,7 @@ private void exportarDatosCSV() {
         panel_Estadisticas.setLayout(panel_EstadisticasLayout);
         panel_EstadisticasLayout.setHorizontalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Estadisticas, javax.swing.GroupLayout.PREFERRED_SIZE, 1209, Short.MAX_VALUE)
+            .addComponent(Tabbed_Estadisticas)
         );
         panel_EstadisticasLayout.setVerticalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1099,7 +1338,9 @@ private void exportarDatosCSV() {
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Tesoreria, javax.swing.GroupLayout.PREFERRED_SIZE, 1114, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addGroup(layout.createSequentialGroup()
+                .addComponent(Tabbed_Tesoreria, javax.swing.GroupLayout.PREFERRED_SIZE, 1114, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(32, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1115,16 +1356,39 @@ private void exportarDatosCSV() {
         // TODO add your handling code here:
     }//GEN-LAST:event_filtro_sucursalActionPerformed
 
+    private void cb_tipoRankingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_tipoRankingActionPerformed
+cargarDatosRanking();
+    }//GEN-LAST:event_cb_tipoRankingActionPerformed
+
+    private void FiltrarporMesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FiltrarporMesActionPerformed
+cargarDatosRanking();
+    }//GEN-LAST:event_FiltrarporMesActionPerformed
+
+    private void PDFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PDFActionPerformed
+        GeneradorPDFRk pdf = new GeneradorPDFRk();
+        pdf.generarReporte(TablaRanking, chartRanking, FiltrarporMes.getSelectedItem().toString());
+    }//GEN-LAST:event_PDFActionPerformed
+
+    private void ExcelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExcelActionPerformed
+        GeneradorExcelRk excel = new GeneradorExcelRk();
+        excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
+    }//GEN-LAST:event_ExcelActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Excel;
+    private javax.swing.JLabel Exportar;
+    private javax.swing.JLabel FiltrarporFecha;
+    private javax.swing.JComboBox<String> FiltrarporMes;
     private javax.swing.JPanel Filtros;
+    private javax.swing.JPanel GraficoBarras;
     private javax.swing.JPanel Ingresos_totales;
+    private javax.swing.JButton PDF;
     private javax.swing.JTabbedPane Tabbed_Estadisticas;
     private javax.swing.JTabbedPane Tabbed_Tesoreria;
+    private javax.swing.JTable TablaRanking;
     private javax.swing.JButton btn_exportar;
     private javax.swing.JButton btn_exportar1;
-    private javax.swing.JButton btn_gananciaNeta;
-    private javax.swing.JButton btn_rentabilidad;
     private javax.swing.JComboBox<String> cb_productos1;
     private javax.swing.JComboBox<String> cb_productos2;
     private javax.swing.JComboBox<String> cb_rangoFechas;
@@ -1145,18 +1409,19 @@ private void exportarDatosCSV() {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
-    private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel15;
-    private javax.swing.JPanel jPanel16;
-    private javax.swing.JPanel jPanel17;
-    private javax.swing.JPanel jPanel18;
     private javax.swing.JPanel jPanel9;
+    private javax.swing.JPanel jPanelPromedioVentas;
+    private javax.swing.JPanel jPanelTiendaTOP;
+    private javax.swing.JPanel jPanelVentasTotales;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
+    private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTable jTable3;
     private javax.swing.JTable jTable4;
-    private javax.swing.JTable jTable5;
+    private javax.swing.JLabel lbl_TiendaTOP;
+    private javax.swing.JLabel lbl_TotalVenta;
     private javax.swing.JLabel lbl_costos;
     private javax.swing.JLabel lbl_gananciaBruta2;
     private javax.swing.JLabel lbl_gananciaNeta;
@@ -1171,8 +1436,6 @@ private void exportarDatosCSV() {
     private javax.swing.JLabel lbl_totalIngresos;
     private javax.swing.JLabel lbl_totalSoles;
     private javax.swing.JLabel lbl_totalVentas;
-    private javax.swing.JLabel lbl_totalVentas1;
-    private javax.swing.JLabel lbl_totalVentas2;
     private javax.swing.JLabel lbl_totalVentas3;
     private javax.swing.JLabel lbl_totalVentas4;
     private javax.swing.JLabel lbl_totalVentas5;
