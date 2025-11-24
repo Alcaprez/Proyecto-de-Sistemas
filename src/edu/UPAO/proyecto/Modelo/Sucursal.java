@@ -17,6 +17,12 @@ public class Sucursal {
         this.estado = estado;
     }
 
+    // ✅ ESTE ES EL MÉTODO QUE FALTABA PARA QUE FUNCIONE EL PANEL
+    public int getId() { 
+        return id_sucursal; 
+    }
+
+    // Getters y Setters originales (puedes mantenerlos por compatibilidad)
     public int getId_sucursal() { return id_sucursal; }
     public void setId_sucursal(int id_sucursal) { this.id_sucursal = id_sucursal; }
 
@@ -28,7 +34,7 @@ public class Sucursal {
 
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-
+    
     @Override
     public String toString() {
         return nombre; // Para que el ComboBox muestre el nombre

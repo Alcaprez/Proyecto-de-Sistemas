@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.BoxLayout;
 import javax.swing.table.DefaultTableModel;
-// Importamos tus colores (Asegúrate de que la clase ColorADM exista)
 import static edu.UPAO.proyecto.DAO.ColorADM.*;
 import javax.swing.*;
 
@@ -28,17 +27,30 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     private List<Categoria> listaCategorias;
     private Categoria categoriaSeleccionada;
     private JPanel panelCategorias;
-    private DefaultTableModel modeloTablaProductos;
 
     // DATOS DE CONEXIÓN
     String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
     String usuario = "root";
     String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
-    private int idSucursalUsuario; // NUEVA VARIABLE
+    private int idSucursalUsuario;
+
+    // ---------------------------------------------------------
+    // ✅ SOLUCIÓN AL ERROR: CONSTRUCTOR VACÍO (POR DEFECTO)
+    // ---------------------------------------------------------
+    public ALMACEN_Admin() {
+        // Si no le pasas ID, asume la sucursal 1 por defecto
+        this(1);
+    }
 
     public ALMACEN_Admin(int idSucursal) {
-        this.idSucursalUsuario = idSucursal; // Guardamos el ID
+        this.idSucursalUsuario = idSucursal;
         initComponents();
+
+        // --- IMPORTANTE: ESTO VA PRIMERO ---
+        // Inicializamos la lista antes de que el ComboBox intente usarla
+        listaProductos = new ArrayList<>();
+        // -----------------------------------
+
         inicializarTabla();
         configurarComboBoxes();
         // Carga inicial de datos reales
@@ -47,10 +59,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         configurarBuscador();
         inicializarInventarioTienda();
     }
-
 // /////////////////////////////////////////////////////
     //  1. GESTIÓN DE CADUCIDAD (TABLA Y FILTROS)
     // /////////////////////////////////////////////////////
+
     private void inicializarTabla() {
         modeloTabla = new DefaultTableModel(
                 new Object[]{"Producto (Lote/SKU)", "Proveedor", "Fecha de Caducidad", "Días Restantes", "Cantidad"}, 0
@@ -70,12 +82,11 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 jTable1.getColumnModel().getColumn(i).setCellRenderer(renderer);
             }
         } catch (Exception e) {
-            System.out.println("Nota: No se encontró CaducidadCellRenderer, usando default.");
+            System.out.println("Nota: No se encontró CaducidadCellRenderer o dio error, usando default.");
         }
 
         jTable1.getColumnModel().getColumn(0).setPreferredWidth(250);
         jTable1.setRowHeight(30);
-        listaProductos = new ArrayList<>();
     }
 
     private void configurarComboBoxes() {
@@ -128,18 +139,18 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     // /////////////////////////////////////////////////////
     //  2. DASHBOARD DE MÉTRICAS (KPIs) - SQL PURO
     // /////////////////////////////////////////////////////
-   private void actualizarMetricasBD() {
+    private void actualizarMetricasBD() {
         // Consultas directas a la BD para velocidad y precisión
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            
+
             // 1. Vencidos
             String sqlVencidos = "SELECT SUM(stock_actual) FROM inventario_sucursal WHERE fecha_caducidad < CURDATE() AND id_sucursal=?";
             PreparedStatement ps1 = con.prepareStatement(sqlVencidos);
             ps1.setInt(1, idSucursalUsuario);
             ResultSet rs1 = ps1.executeQuery();
-            
+
             // --- ESTA ES LA LÍNEA QUE FALTABA ---
-            int vencidos = rs1.next() ? rs1.getInt(1) : 0; 
+            int vencidos = rs1.next() ? rs1.getInt(1) : 0;
             // ------------------------------------
 
             // 2. Vencen en 7 días
@@ -157,10 +168,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             int en30dias = rs3.next() ? rs3.getInt(1) : 0;
 
             // 4. Valor en Riesgo
-            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) " +
-                               "FROM inventario_sucursal i " +
-                               "INNER JOIN producto p ON i.id_producto = p.id_producto " +
-                               "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=?";
+            String sqlRiesgo = "SELECT SUM(i.stock_actual * p.precio_compra) "
+                    + "FROM inventario_sucursal i "
+                    + "INNER JOIN producto p ON i.id_producto = p.id_producto "
+                    + "WHERE i.fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND i.id_sucursal=?";
             PreparedStatement ps4 = con.prepareStatement(sqlRiesgo);
             ps4.setInt(1, idSucursalUsuario);
             ResultSet rs4 = ps4.executeQuery();
@@ -178,7 +189,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             jPanel4.setBackground(new Color(255, 235, 156));
             jPanel7.setBackground(new Color(173, 216, 230));
             jLabel1.setForeground(Color.WHITE);
-            
+
         } catch (SQLException e) {
             System.out.println("Error en métricas: " + e);
         }
@@ -186,6 +197,8 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
     // Lógica de Filtros en Memoria (Para la tabla)
     private void filtrarProductos() {
+        if (listaProductos == null) return;
+        
         String estadoSel = (String) Estado.getSelectedItem();
 
         // Limpieza del buscador
@@ -342,12 +355,12 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jLabel6.setText("Productos: " + categoriaSeleccionada.getNombre());
         jPanel9.add(Box.createVerticalStrut(10));
 
-        String sql = "SELECT p.nombre, i.stock_actual " +
-                     "FROM producto p " +
-                     "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto " +
-                     "WHERE p.id_categoria = ? AND i.id_sucursal = ? AND i.stock_actual > 0"; // CAMBIO AQUÍ
+        String sql = "SELECT p.nombre, i.stock_actual "
+                + "FROM producto p "
+                + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
+                + "WHERE p.id_categoria = ? AND i.id_sucursal = ? AND i.stock_actual > 0"; // CAMBIO AQUÍ
 
-      try (Connection con = DriverManager.getConnection(url, usuario, password)) {
+        try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
             ps.setInt(1, idCategoria);
             ps.setInt(2, idSucursalUsuario); // USAMOS LA VARIABLE

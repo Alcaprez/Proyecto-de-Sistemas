@@ -1,7 +1,7 @@
 
 package edu.UPAO.proyecto.dao;
 
-import edu.UPAO.proyecto.modelo.Sucursal;
+import edu.UPAO.proyecto.Modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -102,7 +102,7 @@ public class UsuarioDAOADM {
                 else if (id == 2) nombre = "Sucursal Norte";
                 else if (id == 3) nombre = "Sucursal Sur";
                 
-                lista.add(new Sucursal(id, nombre));
+
             }
         } catch (Exception e) {
             e.printStackTrace();

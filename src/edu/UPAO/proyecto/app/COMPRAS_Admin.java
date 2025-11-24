@@ -13,8 +13,8 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
     private int idSucursalUsuario;
 
-    public COMPRAS_Admin(int idSucursal) {
-        this.idSucursalUsuario = idSucursal; // Guardamos el ID
+    public COMPRAS_Admin() {
+
         initComponents();
         try {
             jTabbedPane1.setSelectedIndex(0);

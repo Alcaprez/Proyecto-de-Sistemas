@@ -1,15 +1,18 @@
-
 package edu.UPAO.proyecto.app;
 
+import java.awt.BorderLayout;
 
 public class panel_AlmacenAdministrador extends javax.swing.JPanel {
 
-    
     public panel_AlmacenAdministrador() {
         initComponents();
+
+        PanelEstadisticasAlmacen panelStats = new PanelEstadisticasAlmacen();
+
+// If you are using a BorderLayout:
+        this.add(panelStats, BorderLayout.CENTER);
     }
 
-    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -37,6 +40,7 @@ public class panel_AlmacenAdministrador extends javax.swing.JPanel {
         btn_cancelar = new javax.swing.JButton();
         PROMOCIONES = new javax.swing.JTabbedPane();
         jPanel2 = new javax.swing.JPanel();
+        panelStats = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
 
@@ -216,15 +220,26 @@ public class panel_AlmacenAdministrador extends javax.swing.JPanel {
             }
         });
 
+        javax.swing.GroupLayout panelStatsLayout = new javax.swing.GroupLayout(panelStats);
+        panelStats.setLayout(panelStatsLayout);
+        panelStatsLayout.setHorizontalGroup(
+            panelStatsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 1165, Short.MAX_VALUE)
+        );
+        panelStatsLayout.setVerticalGroup(
+            panelStatsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 619, Short.MAX_VALUE)
+        );
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1165, Short.MAX_VALUE)
+            .addComponent(panelStats, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 619, Short.MAX_VALUE)
+            .addComponent(panelStats, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         PROMOCIONES.addTab("GESTION DE CADUCIDAD", jPanel2);
@@ -288,11 +303,11 @@ public class panel_AlmacenAdministrador extends javax.swing.JPanel {
     }//GEN-LAST:event_cb_categoriaActionPerformed
 
     private void btn_actualizarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_actualizarActionPerformed
-    
+
     }//GEN-LAST:event_btn_actualizarActionPerformed
 
     private void btn_eliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_eliminarActionPerformed
-    
+
     }//GEN-LAST:event_btn_eliminarActionPerformed
 
     private void btn_cancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancelarActionPerformed
@@ -319,6 +334,7 @@ public class panel_AlmacenAdministrador extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JPanel panelStats;
     private javax.swing.JRadioButton rb_generarcodigo;
     private javax.swing.JRadioButton rb_sku;
     private static javax.swing.JTable tabla_productos;
