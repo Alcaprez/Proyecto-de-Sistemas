@@ -17,6 +17,7 @@ import edu.UPAO.proyecto.Modelo.Empleado;
 import java.util.ArrayList;
 import java.util.List;
 import edu.UPAO.proyecto.Modelo.Sucursal;
+import java.awt.Dimension;
 
 public class panel_PersonalGerente extends javax.swing.JPanel {
 
@@ -34,6 +35,15 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 llenarFormularioDesdeTabla();
             }
         });
+        
+jPanel1.setLayout(new java.awt.BorderLayout());
+        jPanel1.removeAll(); // Limpiar lo que haya
+        jPanel1.add(new PanelNominaGerente(), java.awt.BorderLayout.CENTER);
+        jPanel1.revalidate();
+        jPanel1.repaint();
+        
+        
+        
         // Evento DNI (Enter)
         txtDni.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
@@ -65,6 +75,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 }
             }
         });
+
     }
 
     private void configurarTabAsistencias() {
@@ -114,46 +125,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         }
     }
 
-    private void configurarTabNomina() {
-        // 1. Configurar Tabla (jTable1)
-        DefaultTableModel modelo = new DefaultTableModel();
-        modelo.addColumn("ID");
-        modelo.addColumn("Nombres");
-        modelo.addColumn("Apellidos");
-        modelo.addColumn("Cargo");
-        modelo.addColumn("Sueldo");
-        modelo.addColumn("Estado Mes"); // PAGADO o PENDIENTE
-        modelo.addColumn("Fecha Pago");
-        jTable1.setModel(modelo);
 
-        // 2. Llenar Combos (Mes y Sucursal de nómina)
-        cargarComboMeses();
-        cargarComboSucursalesNomina();
-
-        // 3. Listeners para recargar tabla al cambiar filtros
-        cb_sucursal.addActionListener(e -> cargarTablaNomina());
-        cb_mes.addActionListener(e -> cargarTablaNomina());
-
-        // Buscador con Enter
-        tf_buscarEnNomina.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyPressed(java.awt.event.KeyEvent evt) {
-                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
-                    cargarTablaNomina();
-                }
-            }
-        });
-
-        // BOTÓN PAGAR
-        btn_pagar.addActionListener(e -> procesarPagoSeleccionado());
-
-        // BOTÓN BUSCAR (Si existe)
-        if (btn_buscarNomina != null) {
-            btn_buscarNomina.addActionListener(e -> cargarTablaNomina());
-        }
-
-        // Carga inicial
-        cargarTablaNomina();
-    }
 
     private void cargarTablaAsistencias(String filtroTienda) {
         DefaultTableModel modelo = (DefaultTableModel) tablaAsistencias.getModel();
@@ -373,91 +345,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         }
     }
 
-    private void cargarComboMeses() {
-        cb_mes.removeAllItems();
-        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
-        for (String m : meses) {
-            cb_mes.addItem(m);
-        }
-        // Seleccionar mes actual (opcional)
-        int mesActual = java.time.LocalDate.now().getMonthValue() - 1;
-        cb_mes.setSelectedIndex(mesActual);
-    }
-
-    private void cargarComboSucursalesNomina() {
-        // Reutilizamos tu lógica de sucursales para el combo de la pestaña nómina
-        cb_sucursal.removeAllItems();
-        SucursalDAO dao = new SucursalDAO();
-        List<String> lista = dao.obtenerSucursalesActivas();
-        for (String s : lista) {
-            cb_sucursal.addItem(s);
-        }
-    }
-
-    private void cargarTablaNomina() {
-        String nombreSucursal = (String) cb_sucursal.getSelectedItem();
-        String mes = (String) cb_mes.getSelectedItem();
-        int anio = java.time.LocalDate.now().getYear(); // Año actual
-        String busqueda = tf_buscarEnNomina.getText().trim();
-
-        if (nombreSucursal == null || mes == null) {
-            return;
-        }
-
-        // Obtener ID Sucursal
-        int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
-
-        // Llamar al DAO
-        edu.UPAO.proyecto.DAO.NominaDAO nominaDAO = new edu.UPAO.proyecto.DAO.NominaDAO();
-        List<Object[]> datos = nominaDAO.listarNominaMes(idSucursal, mes, anio, busqueda);
-
-        // Llenar Tabla
-        DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
-        modelo.setRowCount(0);
-
-        for (Object[] fila : datos) {
-            modelo.addRow(fila);
-        }
-    }
-
-    private void procesarPagoSeleccionado() {
-        int fila = jTable1.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione un empleado de la lista para pagar.");
-            return;
-        }
-
-        String estado = jTable1.getValueAt(fila, 5).toString(); // Columna 5 es Estado
-        if ("PAGADO".equals(estado)) {
-            JOptionPane.showMessageDialog(this, "Este empleado ya cobró este mes.", "Ya pagado", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String idEmp = jTable1.getValueAt(fila, 0).toString();
-        String nombre = jTable1.getValueAt(fila, 1).toString() + " " + jTable1.getValueAt(fila, 2).toString();
-        double sueldo = Double.parseDouble(jTable1.getValueAt(fila, 4).toString());
-
-        String mes = (String) cb_mes.getSelectedItem();
-        String nombreSucursal = (String) cb_sucursal.getSelectedItem();
-        int idSucursal = obtenerIdSucursalPorNombre(nombreSucursal);
-
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Confirmar pago de S/ " + sueldo + " a " + nombre + "?\n"
-                + "Mes: " + mes + "\n"
-                + "Se descontará de la caja activa de la tienda.",
-                "Procesar Pago", JOptionPane.YES_NO_OPTION);
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            edu.UPAO.proyecto.DAO.NominaDAO dao = new edu.UPAO.proyecto.DAO.NominaDAO();
-            boolean exito = dao.pagarEmpleado(idEmp, sueldo, mes, java.time.LocalDate.now().getYear(), idSucursal);
-
-            if (exito) {
-                JOptionPane.showMessageDialog(this, "¡Pago registrado correctamente!");
-                cargarTablaNomina(); // Refrescar para ver que cambie a PAGADO
-            }
-        }
-    }
-
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -490,15 +378,6 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         tablaAsistencias = new javax.swing.JTable();
         NOMINA_EMPLEADOS = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
-        cb_sucursal = new javax.swing.JComboBox<>();
-        cb_mes = new javax.swing.JComboBox<>();
-        btn_exportar = new javax.swing.JButton();
-        tf_buscarEnNomina = new javax.swing.JTextField();
-        btn_buscarNomina = new javax.swing.JButton();
-        btn_todos = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-        btn_pagar = new javax.swing.JButton();
         REGISTRAR_PERSONAL = new javax.swing.JPanel();
         panelForm = new javax.swing.JPanel();
         lblNombres = new javax.swing.JLabel();
@@ -677,82 +556,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
 
         tabControlPersonal.addTab("ASISTENCIAS", ASISTENCIAS);
 
-        cb_sucursal.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-
-        cb_mes.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-
-        btn_exportar.setText("Exportar");
-
-        tf_buscarEnNomina.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                tf_buscarEnNominaActionPerformed(evt);
-            }
-        });
-
-        btn_buscarNomina.setText("Buscar");
-
-        btn_todos.setText("Todos");
-
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Title 1", "Title 2", "Title 3", "Title 4"
-            }
-        ));
-        jScrollPane1.setViewportView(jTable1);
-
-        btn_pagar.setText("Pagar");
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(29, 29, 29)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(btn_pagar, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btn_exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 117, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                            .addComponent(tf_buscarEnNomina, javax.swing.GroupLayout.PREFERRED_SIZE, 663, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(btn_buscarNomina, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(18, 18, 18)
-                            .addComponent(btn_todos, javax.swing.GroupLayout.PREFERRED_SIZE, 128, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                            .addComponent(cb_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(34, 34, 34)
-                            .addComponent(cb_mes, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(jScrollPane1)))
-                .addContainerGap(238, Short.MAX_VALUE))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(31, 31, 31)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(cb_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(cb_mes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(btn_todos, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
-                    .addComponent(btn_buscarNomina, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(tf_buscarEnNomina))
-                .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 461, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btn_exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_pagar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(35, Short.MAX_VALUE))
-        );
+        jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
         javax.swing.GroupLayout NOMINA_EMPLEADOSLayout = new javax.swing.GroupLayout(NOMINA_EMPLEADOS);
         NOMINA_EMPLEADOS.setLayout(NOMINA_EMPLEADOSLayout);
@@ -1085,7 +889,7 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 686, Short.MAX_VALUE)
+            .addComponent(tabControlPersonal, javax.swing.GroupLayout.DEFAULT_SIZE, 668, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -1347,10 +1151,6 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtBuscarActionPerformed
 
-    private void tf_buscarEnNominaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tf_buscarEnNominaActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_tf_buscarEnNominaActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel ASISTENCIAS;
@@ -1361,26 +1161,18 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JButton btnExportar;
     private javax.swing.JButton btnFecha;
     private javax.swing.JButton btnLimpiar;
-    private javax.swing.JButton btn_buscarNomina;
-    private javax.swing.JButton btn_exportar;
     private javax.swing.JButton btn_horarios;
-    private javax.swing.JButton btn_pagar;
-    private javax.swing.JButton btn_todos;
     private javax.swing.JComboBox<String> cbCargo;
     private javax.swing.JComboBox<String> cbEstado;
     private javax.swing.JComboBox<String> cbFiltroEstado;
     private javax.swing.JComboBox<String> cbTienda;
     private javax.swing.JComboBox<String> cbTiendaP;
-    private javax.swing.JComboBox<String> cb_mes;
-    private javax.swing.JComboBox<String> cb_sucursal;
     private javax.swing.JComboBox<String> cb_turno;
     private javax.swing.JButton jButton1;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPaneAsis;
-    private javax.swing.JTable jTable1;
     private javax.swing.JTextField jTextField1;
     private javax.swing.JLabel lblApellidos;
     private javax.swing.JLabel lblAusenciasTitulo;
@@ -1417,7 +1209,6 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
     private javax.swing.JTabbedPane tabControlPersonal;
     private javax.swing.JTable tablaAsistencias;
     private javax.swing.JTable tablaEmpleados;
-    private javax.swing.JTextField tf_buscarEnNomina;
     private javax.swing.JTextField txtApellidos;
     private javax.swing.JTextField txtBuscar;
     private javax.swing.JTextField txtCorreo;

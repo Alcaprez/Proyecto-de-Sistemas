@@ -1,6 +1,8 @@
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.CompraGlobalDAO;
 import edu.UPAO.proyecto.DAO.ProveedorDAO;
+import edu.UPAO.proyecto.DAO.SucursalDAO;
 import edu.UPAO.proyecto.Modelo.Proveedor;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -14,11 +16,13 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private ProveedorDAO proveedorDAO;
     private String idProveedorSeleccionado = null;
     private int idSucursalActual;
+    private CompraGlobalDAO compraGlobalDAO; // <--- NUEVO
 
     public panel_ComprasGerente(int idSucursal) {
         this.idSucursalActual = idSucursal;
+        DefaultTableModel modelo = (DefaultTableModel) jTableCompras.getModel();
+        
         initComponents(); // CÓDIGO GENERADO POR NETBEANS
-
         // Inicialización
         proveedorDAO = new ProveedorDAO();
         configurarTablaProveedores();
@@ -26,6 +30,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         cargarProveedoresEnTabla("");
         limpiarFormulario();
     }
+
 
     // --- MÉTODO NUEVO PARA BUSCAR MIENTRAS ESCRIBES ---
     private void configurarBusquedaEnTiempoReal() {
@@ -66,6 +71,69 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         });
     }
 
+    
+    
+    
+    
+    private void configurarTablaComprasGlobales() {
+        // NOTA: Asegúrate de que tu tabla en diseño se llame 'tblComprasGlobales' o ajusta el nombre aquí.
+        // Veo en tu código que tienes 'jPanel2' vacío dentro de la pestaña. 
+        // DEBES ARRASTRAR UNA JTABLE DENTRO DE ESE PANEL EN EL DISEÑADOR.
+        // Por ahora, asumiré que la tabla se llamará 'jTableCompras'.
+        
+        /* COMO EN TU CÓDIGO VEO QUE jPanel2 ESTÁ VACÍO, 
+           PRIMERO VE AL DISEÑADOR (Design), ARRASTRA UN JScrollPane DENTRO DE jPanel2 
+           Y LUEGO UNA JTable DENTRO DEL SCROLL. LLÁMALA 'jTableCompras'.
+        */
+        
+        // Si ya tienes una tabla ahí (quizás oculta), úsala. Si no, avísame.
+        // Suponiendo que la tabla se llama jTableCompras (o jTable1 si reutilizas):
+        
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("ID");
+        modelo.addColumn("Fecha");
+        modelo.addColumn("Sucursal");
+        modelo.addColumn("Proveedor");
+        modelo.addColumn("Empleado");
+        modelo.addColumn("Total");
+        modelo.addColumn("Estado");
+        jTableCompras.setModel(modelo); // <--- CAMBIA 'jTableCompras' POR EL NOMBRE REAL DE TU TABLA
+        
+    }
+    
+    private void cargarComboSucursales() {
+        jComboBox1.removeAllItems();
+        jComboBox1.addItem("TODAS LAS TIENDAS");
+        
+        SucursalDAO sucDao = new SucursalDAO();
+        List<String> lista = sucDao.obtenerSucursalesActivas();
+        for(String s : lista) {
+            jComboBox1.addItem(s);
+        }
+        
+        // Agregar evento para filtrar al cambiar
+        jComboBox1.addActionListener(e -> cargarComprasGlobales());
+    }
+    
+    private void cargarComprasGlobales() {
+        // OJO: Necesitas una tabla en la interfaz para esto.
+        // Usaré jTableCompras como nombre ejemplo. Reemplázalo.
+        
+        DefaultTableModel modelo = (DefaultTableModel) jTableCompras.getModel();
+        modelo.setRowCount(0);
+        
+        String sucursalSeleccionada = (jComboBox1.getSelectedItem() != null) ? jComboBox1.getSelectedItem().toString() : "TODAS LAS TIENDAS";
+        
+        List<Object[]> datos = compraGlobalDAO.listarComprasGlobales(sucursalSeleccionada);
+        
+        for(Object[] fila : datos) {
+            modelo.addRow(fila);
+        }
+        
+    }
+    
+
+    
     private void cargarProveedoresEnTabla(String filtro) {
         DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         modelo.setRowCount(0);
@@ -202,7 +270,8 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         jTabbedPane1 = new javax.swing.JTabbedPane();
         ComprasGlobales = new javax.swing.JPanel();
         jComboBox1 = new javax.swing.JComboBox<>();
-        jPanel2 = new javax.swing.JPanel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        jTableCompras = new javax.swing.JTable();
         Devoluciones = new javax.swing.JPanel();
         DevolucionesPorTienda = new javax.swing.JLabel();
         Proveedor = new javax.swing.JComboBox<>();
@@ -241,18 +310,18 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             }
         });
 
-        jPanel2.setBackground(new java.awt.Color(204, 204, 204));
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 664, Short.MAX_VALUE)
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 319, Short.MAX_VALUE)
-        );
+        jTableCompras.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
+            },
+            new String [] {
+                "Title 1", "Title 2", "Title 3", "Title 4"
+            }
+        ));
+        jScrollPane3.setViewportView(jTableCompras);
 
         javax.swing.GroupLayout ComprasGlobalesLayout = new javax.swing.GroupLayout(ComprasGlobales);
         ComprasGlobales.setLayout(ComprasGlobalesLayout);
@@ -261,9 +330,9 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             .addGroup(ComprasGlobalesLayout.createSequentialGroup()
                 .addGap(15, 15, 15)
                 .addGroup(ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 1140, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(549, Short.MAX_VALUE))
+                .addContainerGap(676, Short.MAX_VALUE))
         );
         ComprasGlobalesLayout.setVerticalGroup(
             ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -271,8 +340,8 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 .addGap(29, 29, 29)
                 .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(276, Short.MAX_VALUE))
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 568, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(27, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("COMPRAS GLOBALES", ComprasGlobales);
@@ -344,7 +413,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                                         .addComponent(GraficoBarras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addGap(18, 18, 18)
                                         .addComponent(GraficoCircular, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                        .addGap(0, 14, Short.MAX_VALUE))
+                        .addGap(0, 617, Short.MAX_VALUE))
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING))
                 .addContainerGap())
         );
@@ -372,7 +441,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1228, Short.MAX_VALUE)
+            .addGap(0, 1831, Short.MAX_VALUE)
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -517,7 +586,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                             .addComponent(tf_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 441, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                             .addComponent(btn_buscar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(83, Short.MAX_VALUE))
+                .addContainerGap(686, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -594,14 +663,15 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTable jTable2;
+    private javax.swing.JTable jTableCompras;
     private javax.swing.JTextField tf_Direccion;
     private javax.swing.JTextField tf_RUC;
     private javax.swing.JTextField tf_Telefono;
