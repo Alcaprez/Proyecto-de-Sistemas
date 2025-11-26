@@ -11,6 +11,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.time.LocalTime; // ✅ Import necesario para calcular el turno
 
 public class VentaDAO {
 
@@ -29,19 +30,13 @@ public class VentaDAO {
 
     public List<Venta> listarPorRangoFecha(java.sql.Date fechaInicio, java.sql.Date fechaFin) {
         List<Venta> lista = new ArrayList<>();
-        // SQL para obtener ventas en rango. Necesito JOINs si quiero mostrar nombres, pero por ahora con IDs basta para cumplir.
-        // Mejor hacer un JOIN simple para mostrar algo decente si es posible, pero la tabla Venta tiene id_cliente char(8).
         String sql = "SELECT * FROM venta WHERE fecha_hora BETWEEN ? AND ? ORDER BY fecha_hora DESC";
-
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            // Ajustar fechas para cubrir el rango completo (inicio del día 1 al final del día 2)
             stmt.setTimestamp(1, new Timestamp(fechaInicio.getTime()));
-            // Para fechaFin, sumamos 1 día o ajustamos hora a 23:59:59
             Calendar c = Calendar.getInstance();
             c.setTime(fechaFin);
             c.add(Calendar.DAY_OF_MONTH, 1);
             stmt.setTimestamp(2, new Timestamp(c.getTimeInMillis()));
-
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 Venta v = new Venta();
@@ -49,49 +44,27 @@ public class VentaDAO {
                 v.setFecha(rs.getTimestamp("fecha_hora").toLocalDateTime());
                 v.setTotal(rs.getDouble("total"));
                 v.setIdCliente(rs.getString("id_cliente"));
-                v.setIdEmpleado(rs.getString("id_empleado")); // String según modelo actualizado
-                // v.setMetodoPago(...); // Necesitaría JOIN con metodo_pago o hacer otra consulta. 
-                // Para optimizar, asumimos que en la tabla visual mostraremos el ID o haremos una carga perezosa/cache.
-                // Dado el DAO previo, id_metodo_pago es int.
+                v.setIdEmpleado(rs.getString("id_empleado"));
                 v.setIdMetodoPago(rs.getInt("id_metodo_pago"));
                 lista.add(v);
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return lista;
     }
 
     public List<Venta> listarHistorialPorEmpleado(java.util.Date fechaInicio, java.util.Date fechaFin, String idEmpleado) {
         List<Venta> lista = new ArrayList<>();
         String sql = "SELECT v.id_venta, v.fecha_hora, v.total, v.id_cliente, v.id_empleado, mp.nombre AS metodo_pago "
-                + "FROM venta v "
-                + "LEFT JOIN metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago "
-                + "WHERE v.id_empleado = ? "
-                + // <--- FILTRO CLAVE
-                "AND v.fecha_hora BETWEEN ? AND ? "
-                + "ORDER BY v.fecha_hora DESC";
+                   + "FROM venta v LEFT JOIN metodo_pago mp ON v.id_metodo_pago = mp.id_metodo_pago "
+                   + "WHERE v.id_empleado = ? AND v.fecha_hora BETWEEN ? AND ? ORDER BY v.fecha_hora DESC";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, idEmpleado);
-
-            // Configurar fechas (Inicio del día 1 al final del día 2)
             Calendar cal = Calendar.getInstance();
-
-            cal.setTime(fechaInicio);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            stmt.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
-
-            cal.setTime(fechaFin);
-            cal.set(Calendar.HOUR_OF_DAY, 23);
-            cal.set(Calendar.MINUTE, 59);
-            cal.set(Calendar.SECOND, 59);
-            stmt.setTimestamp(3, new Timestamp(cal.getTimeInMillis()));
+            cal.setTime(fechaInicio); cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); stmt.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
+            cal.setTime(fechaFin); cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); stmt.setTimestamp(3, new Timestamp(cal.getTimeInMillis()));
 
             ResultSet rs = stmt.executeQuery();
-
             while (rs.next()) {
                 Venta v = new Venta();
                 v.setIdVenta(rs.getInt("id_venta"));
@@ -102,12 +75,9 @@ public class VentaDAO {
                 v.setMetodoPago(rs.getString("metodo_pago"));
                 lista.add(v);
             }
-        } catch (SQLException e) {
-            System.err.println("❌ Error al listar ventas del empleado: " + e.getMessage());
-        }
+        } catch (SQLException e) { e.printStackTrace(); }
         return lista;
     }
-
     public List<Venta> listarHistorial(java.util.Date fechaInicio, java.util.Date fechaFin) {
         List<Venta> lista = new ArrayList<>();
         // Usamos JOIN para obtener el nombre del método de pago directamente
@@ -158,7 +128,6 @@ public class VentaDAO {
 
     private void actualizarInventarioSucursal(List<DetalleVenta> detalles, int idSucursal, Connection conn) throws SQLException {
         String sql = "UPDATE inventario_sucursal SET stock_actual = stock_actual - ? WHERE id_producto = ? AND id_sucursal = ?";
-
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             for (DetalleVenta detalle : detalles) {
                 int idProducto = productoDAO.obtenerIdPorCodigo(detalle.getProducto().getCodigo());
@@ -166,12 +135,8 @@ public class VentaDAO {
                 stmt.setInt(2, idProducto);
                 stmt.setInt(3, idSucursal);
                 stmt.addBatch();
-
-                System.out.println("🔁 Actualizando inventario_sucursal - Producto: " + idProducto
-                        + ", Sucursal: " + idSucursal + ", Cantidad: -" + detalle.getCantidad());
             }
             stmt.executeBatch();
-            System.out.println("✅ Inventario_sucursal actualizado");
         }
     }
 
@@ -182,25 +147,23 @@ public class VentaDAO {
 
         try {
             conn = this.conexion;
-            conn.setAutoCommit(false);
+            conn.setAutoCommit(false); // Iniciar transacción
 
-            // ✅ CONFIGURAR TIMEOUT MÁS CORTO
-            conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor(), 10000); // 10 segundos
-
-            // 1. DATOS RÁPIDOS
+            // 1. Obtener datos necesarios
             ClienteDAO clienteDAO = new ClienteDAO();
             String idClienteReal = clienteDAO.obtenerIdClienteParaVenta(venta.getDniCliente());
             clienteDAO.cerrarConexion();
 
             int idSucursal = venta.getIdSucursal();
             int idMetodoPago = obtenerIdMetodoPago(venta.getMetodoPago());
-            int idCaja = obtenerIdCajaActiva(idSucursal);
 
-            // 2. INSERTAR VENTA
+            // ✅ CORRECCIÓN PRINCIPAL: Pasamos el ID del empleado para crear la caja si no existe
+            int idCaja = obtenerIdCajaActiva(idSucursal, venta.getIdEmpleado());
+
+            // 2. Insertar Venta
             String sqlVenta = "INSERT INTO venta (fecha_hora, total, id_cliente, id_empleado, id_metodo_pago, id_caja, id_sucursal) VALUES (?, ?, ?, ?, ?, ?, ?)";
             stmtVenta = conn.prepareStatement(sqlVenta, Statement.RETURN_GENERATED_KEYS);
 
-            // ✅ USAR TIMESTAMP CON CALENDAR DE LIMA
             java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("America/Lima"));
             stmtVenta.setTimestamp(1, new Timestamp(System.currentTimeMillis()), cal);
             stmtVenta.setDouble(2, venta.getTotal());
@@ -217,7 +180,7 @@ public class VentaDAO {
 
             int idVentaGenerada = obtenerIdGenerado(stmtVenta);
 
-            // 3. INSERTAR DETALLES (BATCH OPTIMIZADO)
+            // 3. Insertar Detalles (Batch)
             String sqlDetalle = "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
             stmtDetalle = conn.prepareStatement(sqlDetalle);
 
@@ -235,16 +198,19 @@ public class VentaDAO {
                 stmtDetalle.addBatch();
             }
             stmtDetalle.executeBatch();
+
+            // 4. Registrar uso de Cupón
             if (venta.getIdCupon() != null && venta.getIdCupon() > 0) {
                 CuponDAO.incrementarUso(venta.getIdCupon());
             }
-            // 4. ACTUALIZAR STOCK (BATCH)
+
+            // 5. Actualizar Stock
             actualizarInventarioSucursal(venta.getDetalleVenta(), idSucursal, conn);
 
-            // ✅ 5. MOVIMIENTO CAJA EN LA MISMA TRANSACCIÓN (EVITA LOCKS)
+            // 6. Registrar Movimiento en Caja
             registrarMovimientoCajaDirecto(conn, idCaja, idVentaGenerada, venta.getTotal(), idSucursal, venta.getMetodoPago());
 
-            conn.commit();
+            conn.commit(); // Confirmar cambios
             System.out.println("✅ Venta registrada exitosamente - ID: " + idVentaGenerada);
             return idVentaGenerada;
 
@@ -253,44 +219,36 @@ public class VentaDAO {
                 try {
                     conn.rollback();
                 } catch (SQLException ex) {
-                    System.err.println("❌ Error en rollback: " + ex.getMessage());
+                    System.err.println("Error rollback: " + ex.getMessage());
                 }
             }
             throw e;
         } finally {
-            // ✅ CERRAR RECURSOS INMEDIATAMENTE
-            if (stmtDetalle != null) try {
+            if (stmtDetalle != null) {
                 stmtDetalle.close();
-            } catch (SQLException e) {
             }
-            if (stmtVenta != null) try {
+            if (stmtVenta != null) {
                 stmtVenta.close();
-            } catch (SQLException e) {
             }
-            if (conn != null) try {
+            if (conn != null) {
                 conn.setAutoCommit(true);
-            } catch (SQLException e) {
             }
         }
     }
 
     private void registrarMovimientoCajaDirecto(Connection conn, int idCaja, int idVenta, double monto, int idSucursal, String metodoPago) throws SQLException {
         String sql = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_caja, id_venta, id_sucursal, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             java.util.Calendar cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("America/Lima"));
-
             stmt.setString(1, "VENTA");
-            stmt.setDouble(2, monto); // ✅ USAR EL MONTO CORRECTO DE LA VENTA
+            stmt.setDouble(2, monto);
             stmt.setTimestamp(3, new Timestamp(System.currentTimeMillis()), cal);
             stmt.setString(4, "Venta ID: " + idVenta + " - " + metodoPago);
             stmt.setInt(5, idCaja);
             stmt.setInt(6, idVenta);
             stmt.setInt(7, idSucursal);
             stmt.setString(8, "ACTIVO");
-
             stmt.executeUpdate();
-            System.out.println("✅ Movimiento caja registrado - Monto: " + monto);
         }
     }
 
@@ -371,49 +329,33 @@ public class VentaDAO {
         return -1;
     }
 
-    // MÉTODO MEJORADO: OBTENER ID DE MÉTODO DE PAGO
     private int obtenerIdMetodoPago(String metodoPago) throws SQLException {
-        System.out.println("🔍 Buscando ID para método de pago: " + metodoPago);
-
-        // Buscar por nombre exacto primero
+        // Intento 1: Búsqueda exacta
         String sql = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre = ?";
-
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setString(1, metodoPago);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) {
-                int id = rs.getInt("id_metodo_pago");
-                System.out.println("✅ Método encontrado en BD: " + metodoPago + " -> ID: " + id);
-                return id;
-            } else {
-                // Si no encuentra, buscar por coincidencia parcial
-                System.err.println("⚠️ No se encontró método pago exacto: " + metodoPago);
-
-                String sqlLike = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre LIKE ? LIMIT 1";
-                try (PreparedStatement stmtLike = conexion.prepareStatement(sqlLike)) {
-                    stmtLike.setString(1, "%" + metodoPago + "%");
-                    ResultSet rsLike = stmtLike.executeQuery();
-
-                    if (rsLike.next()) {
-                        int id = rsLike.getInt("id_metodo_pago");
-                        System.out.println("✅ Encontrado por LIKE: " + metodoPago + " -> ID: " + id);
-                        return id;
-                    } else {
-                        // Por defecto usar Efectivo (ID 1)
-                        System.err.println("❌ No se encontró método pago. Usando Efectivo por defecto.");
-                        return 1;
-                    }
-                }
+                return rs.getInt("id_metodo_pago");
             }
-        } catch (SQLException e) {
-            System.err.println("❌ Error al obtener ID método pago: " + e.getMessage());
-            return 1; // Por defecto efectivo
         }
+
+        // Intento 2: Búsqueda flexible
+        String sqlLike = "SELECT id_metodo_pago FROM metodo_pago WHERE nombre LIKE ? LIMIT 1";
+        try (PreparedStatement stmt = conexion.prepareStatement(sqlLike)) {
+            stmt.setString(1, "%" + metodoPago + "%");
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id_metodo_pago");
+            }
+        }
+
+        // Fallback: Devuelve ID 1 (Efectivo) si falla todo
+        System.err.println("⚠️ Método pago '" + metodoPago + "' no encontrado. Usando ID 1.");
+        return 1;
     }
 
-    private int obtenerIdCajaActiva(int idSucursal) throws SQLException {
-        // ✅ AHORA FILTRAMOS POR SUCURSAL PARA EVITAR ERRORES
+    private int obtenerIdCajaActiva(int idSucursal, String idEmpleado) throws SQLException {
         String sql = "SELECT id_caja FROM caja WHERE estado = 'ABIERTA' AND id_sucursal = ? ORDER BY id_caja DESC LIMIT 1";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql)) {
@@ -421,23 +363,33 @@ public class VentaDAO {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
+                // Si existe caja abierta, la usamos
                 return rs.getInt("id_caja");
             } else {
-                System.out.println("⚠️ No hay caja abierta para sucursal " + idSucursal + ". Creando una...");
-                return crearCajaAutomaticamente(idSucursal); // Pasamos la sucursal
+                // Si NO existe, creamos una automática pasando el empleado
+                System.out.println("⚠️ No hay caja abierta. Creando una automática para empleado: " + idEmpleado);
+                return crearCajaAutomaticamente(idSucursal, idEmpleado);
             }
         }
     }
 
-    private int crearCajaAutomaticamente(int idSucursal) throws SQLException {
-        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal) VALUES (NOW(), 0.00, 0.00, 'ABIERTA', ?)";
+    private int crearCajaAutomaticamente(int idSucursal, String idEmpleado) throws SQLException {
+        // ✅ CORRECCIÓN TURNO: Calculamos automáticamente según la hora
+        String turno = (LocalTime.now().getHour() < 14) ? "MAÑANA" : "TARDE";
+
+        // ✅ CORRECCIÓN SQL: Incluimos id_empleado y turno en el INSERT
+        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal, id_empleado, turno) VALUES (NOW(), 0.00, 0.00, 'ABIERTA', ?, ?, ?)";
 
         try (PreparedStatement stmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setInt(1, idSucursal); // ✅ Usamos la sucursal correcta
+            stmt.setInt(1, idSucursal);
+            stmt.setString(2, idEmpleado);
+            stmt.setString(3, turno);
+
             stmt.executeUpdate();
 
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
+                    System.out.println("✅ Caja automática creada. Turno: " + turno);
                     return generatedKeys.getInt(1);
                 } else {
                     throw new SQLException("No se pudo crear la caja automática.");
@@ -446,12 +398,12 @@ public class VentaDAO {
         }
     }
 
-    private int obtenerIdGenerado(PreparedStatement stmt) throws SQLException {
+private int obtenerIdGenerado(PreparedStatement stmt) throws SQLException {
         try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
             if (generatedKeys.next()) {
                 return generatedKeys.getInt(1);
             } else {
-                throw new SQLException("No se pudo obtener el ID de la venta generada.");
+                throw new SQLException("No se pudo obtener el ID generado.");
             }
         }
     }
@@ -459,4 +411,6 @@ public class VentaDAO {
     public List<Venta> listar() {
         return new ArrayList<>();
     }
+    
+    
 }
