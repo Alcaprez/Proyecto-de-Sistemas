@@ -292,10 +292,30 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }//GEN-LAST:event_btn_personalActionPerformed
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
-        // 1. Creamos la instancia de tu panel de pedidos
-        COMPRAS_Admin panelCompras = new COMPRAS_Admin();
-        // 2. Llamamos a tu función para mostrarlo en el área blanca
-        MostrarPanel(panelCompras);
+       try {
+            // Cambiamos el cursor a "cargando" para dar feedback visual
+            this.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
+            
+            // 1. Instanciamos el panel (ahora capturamos si falla aquí)
+            COMPRAS_Admin panelCompras = new COMPRAS_Admin();
+            
+            // IMPORTANTE: Pasar el ID del empleado o sucursal si es necesario
+            // panelCompras.setIdSucursal(this.idSucursalAdministrador); // (Opcional si implementas el setter)
+
+            // 2. Mostramos el panel
+            MostrarPanel(panelCompras);
+            
+        } catch (Exception e) {
+            // Si falla, mostramos el error real
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "No se pudo abrir el panel de Compras.\nError: " + e.getMessage(), 
+                "Error Crítico", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        } finally {
+            // Restauramos el cursor
+            this.setCursor(java.awt.Cursor.getDefaultCursor());
+        }
     }//GEN-LAST:event_btn_comprasActionPerformed
 
     private void btn_ventaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ventaActionPerformed

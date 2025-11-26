@@ -16,47 +16,38 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     public COMPRAS_Admin() {
 
         initComponents();
+        new Thread(() -> {
+            llenarFiltros();
+            mostrarDatos();
+        }).start();
+
+        // --- CORRECCIÓN 2: Configuración real de la tabla ---
+        // (Tu código anterior creaba un modelo pero no lo asignaba a la tabla visual)
+        // Asumiremos que la tabla de recepción es tblDetalleCompra o una nueva. 
+        // Si usas una tabla específica para recepción, asegúrate de usar su nombre correcto.
+        // Por ahora, dejaremos comentado esto para que no rompa si la tabla no existe en el diseño.
+        // configurarTablaRecepcion(); 
+        // Eventos de pestañas
         try {
             jTabbedPane1.setSelectedIndex(0);
-        } catch (Exception e) {
-        }
-
-        llenarFiltros();
-        mostrarDatos();
-        configurarTablaRecepcion();
-
-        // 3. --- EVENTOS: SI TOCAN ALGO, REFRESCA LA TABLA ---
-        jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                if (jTabbedPane1.getSelectedIndex() == 1) { // Pestaña Devoluciones
-                    mostrarHistorialCompras();
-                    // Limpiamos el detalle para que no se vea lo anterior
-                    ((DefaultTableModel) tblDetalleCompra.getModel()).setRowCount(0);
+            jTabbedPane1.addChangeListener(evt -> {
+                if (jTabbedPane1.getSelectedIndex() == 1) {
+                    // Usamos SwingUtilities para asegurar que esto corra en el hilo gráfico
+                    javax.swing.SwingUtilities.invokeLater(this::mostrarHistorialCompras);
                 }
-            }
-        });
-        // Si cambian el proveedor...
-        cboProveedor.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                mostrarDatos();
-            }
-        });
-
-        // Si cambian el estado...
-        cboEstado.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                mostrarDatos();
-            }
-        });
-
-        // Si escriben en la caja de texto (evento al soltar tecla)...
+            });
+        } catch (Exception e) {
+            System.err.println("Error inicializando pestañas: " + e.getMessage());
+        }
+        
+        // Eventos de filtros
+        cboProveedor.addActionListener(evt -> mostrarDatos());
+        cboEstado.addActionListener(evt -> mostrarDatos());
         txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 mostrarDatos();
             }
         });
-
-        configurarTablaRecepcion();
     }
 
     private void mostrarHistorialCompras() {
@@ -99,7 +90,6 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             System.out.println("Error cargando compras: " + e);
         }
     }
-      
 
     private void mostrarDatos() {
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
@@ -524,10 +514,14 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
         // 2. FECHA DE VENCIMIENTO (Dato simple para recepción rápida)
         String fechaVencimiento = JOptionPane.showInputDialog(this, "Fecha de vencimiento del lote (YYYY-MM-DD):", "2026-12-31");
-        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) return;
+        if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) {
+            return;
+        }
 
         int confirm = JOptionPane.showConfirmDialog(this, "¿Procesar recepción y descontar del presupuesto?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirm != JOptionPane.YES_OPTION) return;
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
 
         // --- INICIO DE LA TRANSACCIÓN ---
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
@@ -549,7 +543,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             PreparedStatement psPed = con.prepareStatement(sqlPed);
             psPed.setString(1, codigoPedido);
             ResultSet rsPed = psPed.executeQuery();
-            
+
             int idPedido = 0;
             String idProveedor = "";
             if (rsPed.next()) {
@@ -558,25 +552,29 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             }
 
             // B. VALIDACIÓN DE PRESUPUESTO
-            String sqlCalcTotal = "SELECT SUM(d.cantidad * p.precio_compra) as total_pedido " +
-                                  "FROM detalle_pedido d " +
-                                  "INNER JOIN producto p ON d.id_producto = p.id_producto " +
-                                  "WHERE d.id_pedido = ?";
+            String sqlCalcTotal = "SELECT SUM(d.cantidad * p.precio_compra) as total_pedido "
+                    + "FROM detalle_pedido d "
+                    + "INNER JOIN producto p ON d.id_producto = p.id_producto "
+                    + "WHERE d.id_pedido = ?";
             PreparedStatement psCalc = con.prepareStatement(sqlCalcTotal);
             psCalc.setInt(1, idPedido);
             ResultSet rsCalc = psCalc.executeQuery();
-            
+
             double montoTotalPedido = 0;
-            if (rsCalc.next()) montoTotalPedido = rsCalc.getDouble("total_pedido");
+            if (rsCalc.next()) {
+                montoTotalPedido = rsCalc.getDouble("total_pedido");
+            }
 
             // Revisar presupuesto de la sucursal ACTUAL
             String sqlPresupuesto = "SELECT presupuesto FROM sucursal WHERE id_sucursal = ?";
             PreparedStatement psCheckMoney = con.prepareStatement(sqlPresupuesto);
             psCheckMoney.setInt(1, idSucursal);
             ResultSet rsMoney = psCheckMoney.executeQuery();
-            
+
             double saldoActual = 0;
-            if (rsMoney.next()) saldoActual = rsMoney.getDouble("presupuesto");
+            if (rsMoney.next()) {
+                saldoActual = rsMoney.getDouble("presupuesto");
+            }
 
             if (saldoActual < montoTotalPedido) {
                 throw new Exception("FONDOS INSUFICIENTES en esta Sucursal.\nSaldo actual: S/ " + saldoActual);
@@ -597,10 +595,12 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             psCompra.setString(3, idEmpleado);
             psCompra.setInt(4, idSucursal); // <--- Sucursal correcta
             psCompra.executeUpdate();
-            
+
             ResultSet rsKeyCompra = psCompra.getGeneratedKeys();
             int idCompraGenerada = 0;
-            if (rsKeyCompra.next()) idCompraGenerada = rsKeyCompra.getInt(1);
+            if (rsKeyCompra.next()) {
+                idCompraGenerada = rsKeyCompra.getInt(1);
+            }
 
             // D. PROCESAR ITEMS (Inventario en Sucursal Correcta)
             String sqlItems = "SELECT d.id_producto, d.cantidad, p.precio_compra FROM detalle_pedido d INNER JOIN producto p ON d.id_producto = p.id_producto WHERE d.id_pedido = ?";
@@ -624,7 +624,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 psStockCheck.setInt(1, idProd);
                 psStockCheck.setInt(2, idSucursal); // <--- Variable
                 ResultSet rsStock = psStockCheck.executeQuery();
-                
+
                 int stockAnterior = 0;
                 if (rsStock.next()) {
                     stockAnterior = rsStock.getInt("stock_actual");
@@ -668,16 +668,26 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             psUpPed.executeUpdate();
 
             con.commit(); // Confirmar todo
-            
+
             JOptionPane.showMessageDialog(this, "¡Recepción Exitosa en Sucursal ID " + idSucursal + "!");
             mostrarDatos();
 
         } catch (Exception e) {
-            try { if (con != null) con.rollback(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.rollback();
+                }
+            } catch (SQLException ex) {
+            }
             JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            try { if (con != null) con.close(); } catch (SQLException ex) {}
+            try {
+                if (con != null) {
+                    con.close();
+                }
+            } catch (SQLException ex) {
+            }
         }
     }//GEN-LAST:event_btnRecepcionActionPerformed
 

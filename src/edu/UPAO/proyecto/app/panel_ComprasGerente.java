@@ -1,14 +1,28 @@
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.CompraGlobalDAO;
+import edu.UPAO.proyecto.DAO.DevolucionCompraDAO;
 import edu.UPAO.proyecto.DAO.ProveedorDAO;
 import edu.UPAO.proyecto.DAO.SucursalDAO;
 import edu.UPAO.proyecto.Modelo.Proveedor;
+import edu.UPAO.proyecto.Util.GeneradorExcel;
+import edu.UPAO.proyecto.Util.GeneradorPDF;
+import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.Map;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.DefaultPieDataset;
+import edu.UPAO.proyecto.DAO.DevolucionCompraDAO; // Tu nuevo DAO
+import org.jfree.data.general.DefaultPieDataset;
 
 public class panel_ComprasGerente extends javax.swing.JPanel {
 
@@ -17,22 +31,133 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private String idProveedorSeleccionado = null;
     private int idSucursalActual;
     private CompraGlobalDAO compraGlobalDAO; // <--- NUEVO
+    private DevolucionCompraDAO devolucionDAO; // <--- NUEVO
+    private boolean isLoading = false;
 
     public panel_ComprasGerente(int idSucursal) {
         this.idSucursalActual = idSucursal;
-        DefaultTableModel modelo = (DefaultTableModel) jTableCompras.getModel();
-        
-        initComponents(); // CÓDIGO GENERADO POR NETBEANS
-        // Inicialización
+        initComponents();
+
+        // Inicializar DAOs
         proveedorDAO = new ProveedorDAO();
+        compraGlobalDAO = new CompraGlobalDAO();
+        devolucionDAO = new DevolucionCompraDAO(); // <--- Inicializar
+
+        // --- CONFIGURACIONES PESTAÑA 1 (COMPRAS) ---
         configurarTablaProveedores();
-        configurarBusquedaEnTiempoReal(); // <--- NUEVO: Búsqueda automática
+        configurarTablaComprasGlobales();
+        configurarBusquedaEnTiempoReal();
         cargarProveedoresEnTabla("");
+        cargarComboSucursales();
+        cargarComprasGlobales();
         limpiarFormulario();
+        btn_exportarCompras.addActionListener(e -> exportarReporteCompras());
+
+        // --- CONFIGURACIONES PESTAÑA 2 (DEVOLUCIONES) ---
+        configurarPestanaDevoluciones(); // <--- Método nuevo que agrupa todo
+        
+        jTabbedPane1.addChangeListener(e -> {
+            if (jTabbedPane1.getSelectedIndex() == 1) { // 1 es el índice de la pestaña DEVOLUCIONES
+                System.out.println("🔄 Recargando pestaña de Devoluciones...");
+                cargarTablaDevoluciones();
+                cargarGraficosDevoluciones();
+            }
+        });
+    }
+    
+    private void configurarPestanaDevoluciones() {
+        // 1. Configurar Combo Proveedores
+        cargarComboProveedoresDevolucion();
+        
+        // 2. Cargar Tabla Inicial
+        cargarTablaDevoluciones();
+        
+        // 3. Cargar Gráficos
+        cargarGraficosDevoluciones();
     }
 
+    private void cargarComboProveedoresDevolucion() {
+        cb_Proveedor.removeAllItems();
+        cb_Proveedor.addItem("TODOS");
+        try {
+            // Reutilizamos tu proveedorDAO existente
+            List<Proveedor> lista = proveedorDAO.listar(""); 
+            for (Proveedor p : lista) {
+                cb_Proveedor.addItem(p.getRazonSocial());
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        
+        // Evento (Lambda simplificada)
+        cb_Proveedor.addActionListener(e -> cargarTablaDevoluciones());
+    }
 
-    // --- MÉTODO NUEVO PARA BUSCAR MIENTRAS ESCRIBES ---
+    private void cargarTablaDevoluciones() {
+        DefaultTableModel modelo = (DefaultTableModel) tb_devoluciones.getModel();
+        modelo.setRowCount(0);
+        
+        // Configurar columnas si no están bien en diseño
+        if (modelo.getColumnCount() == 0) {
+             modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Tienda", "Proveedor", "Items", "Unidades", "Total", "Estado"});
+        }
+
+        String proveedorSel = (cb_Proveedor.getSelectedItem() != null) 
+                              ? cb_Proveedor.getSelectedItem().toString() 
+                              : "TODOS";
+
+        List<Object[]> datos = devolucionDAO.listarDevoluciones(proveedorSel);
+        for (Object[] fila : datos) {
+            modelo.addRow(fila);
+        }
+    }
+
+    private void cargarGraficosDevoluciones() {
+        // A. GRÁFICO CIRCULAR (Por Sucursal)
+        Map<String, Integer> datosPie = devolucionDAO.obtenerDistribucionPorSucursal();
+        DefaultPieDataset datasetPie = new DefaultPieDataset();
+        
+        for (Map.Entry<String, Integer> entry : datosPie.entrySet()) {
+            datasetPie.setValue(entry.getKey(), entry.getValue());
+        }
+        
+        // --- AGREGAR ESTA LÍNEA PARA ACHICAR EL GRÁFICO CIRCULAR ---
+        GraficoCircular.setPreferredSize(new java.awt.Dimension(350, 250)); // (Ancho, Alto)
+        // -----------------------------------------------------------
+
+        JFreeChart chartPie = ChartFactory.createPieChart(
+                "Devoluciones por Tienda", datasetPie, false, true, false);
+        renderizarGrafico(GraficoCircular, chartPie);
+
+        // B. GRÁFICO DE BARRAS (Monto por Proveedor)
+        Map<String, Double> datosBar = devolucionDAO.obtenerMontoPorProveedor();
+        DefaultCategoryDataset datasetBar = new DefaultCategoryDataset();
+        
+        for (Map.Entry<String, Double> entry : datosBar.entrySet()) {
+            datasetBar.addValue(entry.getValue(), "Monto S/", entry.getKey());
+        }
+
+        // --- AGREGAR ESTA LÍNEA PARA ACHICAR EL GRÁFICO DE BARRAS ---
+        GraficoBarras.setPreferredSize(new java.awt.Dimension(350, 250)); // (Ancho, Alto)
+        // -----------------------------------------------------------
+
+        JFreeChart chartBar = ChartFactory.createBarChart(
+                "Top Devoluciones (S/)", "Proveedor", "Monto", 
+                datasetBar, PlotOrientation.HORIZONTAL, false, true, false);
+        renderizarGrafico(GraficoBarras, chartBar);
+    }
+    
+    private void renderizarGrafico(javax.swing.JPanel panel, JFreeChart chart) {
+        chart.setBackgroundPaint(Color.WHITE);
+        ChartPanel chartPanel = new ChartPanel(chart);
+        chartPanel.setMouseWheelEnabled(true);
+        
+        panel.setLayout(new BorderLayout());
+        panel.removeAll();
+        panel.add(chartPanel, BorderLayout.CENTER);
+        panel.validate();
+        panel.repaint(); // Forzar repintado
+    }
+    
+    
     private void configurarBusquedaEnTiempoReal() {
         tf_buscar.addKeyListener(new KeyAdapter() {
             @Override
@@ -71,69 +196,94 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         });
     }
 
-    
-    
-    
-    
     private void configurarTablaComprasGlobales() {
-        // NOTA: Asegúrate de que tu tabla en diseño se llame 'tblComprasGlobales' o ajusta el nombre aquí.
-        // Veo en tu código que tienes 'jPanel2' vacío dentro de la pestaña. 
-        // DEBES ARRASTRAR UNA JTABLE DENTRO DE ESE PANEL EN EL DISEÑADOR.
-        // Por ahora, asumiré que la tabla se llamará 'jTableCompras'.
-        
-        /* COMO EN TU CÓDIGO VEO QUE jPanel2 ESTÁ VACÍO, 
-           PRIMERO VE AL DISEÑADOR (Design), ARRASTRA UN JScrollPane DENTRO DE jPanel2 
-           Y LUEGO UNA JTable DENTRO DEL SCROLL. LLÁMALA 'jTableCompras'.
-        */
-        
-        // Si ya tienes una tabla ahí (quizás oculta), úsala. Si no, avísame.
-        // Suponiendo que la tabla se llama jTableCompras (o jTable1 si reutilizas):
-        
-        DefaultTableModel modelo = new DefaultTableModel();
+        DefaultTableModel modelo = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Tabla de solo lectura
+            }
+        };
         modelo.addColumn("ID");
         modelo.addColumn("Fecha");
         modelo.addColumn("Sucursal");
         modelo.addColumn("Proveedor");
-        modelo.addColumn("Empleado");
+        modelo.addColumn("Empleado (DNI)");
         modelo.addColumn("Total");
         modelo.addColumn("Estado");
-        jTableCompras.setModel(modelo); // <--- CAMBIA 'jTableCompras' POR EL NOMBRE REAL DE TU TABLA
-        
+
+        tb_ComprasGlobales.setModel(modelo);
+
+        // Ajuste estético de anchos
+        tb_ComprasGlobales.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID
+        tb_ComprasGlobales.getColumnModel().getColumn(1).setPreferredWidth(120); // Fecha
+        tb_ComprasGlobales.getColumnModel().getColumn(3).setPreferredWidth(200); // Proveedor
     }
-    
+
     private void cargarComboSucursales() {
-        jComboBox1.removeAllItems();
-        jComboBox1.addItem("TODAS LAS TIENDAS");
-        
-        SucursalDAO sucDao = new SucursalDAO();
-        List<String> lista = sucDao.obtenerSucursalesActivas();
-        for(String s : lista) {
-            jComboBox1.addItem(s);
+        // ✅ Activamos la bandera para que el evento NO filtre mientras llenamos
+        isLoading = true;
+
+        cb_SucursalCompras.removeAllItems();
+        cb_SucursalCompras.addItem("TODAS LAS TIENDAS");
+
+        try {
+            SucursalDAO sucDao = new SucursalDAO();
+            List<String> lista = sucDao.obtenerSucursalesActivas();
+            for (String s : lista) {
+                cb_SucursalCompras.addItem(s);
+            }
+        } catch (Exception e) {
+            System.err.println("Error cargando sucursales: " + e.getMessage());
         }
-        
-        // Agregar evento para filtrar al cambiar
-        jComboBox1.addActionListener(e -> cargarComprasGlobales());
+
+        // ✅ Desactivamos la bandera y cargamos la tabla inicial
+        isLoading = false;
+        cargarComprasGlobales();
     }
-    
+
     private void cargarComprasGlobales() {
-        // OJO: Necesitas una tabla en la interfaz para esto.
-        // Usaré jTableCompras como nombre ejemplo. Reemplázalo.
-        
-        DefaultTableModel modelo = (DefaultTableModel) jTableCompras.getModel();
+        DefaultTableModel modelo = (DefaultTableModel) tb_ComprasGlobales.getModel();
         modelo.setRowCount(0);
-        
-        String sucursalSeleccionada = (jComboBox1.getSelectedItem() != null) ? jComboBox1.getSelectedItem().toString() : "TODAS LAS TIENDAS";
-        
+
+        String sucursalSeleccionada = "TODAS LAS TIENDAS";
+        if (cb_SucursalCompras.getSelectedItem() != null) {
+            sucursalSeleccionada = cb_SucursalCompras.getSelectedItem().toString();
+        }
+
+        System.out.println("🔍 Filtrando por: " + sucursalSeleccionada);
+
         List<Object[]> datos = compraGlobalDAO.listarComprasGlobales(sucursalSeleccionada);
-        
-        for(Object[] fila : datos) {
+
+        for (Object[] fila : datos) {
             modelo.addRow(fila);
         }
-        
     }
-    
 
-    
+    private void exportarReporteCompras() {
+        if (tb_ComprasGlobales.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(this, "No hay datos en la tabla para exportar.", "Tabla vacía", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String[] opciones = {"Excel (.csv)", "PDF (.pdf)", "Cancelar"};
+        int seleccion = JOptionPane.showOptionDialog(this,
+                "¿En qué formato desea exportar el reporte de compras?",
+                "Exportar Reporte",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                opciones,
+                opciones[0]);
+
+        if (seleccion == 0) {
+            // Opción Excel
+            GeneradorExcel.exportarExcel(tb_ComprasGlobales, "Reporte_Compras_Globales");
+        } else if (seleccion == 1) {
+            // Opción PDF
+            GeneradorPDF.generarReporteDesdeTabla(tb_ComprasGlobales, "Reporte de Compras Globales");
+        }
+    }
+
     private void cargarProveedoresEnTabla(String filtro) {
         DefaultTableModel modelo = (DefaultTableModel) jTable2.getModel();
         modelo.setRowCount(0);
@@ -145,14 +295,14 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                     p.getIdProveedor(),
                     p.getRuc(),
                     p.getRazonSocial(),
-                    p.getDniAsociado(), // Ahora esto vendrá lleno gracias al DAO corregido
+                    p.getDniAsociado(),
                     p.getTelefonoContacto(),
                     p.getDireccion(),
                     p.getEstado()
                 });
             }
         } catch (Exception e) {
-            System.err.println("Error al cargar tabla: " + e.getMessage());
+            System.err.println("Error al cargar tabla proveedores: " + e.getMessage());
         }
     }
 
@@ -180,18 +330,13 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             tf_RUC.setText(validarNulo(jTable2.getValueAt(fila, 1)));
             tf_razonSocial.setText(validarNulo(jTable2.getValueAt(fila, 2)));
             tf_dniAsosiado.setText(validarNulo(jTable2.getValueAt(fila, 3)));
-
-            // AQUÍ ES DONDE SE CARGA EL TELÉFONO A LA CAJA DE TEXTO
             tf_Telefono.setText(validarNulo(jTable2.getValueAt(fila, 4)));
-
             tf_Direccion.setText(validarNulo(jTable2.getValueAt(fila, 5)));
 
             String estado = validarNulo(jTable2.getValueAt(fila, 6));
             jCheckBox1.setSelected("ACTIVO".equals(estado));
 
             btn_GuardarActualizar.setText("Actualizar");
-            // Al actualizar, el DNI y RUC suelen bloquearse para no romper integridad, 
-            // pero si necesitas corregirlos, puedes cambiar esto a true.
             tf_dniAsosiado.setEditable(false);
             tf_RUC.setEditable(false);
         }
@@ -214,7 +359,6 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         String telefono = tf_Telefono.getText().trim();
         String estado = jCheckBox1.isSelected() ? "ACTIVO" : "INACTIVO";
 
-        // Validaciones
         if (razonSocial.isEmpty() || ruc.isEmpty() || dni.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Por favor complete Razón Social, RUC y DNI.", "Datos faltantes", JOptionPane.WARNING_MESSAGE);
             return;
@@ -238,7 +382,6 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         p.setIdSucursal(this.idSucursalActual);
 
         if (idProveedorSeleccionado == null) {
-            // MODO GUARDAR
             if (proveedorDAO.existeRuc(ruc)) {
                 JOptionPane.showMessageDialog(this, "El RUC ya está registrado.", "Duplicado", JOptionPane.ERROR_MESSAGE);
                 return;
@@ -251,7 +394,6 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, "Error al guardar en base de datos.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            // MODO ACTUALIZAR
             p.setIdProveedor(idProveedorSeleccionado);
             if (proveedorDAO.actualizar(p)) {
                 JOptionPane.showMessageDialog(this, "Proveedor actualizado con éxito.");
@@ -269,14 +411,15 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
         ComprasGlobales = new javax.swing.JPanel();
-        jComboBox1 = new javax.swing.JComboBox<>();
+        cb_SucursalCompras = new javax.swing.JComboBox<>();
         jScrollPane3 = new javax.swing.JScrollPane();
-        jTableCompras = new javax.swing.JTable();
+        tb_ComprasGlobales = new javax.swing.JTable();
+        btn_exportarCompras = new javax.swing.JButton();
         Devoluciones = new javax.swing.JPanel();
         DevolucionesPorTienda = new javax.swing.JLabel();
-        Proveedor = new javax.swing.JComboBox<>();
+        cb_Proveedor = new javax.swing.JComboBox<>();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
+        tb_devoluciones = new javax.swing.JTable();
         DetalleDevolucionesRecientes = new javax.swing.JLabel();
         GraficoBarras = new javax.swing.JPanel();
         GraficoCircular = new javax.swing.JPanel();
@@ -303,14 +446,14 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         tf_buscar = new javax.swing.JTextField();
         btn_buscar = new javax.swing.JButton();
 
-        jComboBox1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "TIENDA" }));
-        jComboBox1.addActionListener(new java.awt.event.ActionListener() {
+        cb_SucursalCompras.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "TIENDA" }));
+        cb_SucursalCompras.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jComboBox1ActionPerformed(evt);
+                cb_SucursalComprasActionPerformed(evt);
             }
         });
 
-        jTableCompras.setModel(new javax.swing.table.DefaultTableModel(
+        tb_ComprasGlobales.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -321,7 +464,9 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane3.setViewportView(jTableCompras);
+        jScrollPane3.setViewportView(tb_ComprasGlobales);
+
+        btn_exportarCompras.setText("Exportar");
 
         javax.swing.GroupLayout ComprasGlobalesLayout = new javax.swing.GroupLayout(ComprasGlobales);
         ComprasGlobales.setLayout(ComprasGlobalesLayout);
@@ -329,19 +474,23 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(ComprasGlobalesLayout.createSequentialGroup()
                 .addGap(15, 15, 15)
-                .addGroup(ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 1140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGroup(ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(btn_exportarCompras, javax.swing.GroupLayout.PREFERRED_SIZE, 105, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 1140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(cb_SucursalCompras, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(676, Short.MAX_VALUE))
         );
         ComprasGlobalesLayout.setVerticalGroup(
             ComprasGlobalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(ComprasGlobalesLayout.createSequentialGroup()
                 .addGap(29, 29, 29)
-                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(cb_SucursalCompras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 568, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(27, Short.MAX_VALUE))
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btn_exportarCompras, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(92, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("COMPRAS GLOBALES", ComprasGlobales);
@@ -349,9 +498,14 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         DevolucionesPorTienda.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         DevolucionesPorTienda.setText("DEVOLUCIONES POR TIENDA:");
 
-        Proveedor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "PROVEEDOR" }));
+        cb_Proveedor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "PROVEEDOR" }));
+        cb_Proveedor.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cb_ProveedorActionPerformed(evt);
+            }
+        });
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        tb_devoluciones.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null, null, null, null, null},
                 {null, null, null, null, null, null, null, null},
@@ -362,9 +516,9 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 "ID PEDIDO", "FECHA", "TIENDA", "PROVEEDOR", "PRODUCTOS", "UNIDADES", "VALOR", "ESTADO"
             }
         ));
-        jScrollPane1.setViewportView(jTable1);
+        jScrollPane1.setViewportView(tb_devoluciones);
 
-        DetalleDevolucionesRecientes.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        DetalleDevolucionesRecientes.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         DetalleDevolucionesRecientes.setText("DETALLE DE DEVOLUCIONES RECIENTES:");
 
         GraficoBarras.setBackground(new java.awt.Color(204, 204, 204));
@@ -373,7 +527,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         GraficoBarras.setLayout(GraficoBarrasLayout);
         GraficoBarrasLayout.setHorizontalGroup(
             GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 539, Short.MAX_VALUE)
+            .addGap(0, 526, Short.MAX_VALUE)
         );
         GraficoBarrasLayout.setVerticalGroup(
             GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -386,7 +540,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         GraficoCircular.setLayout(GraficoCircularLayout);
         GraficoCircularLayout.setHorizontalGroup(
             GraficoCircularLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 637, Short.MAX_VALUE)
+            .addGap(0, 524, Short.MAX_VALUE)
         );
         GraficoCircularLayout.setVerticalGroup(
             GraficoCircularLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -398,41 +552,34 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         DevolucionesLayout.setHorizontalGroup(
             DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(DevolucionesLayout.createSequentialGroup()
+                .addGap(27, 27, 27)
                 .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 1081, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(DetalleDevolucionesRecientes)
                     .addGroup(DevolucionesLayout.createSequentialGroup()
-                        .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(DevolucionesLayout.createSequentialGroup()
-                                .addContainerGap()
-                                .addComponent(DetalleDevolucionesRecientes))
-                            .addGroup(DevolucionesLayout.createSequentialGroup()
-                                .addGap(14, 14, 14)
-                                .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(DevolucionesPorTienda)
-                                    .addComponent(Proveedor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addGroup(DevolucionesLayout.createSequentialGroup()
-                                        .addComponent(GraficoBarras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGap(18, 18, 18)
-                                        .addComponent(GraficoCircular, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                        .addGap(0, 617, Short.MAX_VALUE))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addContainerGap())
+                        .addComponent(GraficoBarras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(GraficoCircular, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(DevolucionesPorTienda)
+                    .addComponent(cb_Proveedor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(723, Short.MAX_VALUE))
         );
         DevolucionesLayout.setVerticalGroup(
             DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(DevolucionesLayout.createSequentialGroup()
-                .addGap(20, 20, 20)
-                .addComponent(Proveedor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26)
+                .addComponent(cb_Proveedor, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(DevolucionesPorTienda)
-                .addGap(18, 18, 18)
+                .addGap(12, 12, 12)
                 .addGroup(DevolucionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(GraficoCircular, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(GraficoBarras, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 20, Short.MAX_VALUE)
+                .addGap(18, 18, 18)
                 .addComponent(DetalleDevolucionesRecientes)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addGap(12, 12, 12)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(81, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", Devoluciones);
@@ -445,7 +592,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 668, Short.MAX_VALUE)
+            .addGap(0, 654, Short.MAX_VALUE)
         );
 
         jTabbedPane1.addTab("RECEPCION", jPanel4);
@@ -464,6 +611,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         jScrollPane2.setViewportView(jTable2);
 
         jPanel3.setBackground(new java.awt.Color(204, 255, 255));
+        jPanel3.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
 
         jLabel2.setText("Razon social:");
 
@@ -575,7 +723,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(22, 22, 22)
+                .addGap(23, 23, 23)
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(31, 31, 31)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
@@ -585,26 +733,25 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                         .addGroup(jPanel1Layout.createSequentialGroup()
                             .addComponent(tf_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 441, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addComponent(btn_buscar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-                .addContainerGap(686, Short.MAX_VALUE))
+                            .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(683, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(39, 39, 39)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(20, 20, 20)
+                        .addGap(14, 14, 14)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(tf_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 409, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btn_Exportar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                .addContainerGap(139, Short.MAX_VALUE))
+                        .addComponent(btn_Exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(90, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("PROVEEDORES", jPanel1);
@@ -621,9 +768,12 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jComboBox1ActionPerformed
+    private void cb_SucursalComprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_SucursalComprasActionPerformed
+        if (isLoading) {
+            return;
+        }
+
+        cargarComprasGlobales();    }//GEN-LAST:event_cb_SucursalComprasActionPerformed
 
     private void btn_AbrirHistorialActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_AbrirHistorialActionPerformed
         // TODO add your handling code here:
@@ -641,6 +791,10 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         String textoBusqueda = tf_buscar.getText().trim();
         cargarProveedoresEnTabla(textoBusqueda);    }//GEN-LAST:event_btn_buscarActionPerformed
 
+    private void cb_ProveedorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_ProveedorActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cb_ProveedorActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel ComprasGlobales;
@@ -649,14 +803,15 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private javax.swing.JLabel DevolucionesPorTienda;
     private javax.swing.JPanel GraficoBarras;
     private javax.swing.JPanel GraficoCircular;
-    private javax.swing.JComboBox<String> Proveedor;
     private javax.swing.JToggleButton btn_AbrirHistorial;
     private javax.swing.JToggleButton btn_Cancerlarlimpiar;
     private javax.swing.JToggleButton btn_Exportar;
     private javax.swing.JToggleButton btn_GuardarActualizar;
     private javax.swing.JButton btn_buscar;
+    private javax.swing.JButton btn_exportarCompras;
+    private javax.swing.JComboBox<String> cb_Proveedor;
+    private javax.swing.JComboBox<String> cb_SucursalCompras;
     private javax.swing.JCheckBox jCheckBox1;
-    private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -669,9 +824,9 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable jTable1;
     private javax.swing.JTable jTable2;
-    private javax.swing.JTable jTableCompras;
+    private javax.swing.JTable tb_ComprasGlobales;
+    private javax.swing.JTable tb_devoluciones;
     private javax.swing.JTextField tf_Direccion;
     private javax.swing.JTextField tf_RUC;
     private javax.swing.JTextField tf_Telefono;

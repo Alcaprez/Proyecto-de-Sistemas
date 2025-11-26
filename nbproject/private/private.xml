@@ -25,7 +25,6 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/LoginjFrame.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/MovimientoCaja.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/Slice.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/LOCALES.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/PromocionController.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/jFrame_Asistncias.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_Administrador_Vista_Usuarios.java</file>
@@ -37,7 +36,6 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/BaseDatos/Main.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/PuntoDiario.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_VentaAdministrador.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Service/DashboardVentasService.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/ComprobanteDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/Cupon.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/Empleado.java</file>
@@ -64,17 +62,13 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/DialogoNuevoPedido.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/jFram_MaquinaDePAgo.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/HistorialProveedorDAO.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Service/ProductoService.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/ALMACEN_Admin.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_ComprasGerente.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/DialogoArqueoCaja.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/RENTABILIDAD.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_Administrador_Indicadores.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/VentasController.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_AlmacenesGerente.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/RANKINGFINANCIERO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_AlmacenAdministrador.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/Historial_Proveedor.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/jFrame_VistaPrevia.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_Administrador_Reporte_Asistencia.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_PersonalGerente.java</file>
@@ -93,9 +87,7 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/InventarioSucursalDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/PrincipalAdministrador.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Modelo/Producto.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Service/UsuarioService.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Util/GeneradorPDF.java</file>
-            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/ROTACIONPRODUCTOS.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/BaseDatos/Conexion.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_ComprasAdministrador.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/UsuarioDAO.java</file>
@@ -110,6 +102,7 @@
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/GastoDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/AsistenciaDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/MovimientoCajaDAO.java</file>
+            <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/DevolucionCompraDAO.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Util/TextUtils.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/DAO/Categoria.java</file>
             <file>file:/E:/ALBERTH%20ALM/DOCUMENTOS/github/p/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/DialogoVerHorarios.java</file>
