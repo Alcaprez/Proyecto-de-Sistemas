@@ -17,11 +17,12 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 import edu.UPAO.proyecto.DAO.DevolucionEstadisticasDAO;
+import edu.UPAO.proyecto.DAO.RotacionProductoDAO;
 import edu.UPAO.proyecto.DAO.SucursalDAO; // Si la tienes, para llenar el combo
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.util.Date;
 import java.util.Map;
-
 
 public class panel_VentaGerente extends javax.swing.JPanel {
 
@@ -32,7 +33,8 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         initComponents();
         initLogic();
         initDevoluciones();
-
+        initRotacion();
+        cb_categoriaRotacion.setVisible(false);
     }
 
     private void initLogic() {
@@ -75,6 +77,63 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         btn_eliminar.addActionListener(e -> eliminarCupon());
         btn_desactivar.addActionListener(e -> cambiarEstadoCupon(false));
         btn_activar.addActionListener(e -> cambiarEstadoCupon(true));
+    }
+
+    private void initRotacion() {
+        // 1. Configurar Fechas por defecto (Inicio de mes hasta hoy)
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        jDateChooser2.setDate(cal.getTime()); // Hoy
+        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
+        jDateChooser1.setDate(cal.getTime()); // Primer día del mes
+
+        // 2. Cargar Combos
+        cargarCombosRotacion();
+
+        // 3. Agregar Listeners (Eventos) para actualizar al cambiar algo
+        java.awt.event.ActionListener updateAction = e -> actualizarDashboardRotacion();
+        java.beans.PropertyChangeListener dateAction = e -> {
+            if ("date".equals(e.getPropertyName())) {
+                actualizarDashboardRotacion();
+            }
+        };
+
+        cb_sucursalRotacion.addActionListener(updateAction);
+        cb_categoriaRotacion.addActionListener(updateAction);
+        jDateChooser1.addPropertyChangeListener(dateAction);
+        jDateChooser2.addPropertyChangeListener(dateAction);
+
+        // 4. Carga inicial
+        actualizarDashboardRotacion();
+    }
+
+    private void cargarCombosRotacion() {
+        // Cargar Sucursales (Reutilizando tu lógica existente o DAO)
+        cb_sucursalRotacion.removeAllItems();
+        cb_sucursalRotacion.addItem("TODAS");
+        try {
+            edu.UPAO.proyecto.DAO.SucursalDAO daoS = new edu.UPAO.proyecto.DAO.SucursalDAO();
+            List<String> sucursales = daoS.obtenerSucursalesActivas();
+            for (String s : sucursales) {
+                cb_sucursalRotacion.addItem(s);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Cargar Categorías
+        cb_categoriaRotacion.removeAllItems();
+        cb_categoriaRotacion.addItem("TODAS");
+        try {
+            // Asumo que tienes un CategoriaDAO con un método listar
+            edu.UPAO.proyecto.DAO.CategoriaDAO daoC = new edu.UPAO.proyecto.DAO.CategoriaDAO();
+            // Si tu CategoriaDAO devuelve objetos Categoria, ajusta aquí:
+            List<edu.UPAO.proyecto.DAO.Categoria> categorias = daoC.listar();
+            for (edu.UPAO.proyecto.DAO.Categoria c : categorias) {
+                cb_categoriaRotacion.addItem(c.getNombre());
+            }
+        } catch (Exception e) {
+            System.err.println("Error cargando categorías (Verifica CategoriaDAO): " + e.getMessage());
+        }
     }
 
     private void cargarCupones() {
@@ -255,6 +314,114 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         cargarDatosDevoluciones();
     }
 
+    private void actualizarDashboardRotacion() {
+        Date inicio = jDateChooser1.getDate();
+        Date fin = jDateChooser2.getDate();
+
+        if (inicio == null || fin == null) {
+            return;
+        }
+        if (inicio.after(fin)) {
+            return;
+        }
+
+        String sucursal = cb_sucursalRotacion.getSelectedItem().toString();
+        String categoria = cb_categoriaRotacion.getSelectedItem().toString(); // Obtenemos la categoría
+
+        RotacionProductoDAO dao = new RotacionProductoDAO();
+
+        // A. GRÁFICO DE BARRAS (TOP 10)
+        Map<String, Integer> topData = dao.obtenerTopProductos(inicio, fin, sucursal, categoria);
+        actualizarGraficoBarrasTop(topData);
+
+        // B. GRÁFICO DE PASTEL (CATEGORÍAS) -> ¡AQUÍ CAMBIAMOS!
+        // Antes: dao.obtenerVentasPorCategoria(inicio, fin, sucursal);
+        // Ahora pasamos también 'categoria':
+        Map<String, Integer> catData = dao.obtenerVentasPorCategoria(inicio, fin, sucursal, categoria);
+        actualizarGraficoPastelCategorias(catData);
+
+        // C. ACTUALIZAR TARJETAS (KPIs)
+        actualizarKPIsRotacion(topData, catData);
+    }
+
+    private void actualizarGraficoBarrasTop(Map<String, Integer> data) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        if (data.isEmpty()) {
+            dataset.addValue(0, "Sin Datos", "Sin Datos");
+        } else {
+            for (Map.Entry<String, Integer> entry : data.entrySet()) {
+                // Acortar nombre si es muy largo para que entre en el gráfico
+                String nombre = entry.getKey();
+                if (nombre.length() > 15) {
+                    nombre = nombre.substring(0, 15) + "...";
+                }
+                dataset.addValue(entry.getValue(), "Unidades", nombre);
+            }
+        }
+
+        JFreeChart chart = ChartFactory.createBarChart(
+                "Top 10 Productos Más Vendidos",
+                "Producto",
+                "Cantidad Vendida",
+                dataset,
+                PlotOrientation.HORIZONTAL, // Barras horizontales se leen mejor
+                false, true, false
+        );
+
+        // Renderizar usando tu método auxiliar existente
+        renderizarGrafico(panel_Top10Productos, chart);
+    }
+
+    private void actualizarGraficoPastelCategorias(Map<String, Integer> data) {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+
+        for (Map.Entry<String, Integer> entry : data.entrySet()) {
+            dataset.setValue(entry.getKey(), entry.getValue());
+        }
+
+        JFreeChart chart = ChartFactory.createPieChart(
+                "Ventas por Categoría",
+                dataset,
+                false, // Sin leyenda para ahorrar espacio (labels en el pastel)
+                true,
+                false
+        );
+
+        renderizarGrafico(panel_graficoPastelCategorias, chart);
+    }
+
+    private void actualizarKPIsRotacion(Map<String, Integer> topProdData, Map<String, Integer> catData) {
+        // 1. Producto más vendido (El primero del mapa topProdData)
+        if (!topProdData.isEmpty()) {
+            Map.Entry<String, Integer> first = topProdData.entrySet().iterator().next();
+            lbl_productoMasVendido.setText("<html>" + first.getKey() + "<br/><font size=3 color='gray'>" + first.getValue() + " unids.</font></html>");
+        } else {
+            lbl_productoMasVendido.setText("---");
+        }
+
+        // 2. Total productos vendidos (Suma de valores)
+        int totalProductos = topProdData.values().stream().mapToInt(Integer::intValue).sum();
+        // Nota: topProdData solo trae 10, si quieres el total real global, necesitarías otra consulta en el DAO.
+        // Para efectos visuales rápidos, sumaremos lo visible o puedes hacer un count global en el DAO.
+        lbl_numeroProductosVendidos.setText(String.valueOf(totalProductos));
+
+        // 3. Categoría más vendida
+        if (!catData.isEmpty()) {
+            String topCat = "";
+            int maxVal = -1;
+            for (Map.Entry<String, Integer> entry : catData.entrySet()) {
+                if (entry.getValue() > maxVal) {
+                    maxVal = entry.getValue();
+                    topCat = entry.getKey();
+                }
+            }
+            lbl_categoriaMasVendida.setText(topCat);
+        } else {
+            lbl_categoriaMasVendida.setText("---");
+        }
+    }
+
     // 2. Método Maestro de Carga de Datos
     private void cargarDatosDevoluciones() {
         String sucursal = cb_sucursal.getSelectedItem() != null ? cb_sucursal.getSelectedItem().toString() : "TODAS";
@@ -348,8 +515,22 @@ public class panel_VentaGerente extends javax.swing.JPanel {
 
         PROMOCIONES = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
-        jPanel7 = new javax.swing.JPanel();
-        jTabbedPane1 = new javax.swing.JTabbedPane();
+        jPanel2 = new javax.swing.JPanel();
+        cb_sucursalRotacion = new javax.swing.JComboBox<>();
+        cb_categoriaRotacion = new javax.swing.JComboBox<>();
+        jDateChooser1 = new com.toedter.calendar.JDateChooser();
+        jDateChooser2 = new com.toedter.calendar.JDateChooser();
+        panel_Top10Productos = new javax.swing.JPanel();
+        panel_graficoPastelCategorias = new javax.swing.JPanel();
+        jPanel3 = new javax.swing.JPanel();
+        lbl_productoMasVendido = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jPanel4 = new javax.swing.JPanel();
+        lbl_numeroProductosVendidos = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        jPanel5 = new javax.swing.JPanel();
+        lbl_categoriaMasVendida = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
         jPanel6 = new javax.swing.JPanel();
         jPanel8 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
@@ -393,26 +574,190 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         btn_desactivar = new javax.swing.JToggleButton();
         btn_exportar = new javax.swing.JToggleButton();
 
-        javax.swing.GroupLayout jPanel7Layout = new javax.swing.GroupLayout(jPanel7);
-        jPanel7.setLayout(jPanel7Layout);
-        jPanel7Layout.setHorizontalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+        cb_sucursalRotacion.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        cb_categoriaRotacion.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+
+        panel_Top10Productos.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        javax.swing.GroupLayout panel_Top10ProductosLayout = new javax.swing.GroupLayout(panel_Top10Productos);
+        panel_Top10Productos.setLayout(panel_Top10ProductosLayout);
+        panel_Top10ProductosLayout.setHorizontalGroup(
+            panel_Top10ProductosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 447, Short.MAX_VALUE)
         );
-        jPanel7Layout.setVerticalGroup(
-            jPanel7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+        panel_Top10ProductosLayout.setVerticalGroup(
+            panel_Top10ProductosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 271, Short.MAX_VALUE)
+        );
+
+        panel_graficoPastelCategorias.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        javax.swing.GroupLayout panel_graficoPastelCategoriasLayout = new javax.swing.GroupLayout(panel_graficoPastelCategorias);
+        panel_graficoPastelCategorias.setLayout(panel_graficoPastelCategoriasLayout);
+        panel_graficoPastelCategoriasLayout.setHorizontalGroup(
+            panel_graficoPastelCategoriasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 446, Short.MAX_VALUE)
+        );
+        panel_graficoPastelCategoriasLayout.setVerticalGroup(
+            panel_graficoPastelCategoriasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 0, Short.MAX_VALUE)
+        );
+
+        jPanel3.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        lbl_productoMasVendido.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        lbl_productoMasVendido.setText("azucar");
+
+        jLabel3.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
+        jLabel3.setText("Producto mas vendido");
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap(41, Short.MAX_VALUE)
+                .addComponent(jLabel3)
+                .addGap(39, 39, 39))
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(lbl_productoMasVendido, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addGap(31, 31, 31)
+                .addComponent(jLabel3)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(lbl_productoMasVendido)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jPanel4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        lbl_numeroProductosVendidos.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        lbl_numeroProductosVendidos.setText("azucar");
+
+        jLabel4.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
+        jLabel4.setText("Productos vendidos");
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGap(48, 48, 48)
+                .addComponent(jLabel4)
+                .addContainerGap(45, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(lbl_numeroProductosVendidos, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(56, 56, 56))
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGap(34, 34, 34)
+                .addComponent(jLabel4)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lbl_numeroProductosVendidos)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jPanel5.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
+
+        lbl_categoriaMasVendida.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
+        lbl_categoriaMasVendida.setText("azucar");
+
+        jLabel5.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
+        jLabel5.setText("Categoria mas vendida");
+
+        javax.swing.GroupLayout jPanel5Layout = new javax.swing.GroupLayout(jPanel5);
+        jPanel5.setLayout(jPanel5Layout);
+        jPanel5Layout.setHorizontalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGap(48, 48, 48)
+                .addComponent(jLabel5)
+                .addContainerGap(45, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel5Layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(lbl_categoriaMasVendida, javax.swing.GroupLayout.PREFERRED_SIZE, 119, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(56, 56, 56))
+        );
+        jPanel5Layout.setVerticalGroup(
+            jPanel5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel5Layout.createSequentialGroup()
+                .addGap(34, 34, 34)
+                .addComponent(jLabel5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lbl_categoriaMasVendida)
+                .addContainerGap(32, Short.MAX_VALUE))
+        );
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addGap(32, 32, 32)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(panel_Top10Productos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(28, 28, 28)
+                        .addComponent(panel_graficoPastelCategorias, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(cb_sucursalRotacion, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(28, 28, 28)
+                                .addComponent(cb_categoriaRotacion, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jDateChooser1, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jDateChooser2, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(35, 35, 35)
+                                .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap(221, Short.MAX_VALUE))
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addGap(27, 27, 27)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jDateChooser2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jDateChooser1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(cb_sucursalRotacion, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(cb_categoriaRotacion, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(36, 36, 36)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jPanel5, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(panel_Top10Productos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(panel_graficoPastelCategorias, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(119, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         PROMOCIONES.addTab("ROTACION DE PRODUCTOS", jPanel1);
@@ -901,9 +1246,13 @@ public class panel_VentaGerente extends javax.swing.JPanel {
     private javax.swing.JToggleButton btn_eliminar;
     private javax.swing.JToggleButton btn_exportar;
     private javax.swing.JButton btn_guardar;
+    private javax.swing.JComboBox<String> cb_categoriaRotacion;
     private javax.swing.JComboBox<String> cb_sucursal;
+    private javax.swing.JComboBox<String> cb_sucursalRotacion;
     private javax.swing.JButton jButton4;
     private javax.swing.JCheckBox jCheckBox2;
+    private com.toedter.calendar.JDateChooser jDateChooser1;
+    private com.toedter.calendar.JDateChooser jDateChooser2;
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
@@ -913,6 +1262,9 @@ public class panel_VentaGerente extends javax.swing.JPanel {
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel22;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JPanel jPanel1;
@@ -921,16 +1273,23 @@ public class panel_VentaGerente extends javax.swing.JPanel {
     private javax.swing.JPanel jPanel13;
     private javax.swing.JPanel jPanel14;
     private javax.swing.JPanel jPanel15;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
-    private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JRadioButton jRadioButton3;
     private javax.swing.JRadioButton jRadioButton4;
     private javax.swing.JScrollPane jScrollPane2;
-    private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JLabel lbl_Devoluciones;
     private javax.swing.JLabel lbl_DevolucionesSoles;
     private javax.swing.JLabel lbl_PorcentajeDevoluciones3;
+    private javax.swing.JLabel lbl_categoriaMasVendida;
+    private javax.swing.JLabel lbl_numeroProductosVendidos;
+    private javax.swing.JLabel lbl_productoMasVendido;
+    private javax.swing.JPanel panel_Top10Productos;
+    private javax.swing.JPanel panel_graficoPastelCategorias;
     private javax.swing.JPanel panel_graficoPastelMotivo;
     private javax.swing.JPanel panel_tendenciaDevoluciones;
     private javax.swing.JTable tb_cupones;
