@@ -1,536 +1,615 @@
 package edu.UPAO.proyecto.app;
 
 import BaseDatos.Conexion;
-import edu.UPAO.proyecto.DAO.RentabilidadDAO;
-import edu.UPAO.proyecto.DAO.SucursalDAO;
-import edu.UPAO.proyecto.DAO.VentasDAO;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.DefaultPieDataset;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.DefaultPieDataset;
 import edu.UPAO.proyecto.Util.GeneradorExcelRk;
 import edu.UPAO.proyecto.Util.GeneradorPDFRk;
-import org.jfree.chart.ChartPanel;
-import javax.swing.table.DefaultTableModel;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Connection;
-import org.jfree.chart.ChartPanel;
+import java.awt.BorderLayout;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.BarRenderer;
-import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.data.category.DefaultCategoryDataset;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.Date;
-import javax.swing.JOptionPane;
-import javax.swing.table.DefaultTableModel;
+import org.jfree.data.general.DefaultPieDataset;
 
 public class panel_Tesoreria extends javax.swing.JPanel {
 
+    private Connection conn;
+    private JFreeChart chartVentasPorProducto;
 
-    private VentasDAO ventasDAO;
-    private RentabilidadDAO rentabilidadDAO;
-    private SucursalDAO sucursalDAO;
-
-    private Date fechaInicioFiltro;
-    private Date fechaFinFiltro;
-    private JFreeChart chartRanking;
-
-    private List<Object[]> datosActualesParaExportar;
+    private LocalDate fechaDesde = null;
+    private LocalDate fechaHasta = null;
 
     public panel_Tesoreria() {
-        
         initComponents();
-        iniciarDashboard();
-        configurarGraficos();
-        
-    }
-    
-    
-    
-private void configurarGraficos() {
-        // 1. AJUSTAR EL CONTENEDOR PRINCIPAL DE GRÁFICOS (panelCentro3)
-        // Le damos un margen interno grande para que los gráficos se vean más pequeños y centrados.
-        // Formato: (Arriba, Izquierda, Abajo, Derecha)
-        panelCentro3.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 50, 50, 50));
-
-        // 2. AJUSTAR ESPACIADO ENTRE GRÁFICOS (Separación)
-        // Cambiamos el GridLayout original (2,2,5,5) por uno con más separación (20px)
-        panelCentro3.setLayout(new java.awt.GridLayout(2, 2, 20, 20));
-        
-        // 3. FORZAR ACTUALIZACIÓN
-        panelCentro3.revalidate();
+        envolverEnScroll();
+        inicializar();
     }
 
-    // ESTE MÉTODO ES OBLIGATORIO PARA QUE LOS GRÁFICOS NO SE CORTEN
-    // Úsalo dentro de tus métodos 'actualizarGrafico...' en lugar de solo añadir el panel.
-    private void renderizarGrafico(JPanel panelContenedor, JFreeChart chart) {
-        chart.setBackgroundPaint(Color.WHITE);
-        
-        // Crear el panel del gráfico
-        ChartPanel chartPanel = new ChartPanel(chart);
-        
-        // --- EL TRUCO PARA QUE NO SE CORTE NI SE VEA GIGANTE ---
-        // 1. Quitamos restricciones de tamaño mínimo (para que pueda encogerse)
-        chartPanel.setMinimumSize(new java.awt.Dimension(0, 0));
-        // 2. Damos un tamaño preferido base pequeño (el layout lo estirará lo necesario)
-        chartPanel.setPreferredSize(new java.awt.Dimension(100, 100));
-        
-        chartPanel.setPopupMenu(null);
-        chartPanel.setDomainZoomable(false);
-        chartPanel.setRangeZoomable(false);
-        
-        // Limpiar el panel contenedor (el gris) y agregar el gráfico
-        panelContenedor.removeAll();
-        panelContenedor.setLayout(new BorderLayout()); // Importante para que llene el hueco
-        panelContenedor.add(chartPanel, BorderLayout.CENTER);
-        
-        panelContenedor.revalidate();
-        panelContenedor.repaint();
-    }
-
-    private void iniciarDashboard() {
-       try {
-            java.sql.Connection conexion = new Conexion().establecerConexion();
-            ventasDAO = new VentasDAO(conexion);
-            rentabilidadDAO = new RentabilidadDAO();
-            sucursalDAO = new SucursalDAO();
-        } catch (Exception e) {
-             JOptionPane.showMessageDialog(this, "Error crítico de conexión: " + e.getMessage());
-             return;
-        }
-
-        configurarFiltrosUI();
-        
-        // Por defecto: Este mes
-        calcularFechasDesdeCombo("Este mes");
-        actualizarDashboardVentas();
-    }
-
-    
-    private void actualizarDashboardVentas() {
-        if (ventasDAO == null) return;
-
-        String sucursalSeleccionada = (cb_sucursal.getSelectedItem() != null) ? cb_sucursal.getSelectedItem().toString() : "TODAS";
-
+    private void inicializar() {
         try {
-            // Guardamos los datos en la variable global para poder exportarlos luego
-            datosActualesParaExportar = ventasDAO.obtenerVentas(fechaInicioFiltro, fechaFinFiltro, sucursalSeleccionada);
-            
-            // Actualizar interfaz
-            actualizarKPIs(datosActualesParaExportar);
-            actualizarGraficoVentasDiarias(datosActualesParaExportar);
-            actualizarGraficoVentasMensuales(datosActualesParaExportar);
-            actualizarGraficoVentasPorProducto(datosActualesParaExportar);
-            actualizarGraficoMetodosPago(datosActualesParaExportar);
-            
+            conn = new Conexion().establecerConexion();
         } catch (Exception e) {
-            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Error de conexión a BD: " + e.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        cargarComboTiendas();
+        cargarComboProductos();
+
+        // Listeners de filtros
+        cmbTienda.addActionListener(e -> actualizarDashboard());
+        cmbProducto.addActionListener(e -> actualizarDashboard());
+        btnFecha.addActionListener(e -> seleccionarRangoFechas());
+        btnExportar.addActionListener(e -> exportarResumen());
+
+        // Carga inicial (todo)
+        actualizarDashboard();
+    }
+
+    private void envolverEnScroll() {
+        // Creamos el scroll que envuelve al tabbed pane
+        JScrollPane scroll = new JScrollPane(Tabbed_Tesoreria);
+        scroll.setBorder(null);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(16); // velocidad del scroll
+
+        // Este panel (panel_Tesoreria) ya tiene BorderLayout (lo veo en el Navigator)
+        // Quitamos el Tabbed_Tesoreria directo y ponemos el ScrollPane en su lugar
+        this.remove(Tabbed_Tesoreria);
+        this.add(scroll, BorderLayout.CENTER);
+
+        // Por si NetBeans no refresca solo
+        this.revalidate();
+        this.repaint();
+    }
+    // =====================  CARGA DE COMBOS  =====================
+
+    private void cargarComboTiendas() {
+        cmbTienda.removeAllItems();
+        cmbTienda.addItem("Todas las tiendas");
+
+        String sql = "SELECT id_sucursal, nombre_sucursal FROM sucursal ORDER BY nombre_sucursal";
+        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                int id = rs.getInt("id_sucursal");
+                String nombre = rs.getString("nombre_sucursal");
+                cmbTienda.addItem(id + " - " + nombre);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
     }
 
-    // =========================================================================
-    // ACTUALIZACIÓN DE KPIs (Cuadros de colores)
-    // =========================================================================
-    private void actualizarKPIs(List<Object[]> ventas) {
-      double totalSoles = 0;
-        int totalCantidadVentas = ventas.size();
-        int totalProductosVendidos = 0;
-        
-        // Mapa para contar repeticiones de métodos de pago
-        Map<String, Integer> conteoPagos = new HashMap<>();
-        
-        for (Object[] v : ventas) {
-            // v[3] = cantidad, v[4] = ingreso (subtotal), v[8] = metodo_pago
-            totalProductosVendidos += (int) v[3];
-            totalSoles += (double) v[4];
-            
-            String metodo = (String) v[8]; 
-            if(metodo != null) {
-                conteoPagos.put(metodo, conteoPagos.getOrDefault(metodo, 0) + 1);
-            }
-        }
+    private void cargarComboProductos() {
+        cmbProducto.removeAllItems();
+        cmbProducto.addItem("Todos los productos");
 
-        // Buscar el método más usado
-        String pagoMasUsado = "N/A";
-        int maxRepeticiones = 0;
-        for (Map.Entry<String, Integer> entry : conteoPagos.entrySet()) {
-            if (entry.getValue() > maxRepeticiones) {
-                maxRepeticiones = entry.getValue();
-                pagoMasUsado = entry.getKey();
+        String sql = "SELECT id_producto, nombre FROM producto ORDER BY nombre";
+        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                int id = rs.getInt("id_producto");
+                String nombre = rs.getString("nombre");
+                cmbProducto.addItem(id + " - " + nombre);
             }
-        }
-
-       // Asignar valores a los Labels (Asegúrate que los nombres coinciden con DESIGN)
-        lbl_rentabilidad7.setText(String.format("S/ %.2f", totalSoles));
-        lbl_totalVentas.setText(String.valueOf(totalCantidadVentas));
-        lbl_productosVendidos.setText(String.valueOf(totalProductosVendidos));
-        
-        // KPI MORADO
-        if(lbl_medioPagoMasUsado != null) {
-            lbl_medioPagoMasUsado.setText(pagoMasUsado);
-            // Reducir fuente si el texto es muy largo
-            if(pagoMasUsado.length() > 10) lbl_medioPagoMasUsado.setFont(new java.awt.Font("Dialog", 1, 18));
-            else lbl_medioPagoMasUsado.setFont(new java.awt.Font("Dialog", 1, 24));
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
     }
-private void exportarDatosCSV() {
-        if (datosActualesParaExportar == null || datosActualesParaExportar.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay datos para exportar.");
+
+    private Integer getIdSucursalSeleccionada() {
+        int idx = cmbTienda.getSelectedIndex();
+        if (idx <= 0) {
+            return null; // "Todas las tiendas"
+        }
+        String item = (String) cmbTienda.getSelectedItem();
+        try {
+            return Integer.parseInt(item.split(" - ")[0]);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer getIdProductoSeleccionado() {
+        int idx = cmbProducto.getSelectedIndex();
+        if (idx <= 0) {
+            return null; // "Todos"
+        }
+        String item = (String) cmbProducto.getSelectedItem();
+        try {
+            return Integer.parseInt(item.split(" - ")[0]);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // =====================  FILTRO DE FECHAS  =====================
+    private void seleccionarRangoFechas() {
+        String[] opciones = {"Hoy", "Últimos 7 días", "Últimos 30 días", "Todo"};
+        int op = JOptionPane.showOptionDialog(this,
+                "Selecciona el rango de fechas:",
+                "Filtro de fecha",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                opciones,
+                opciones[0]);
+
+        LocalDate hoy = LocalDate.now();
+
+        switch (op) {
+            case 0: // Hoy
+                fechaDesde = hoy;
+                fechaHasta = hoy;
+                break;
+            case 1: // 7 días
+                fechaDesde = hoy.minusDays(6);
+                fechaHasta = hoy;
+                break;
+            case 2: // 30 días
+                fechaDesde = hoy.minusDays(29);
+                fechaHasta = hoy;
+                break;
+            default: // Todo
+                fechaDesde = null;
+                fechaHasta = null;
+        }
+
+        actualizarDashboard();
+    }
+
+    // Construye la parte dinámica del WHERE
+    private String construirWhereVentas(Integer idSucursal,
+            Integer idProducto,
+            List<Object> params,
+            boolean usarJoinProducto) {
+        StringBuilder where = new StringBuilder(" WHERE 1=1 ");
+
+        if (idSucursal != null) {
+            where.append(" AND v.id_sucursal = ? ");
+            params.add(idSucursal);
+        }
+
+        if (idProducto != null && usarJoinProducto) {
+            where.append(" AND dv.id_producto = ? ");
+            params.add(idProducto);
+        }
+
+        if (fechaDesde != null) {
+            where.append(" AND v.fecha_hora >= ? ");
+            params.add(Timestamp.valueOf(fechaDesde.atStartOfDay()));
+        }
+        if (fechaHasta != null) {
+            // < día siguiente
+            where.append(" AND v.fecha_hora < ? ");
+            params.add(Timestamp.valueOf(fechaHasta.plusDays(1).atStartOfDay()));
+        }
+
+        return where.toString();
+    }
+
+    // =====================  ACTUALIZAR TODO  =====================
+    private void actualizarDashboard() {
+        if (conn == null) {
             return;
         }
 
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Guardar Reporte de Ventas");
-        fileChooser.setSelectedFile(new File("Reporte_Ventas_" + System.currentTimeMillis() + ".csv"));
+        Integer idSucursal = getIdSucursalSeleccionada();
+        Integer idProducto = getIdProductoSeleccionado();
 
-        int userSelection = fileChooser.showSaveDialog(this);
-
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            // Asegurar extensión .csv
-            if (!fileToSave.getAbsolutePath().endsWith(".csv")) {
-                fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
-            }
-
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
-                // Escribir cabecera (BOM para Excel en español)
-                writer.write("\ufeff"); 
-                writer.write("Fecha;Sucursal;Producto;Cantidad;Ingreso;Costo;Ganancia;Tipo;MetodoPago\n");
-
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-                for (Object[] row : datosActualesParaExportar) {
-                    // Construir línea CSV
-                    String fecha = sdf.format((Date) row[0]);
-                    String sucursal = String.valueOf(row[1]);
-                    String producto = String.valueOf(row[2]);
-                    String cantidad = String.valueOf(row[3]);
-                    String ingreso = String.valueOf(row[4]).replace(".", ","); // Formato decimal excel
-                    String costo = String.valueOf(row[5]).replace(".", ",");
-                    String ganancia = String.valueOf(row[6]).replace(".", ",");
-                    String tipo = String.valueOf(row[7]);
-                    String metodo = String.valueOf(row[8]);
-
-                    writer.write(String.join(";", fecha, sucursal, producto, cantidad, ingreso, costo, ganancia, tipo, metodo));
-                    writer.newLine();
-                }
-
-                JOptionPane.showMessageDialog(this, "¡Exportación exitosa!\nGuardado en: " + fileToSave.getAbsolutePath());
-
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Error al exportar: " + e.getMessage());
-            }
-        }
+        actualizarKPIs(idSucursal, idProducto);
+        cargarGraficoVentasDiarias(idSucursal, idProducto);
+        cargarGraficoVentasMensuales(idSucursal, idProducto);
+        cargarGraficoVentasPorProducto(idSucursal, idProducto);
+        cargarGraficoMediosPago(idSucursal, idProducto);
     }
-      private void actualizarGraficoVentasDiarias(List<Object[]> ventas) {
+
+    // =====================  KPIs  =====================
+    private void actualizarKPIs(Integer idSucursal, Integer idProducto) {
+        // Ventas totales
+        BigDecimal totalVentas = obtenerTotalVentas(idSucursal, idProducto);
+        long numeroVentas = obtenerNumeroVentas(idSucursal, idProducto);
+        long productosVendidos = obtenerTotalProductosVendidos(idSucursal, idProducto);
+        String medioPagoMasUsado = obtenerMedioPagoMasUsado(idSucursal, idProducto);
+
+        lblValorVentasTotales.setText("S/" + (totalVentas != null ? totalVentas : BigDecimal.ZERO));
+        lblValorNumeroVentas.setText(String.valueOf(numeroVentas));
+        lblValorProductosVendidos.setText(String.valueOf(productosVendidos));
+        lblValorMedioPago.setText(medioPagoMasUsado != null ? medioPagoMasUsado : "—");
+    }
+
+    private BigDecimal obtenerTotalVentas(Integer idSucursal, Integer idProducto) {
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+        StringBuilder sql = new StringBuilder(
+                "SELECT SUM(v.total) AS total "
+                + "FROM venta v ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+        }
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getBigDecimal("total");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private long obtenerNumeroVentas(Integer idSucursal, Integer idProducto) {
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(*) AS cant FROM venta v ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+        }
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong("cant");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return 0;
+    }
+
+    private long obtenerTotalProductosVendidos(Integer idSucursal, Integer idProducto) {
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = true; // siempre necesitamos detalle_venta
+        StringBuilder sql = new StringBuilder(
+                "SELECT SUM(dv.cantidad) AS total_prod "
+                + "FROM venta v "
+                + "JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong("total_prod");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return 0;
+    }
+
+    private String obtenerMedioPagoMasUsado(Integer idSucursal, Integer idProducto) {
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT mp.nombre, COUNT(*) AS cant "
+                + "FROM venta v "
+                + "JOIN metodo_pago mp ON mp.id_metodo_pago = v.id_metodo_pago ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+        }
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY mp.nombre ORDER BY cant DESC LIMIT 1 ");
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getString("nombre");
+            }
+        } catch (SQLException ex) {
+        }
+        return null;
+    }
+
+    // =====================  GRÁFICOS  =====================
+    private void cargarGraficoVentasDiarias(Integer idSucursal, Integer idProducto) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        Map<String, Double> porDia = new TreeMap<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
 
-        for (Object[] v : ventas) {
-            Timestamp ts = (Timestamp) v[0];
-            String dia = sdf.format(ts);
-            double monto = (double) v[4];
-            porDia.put(dia, porDia.getOrDefault(dia, 0.0) + monto);
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT DATE(v.fecha_hora) AS dia, SUM(v.total) AS total "
+                + "FROM venta v ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
         }
 
-        for (Map.Entry<String, Double> e : porDia.entrySet()) dataset.addValue(e.getValue(), "Ventas", e.getKey());
-        
-        JFreeChart chart = ChartFactory.createLineChart("Ventas Diarias", "Fecha", "Monto (S/)", dataset, PlotOrientation.VERTICAL, false, true, false);
-        renderizarGrafico(grafico_ventasdiarias3, chart);
-    }
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY DATE(v.fecha_hora) ORDER BY DATE(v.fecha_hora)");
 
-    private void actualizarGraficoVentasMensuales(List<Object[]> ventas) {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        Map<String, Double> porMes = new TreeMap<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
-
-        for (Object[] v : ventas) {
-            Timestamp ts = (Timestamp) v[0];
-            String mes = sdf.format(ts);
-            double monto = (double) v[4];
-            porMes.put(mes, porMes.getOrDefault(mes, 0.0) + monto);
-        }
-        for (Map.Entry<String, Double> e : porMes.entrySet()) dataset.addValue(e.getValue(), "Ventas", e.getKey());
-
-        JFreeChart chart = ChartFactory.createBarChart("Ventas Mensuales", "Mes", "Monto (S/)", dataset, PlotOrientation.VERTICAL, false, true, false);
-        renderizarGrafico(grafico_ventasMensuales, chart);
-    }
-
-    private void actualizarGraficoVentasPorProducto(List<Object[]> ventas) {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        Map<String, Double> porProducto = new HashMap<>();
-
-        for (Object[] v : ventas) {
-            String producto = (String) v[2];
-            double monto = (double) v[4];
-            porProducto.put(producto, porProducto.getOrDefault(producto, 0.0) + monto);
-        }
-        for (Map.Entry<String, Double> entry : porProducto.entrySet()) dataset.addValue(entry.getValue(), "Ventas", entry.getKey());
-
-        JFreeChart chart = ChartFactory.createBarChart("Ventas por Producto (Top)", "Producto", "Monto (S/)", dataset, PlotOrientation.HORIZONTAL, false, true, false);
-        renderizarGrafico(grafico_ventasXProducto, chart);
-    }
-
-    private void actualizarGraficoMetodosPago(List<Object[]> ventas) {
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        Map<String, Double> porMetodo = new HashMap<>();
-
-        for (Object[] v : ventas) {
-            String metodo = (String) v[8];
-            double monto = (double) v[4];
-            porMetodo.put(metodo, porMetodo.getOrDefault(metodo, 0.0) + monto);
-        }
-        for (Map.Entry<String, Double> entry : porMetodo.entrySet()) dataset.setValue(entry.getKey(), entry.getValue());
-
-        JFreeChart chart = ChartFactory.createPieChart("Medios de Pago", dataset, true, true, false);
-        renderizarGrafico(grafico_metodosPago, chart);
-    }
-    
-
-
-    private void configurarFiltrosUI() {
-        cb_sucursal.removeAllItems();
-        cb_sucursal.addItem("TODAS");
-        try {
-            List<String> sucursales = sucursalDAO.obtenerSucursalesActivas();
-            for (String s : sucursales) cb_sucursal.addItem(s);
-        } catch (Exception e) {}
-        
-        cb_rangoFechas.removeAllItems();
-        cb_rangoFechas.addItem("Hoy");
-        cb_rangoFechas.addItem("Últimos 7 días");
-        cb_rangoFechas.addItem("Este mes");
-        cb_rangoFechas.addItem("Mes anterior");
-        cb_rangoFechas.setSelectedItem("Este mes");
-
-        // Eventos
-        cb_sucursal.addActionListener(e -> actualizarDashboardVentas());
-        cb_rangoFechas.addActionListener(e -> {
-            calcularFechasDesdeCombo(cb_rangoFechas.getSelectedItem().toString());
-            actualizarDashboardVentas();
-        });
-        
-        // ACCIÓN DEL BOTÓN EXPORTAR
-        btn_exportar.addActionListener(e -> exportarDatosCSV());
-    }
-
-    private void calcularFechasDesdeCombo(String rango) {
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0);
-        Date hoyInicio = cal.getTime();
-        cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59);
-        Date hoyFin = cal.getTime();
-
-        switch (rango) {
-            case "Hoy": fechaInicioFiltro = hoyInicio; fechaFinFiltro = hoyFin; break;
-            case "Últimos 7 días": cal.setTime(hoyInicio); cal.add(Calendar.DAY_OF_YEAR, -7); fechaInicioFiltro = cal.getTime(); fechaFinFiltro = hoyFin; break;
-            case "Este mes": cal.setTime(hoyInicio); cal.set(Calendar.DAY_OF_MONTH, 1); fechaInicioFiltro = cal.getTime(); fechaFinFiltro = hoyFin; break;
-            case "Mes anterior": cal.setTime(hoyInicio); cal.add(Calendar.MONTH, -1); cal.set(Calendar.DAY_OF_MONTH, 1); fechaInicioFiltro = cal.getTime(); cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH)); cal.set(Calendar.HOUR_OF_DAY, 23); cal.set(Calendar.MINUTE, 59); cal.set(Calendar.SECOND, 59); fechaFinFiltro = cal.getTime(); break;
-            default: fechaInicioFiltro = hoyInicio; fechaFinFiltro = hoyFin;
-        }
-    }
-
- private void iniciarSistemaRanking() {
-        // 1. Limpiar listeners anteriores para evitar errores
-        for(java.awt.event.ActionListener al : FiltrarporMes.getActionListeners()) FiltrarporMes.removeActionListener(al);
-        for(java.awt.event.ActionListener al : cb_tipoRanking.getActionListeners()) cb_tipoRanking.removeActionListener(al);
-
-        // 2. Activar recarga automática
-        FiltrarporMes.addActionListener(evt -> cargarDatosRanking());
-        cb_tipoRanking.addActionListener(evt -> cargarDatosRanking());
-        
-        // 3. Carga inicial
-        cargarDatosRanking();
-    }
-
-    private void cargarDatosRanking() {
-        // A. Obtener datos de la Interfaz
-        int mesIndex = FiltrarporMes.getSelectedIndex(); // 0=Anual, 1=Enero...
-        String tipoRanking = cb_tipoRanking.getSelectedItem().toString(); // "Ventas" o "Transacciones"
-        
-        // B. Filtros SQL
-        String filtroV = (mesIndex == 0) ? "" : " AND MONTH(v.fecha_hora) = " + mesIndex;
-        String filtroC = (mesIndex == 0) ? "" : " AND MONTH(mc.fecha_hora) = " + mesIndex;
-        
-        // C. Consulta SQL
-        String sql = "SELECT s.nombre_sucursal, " +
-                     "COALESCE(v.total_v, 0) as ventas, " +
-                     "COALESCE(mc.total_count, 0) as transacciones, " +
-                     "(COALESCE(v.total_v, 0) + COALESCE(mc.total_count, 0))/2 as puntaje " +
-                     "FROM sucursal s " +
-                     "LEFT JOIN (SELECT id_sucursal, SUM(total) as total_v FROM venta v WHERE 1=1 " + filtroV + " GROUP BY id_sucursal) v ON s.id_sucursal=v.id_sucursal " +
-                     "LEFT JOIN (SELECT id_sucursal, COUNT(*) as total_count FROM movimiento_caja mc WHERE 1=1 " + filtroC + " GROUP BY id_sucursal) mc ON s.id_sucursal=mc.id_sucursal " +
-                     "ORDER BY puntaje DESC";
-
-        // D. Ejecución (SIN CERRAR CONEXIÓN)
-        java.sql.Connection conn = null;
-        try {
-            conn = rentabilidadDAO.getConexion();
-            if (conn == null || conn.isClosed()) {
-                rentabilidadDAO = new RentabilidadDAO();
-                conn = rentabilidadDAO.getConexion();
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Date fecha = rs.getDate("dia");
+                BigDecimal total = rs.getBigDecimal("total");
+                String etiqueta = fecha.toLocalDate().toString();
+                dataset.addValue(total, "Ventas", etiqueta);
             }
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                 ResultSet rs = pstmt.executeQuery()) {
-
-                // 1. Preparar Tabla y Gráfico
-                DefaultTableModel modelo = (DefaultTableModel) TablaRanking.getModel();
-                modelo.setRowCount(0); 
-                DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
-                // Variables Labels
-                int puesto = 1;
-                double sumaTotalVentas = 0;
-                String topLocal = "Ninguno";
-                String mejorPromedioLocal = "Ninguno"; 
-
-                // 2. Recorrer
-                while (rs.next()) {
-                    String nom = rs.getString("nombre_sucursal");
-                    double vtas = rs.getDouble("ventas");
-                    int trxs = rs.getInt("transacciones");
-                    
-                    // -> Llenar Tabla
-                    modelo.addRow(new Object[]{
-                        puesto, nom,
-                        "S/ " + String.format("%,.2f", vtas),
-                        trxs
-                    });
-                    
-                    // -> Llenar Gráfico
-                    double valorG = (tipoRanking.equalsIgnoreCase("Ventas")) ? vtas : trxs;
-                    dataset.addValue(valorG, tipoRanking, nom);
-
-                    // -> Calcular Labels
-                    sumaTotalVentas += vtas;
-                    if (puesto == 1) { topLocal = nom; mejorPromedioLocal = nom; }
-                    puesto++;
-                }
-
-                // 3. Actualizar UI
-                TablaRanking.setModel(modelo);
-                lbl_TotalVenta.setText("S/ " + String.format("%,.2f", sumaTotalVentas));
-                lbl_TiendaTOP.setText(topLocal);
-                lbl_promedioVentas.setText(mejorPromedioLocal);
-                
-                // --- DEFINIR ETIQUETA EJE Y ---
-                String etiquetaY = tipoRanking.equalsIgnoreCase("Ventas") ? "Monto (S/)" : "N° Transacciones";
-                
-                // Pintar Gráfico
-                pintarGrafico(dataset, etiquetaY);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error Ranking: " + e.getMessage());
+        } catch (SQLException ex) {
+            ex.printStackTrace();
         }
+
+        JFreeChart chart = ChartFactory.createAreaChart(
+                "Ventas diarias",
+                "Día",
+                "Total (S/)",
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, true, false);
+
+        mostrarChartEnPanel(panel_VentasDiarias, chart);
     }
 
-    private void pintarGrafico(DefaultCategoryDataset dataset, String labelY) {
-        // Crear gráfico
-        chartRanking = ChartFactory.createBarChart(
-                "", "", labelY, // <--- AQUÍ SE USA EL NOMBRE DINÁMICO
-                dataset, 
-                PlotOrientation.VERTICAL, 
-                true, true, false
+    private void cargarGraficoVentasMensuales(Integer idSucursal, Integer idProducto) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT DATE_FORMAT(v.fecha_hora, '%Y-%m') AS mes, SUM(v.total) AS total "
+                + "FROM venta v ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+        }
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY DATE_FORMAT(v.fecha_hora, '%Y-%m') ORDER BY mes");
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String mes = rs.getString("mes");
+                BigDecimal total = rs.getBigDecimal("total");
+                dataset.addValue(total, "Ventas", mes);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        JFreeChart chart = ChartFactory.createBarChart(
+                "Ventas mensuales",
+                "Mes",
+                "Total (S/)",
+                dataset,
+                PlotOrientation.VERTICAL,
+                false, true, false);
+
+        mostrarChartEnPanel(panel_VentasMensuales, chart);
+    }
+
+    private void cargarGraficoVentasPorProducto(Integer idSucursal, Integer idProducto) {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = true; // siempre usamos detalle_venta
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT p.nombre, SUM(dv.cantidad * dv.precio_unitario) AS total "
+                + "FROM venta v "
+                + "JOIN detalle_venta dv ON dv.id_venta = v.id_venta "
+                + "JOIN producto p ON p.id_producto = dv.id_producto ");
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY p.nombre ORDER BY total DESC LIMIT 5");
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                BigDecimal total = rs.getBigDecimal("total");
+                dataset.addValue(total, "Producto", nombre);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+       chartVentasPorProducto = ChartFactory.createBarChart(
+            "Ventas por producto (Top 5)",
+            "Producto",
+            "Total (S/)",
+            dataset,
+            PlotOrientation.HORIZONTAL,
+            false, true, false);
+
+    mostrarChartEnPanel(panel_VentasPorProducto, chartVentasPorProducto);
+    }
+
+    private void cargarGraficoMediosPago(Integer idSucursal, Integer idProducto) {
+        DefaultPieDataset<String> dataset = new DefaultPieDataset<>();
+
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = (idProducto != null);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT mp.nombre, COUNT(*) AS cant "
+                + "FROM venta v "
+                + "JOIN metodo_pago mp ON mp.id_metodo_pago = v.id_metodo_pago ");
+
+        if (joinProducto) {
+            sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
+        }
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY mp.nombre");
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String nombre = rs.getString("nombre");
+                long cant = rs.getLong("cant");
+                dataset.setValue(nombre, cant);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        JFreeChart chart = ChartFactory.createPieChart(
+                "Medios de pago",
+                dataset,
+                false, true, false);
+
+        mostrarChartEnPanel(panel_MediosPago, chart);
+    }
+
+    // =====================  UTILIDADES  =====================
+    private PreparedStatement preparar(String sql, List<Object> params) throws SQLException {
+        PreparedStatement ps = conn.prepareStatement(sql);
+        for (int i = 0; i < params.size(); i++) {
+            Object p = params.get(i);
+            if (p instanceof LocalDate) {
+                ps.setDate(i + 1, Date.valueOf((LocalDate) p));
+            } else {
+                ps.setObject(i + 1, p);
+            }
+        }
+        return ps;
+    }
+
+    private void mostrarChartEnPanel(JPanel contenedor, JFreeChart chart) {
+        contenedor.removeAll();
+        ChartPanel cp = new ChartPanel(chart);
+        cp.setMouseWheelEnabled(true);
+        contenedor.setLayout(new BorderLayout());
+        contenedor.add(cp, BorderLayout.CENTER);
+        contenedor.revalidate();
+        contenedor.repaint();
+    }
+
+    private JTable construirTablaResumenDashboard() {
+        DefaultTableModel modelo = new DefaultTableModel(
+                new Object[]{"TOP", "LOCALES", "VENTAS", "TRANSACCIONES"}, 0
         );
-        
-        // Estilo Mate (Sin brillo)
-        CategoryPlot plot = chartRanking.getCategoryPlot();
-        plot.setBackgroundPaint(new Color(245, 245, 245));
-        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
-        chartRanking.setBackgroundPaint(Color.WHITE);
+        JTable tabla = new JTable(modelo);
 
-        // Barras planas
-        BarRenderer renderer = (BarRenderer) plot.getRenderer();
-        renderer.setBarPainter(new StandardBarPainter());
-        renderer.setShadowVisible(false);
-        renderer.setSeriesPaint(0, new Color(70, 130, 180)); // Azul profesional
-
-        // Insertar en panel 'GraficoBarras'
-        ChartPanel cp = new ChartPanel(chartRanking);
-        cp.setPreferredSize(new java.awt.Dimension(GraficoBarras.getWidth(), 250)); // Altura controlada
-        
-        GraficoBarras.removeAll();
-        GraficoBarras.setLayout(new BorderLayout());
-        GraficoBarras.add(cp, BorderLayout.CENTER);
-        GraficoBarras.validate();
-        GraficoBarras.repaint();
-    }
-    
-   // =======================================================
-    // MAIN (DISEÑO ORIGINAL NETBEANS - NIMBUS)
-    // =======================================================
-    public static void main(String args[]) {
-        // ESTE BLOQUE PONE EL DISEÑO "ORIGINAL" DE NETBEANS
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(panel_Tesoreria.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        if (conn == null) {
+            return tabla;
         }
 
-        // MOSTRAR VENTANA
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                javax.swing.JFrame frame = new javax.swing.JFrame("Prueba Panel Tesorería");
-                frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
-                
-                panel_Tesoreria panel = new panel_Tesoreria();
-                frame.add(panel);
-                
-                frame.setSize(1300, 750);
-                frame.setLocationRelativeTo(null); // Centrar
-                frame.setVisible(true);
+        // Filtros actuales
+        Integer idSucursal = getIdSucursalSeleccionada();
+        Integer idProducto = getIdProductoSeleccionado(); // si quieres que sea general de TODO, pon null aquí
+
+        // ====== 1) FILA DE RESUMEN: KPIs ======
+        BigDecimal totalVentas = obtenerTotalVentas(idSucursal, idProducto);
+        long numeroVentas = obtenerNumeroVentas(idSucursal, idProducto);
+        long productosVendidos = obtenerTotalProductosVendidos(idSucursal, idProducto);
+        String medioPagoMasUsado = obtenerMedioPagoMasUsado(idSucursal, idProducto);
+
+        // OJO: usamos las columnas así:
+        // TOP      → lo dejamos vacío
+        // LOCALES  → nombre de la métrica
+        // VENTAS   → valor de la métrica
+        // TRANSACCIONES → lo dejamos vacío (o info extra si quieres)
+        modelo.addRow(new Object[]{"", "VENTAS TOTALES (S/)", totalVentas, ""});
+        modelo.addRow(new Object[]{"", "NÚMERO DE VENTAS", numeroVentas, ""});
+        modelo.addRow(new Object[]{"", "PRODUCTOS VENDIDOS", productosVendidos, ""});
+        modelo.addRow(new Object[]{"", "MEDIO DE PAGO MÁS USADO", medioPagoMasUsado, ""});
+
+        // ====== 2) BLOQUE: TOP 5 PRODUCTOS ======
+        List<Object> params = new ArrayList<>();
+        boolean joinProducto = true; // siempre usamos detalle_venta
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT p.nombre AS producto, "
+                + "       SUM(dv.cantidad * dv.precio_unitario) AS ventas, "
+                + "       COUNT(DISTINCT v.id_venta) AS transacciones "
+                + "FROM venta v "
+                + "JOIN detalle_venta dv ON dv.id_venta = v.id_venta "
+                + "JOIN producto p ON p.id_producto = dv.id_producto ");
+
+        sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
+        sql.append(" GROUP BY p.nombre ORDER BY ventas DESC LIMIT 5");
+
+        try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
+
+            int top = 1;
+            while (rs.next()) {
+                String producto = rs.getString("producto");
+                BigDecimal ventas = rs.getBigDecimal("ventas");
+                long trans = rs.getLong("transacciones");
+
+                modelo.addRow(new Object[]{
+                    top, // TOP
+                    producto, // LOCALES
+                    ventas, // VENTAS
+                    trans // TRANSACCIONES
+                });
+                top++;
             }
-        });
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        return tabla;
     }
+
+    private void exportarResumen() {
+        try {
+            JTable tablaRanking = construirTablaResumenDashboard();
+
+            if (tablaRanking.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this,
+                        "No hay datos para exportar con los filtros actuales.",
+                        "Sin datos",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+         String mes = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm")
+                 .format(new java.util.Date());
+
+            String[] opciones = {"PDF", "Excel", "Cancelar"};
+            int op = JOptionPane.showOptionDialog(this,
+                    "¿Cómo deseas exportar el reporte general?",
+                    "Exportar",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    opciones,
+                    opciones[0]);
+
+            if (op == 0) {
+                // PDF
+                if (chartVentasPorProducto == null) {
+                    JOptionPane.showMessageDialog(this,
+                            "No se encontró el gráfico de productos para el PDF.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                GeneradorPDFRk genPdf = new GeneradorPDFRk();
+                genPdf.generarReporte(tablaRanking, chartVentasPorProducto, mes);
+
+            } else if (op == 1) {
+                // Excel
+                GeneradorExcelRk genExcel = new GeneradorExcelRk();
+                genExcel.generarExcel(tablaRanking, mes);
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error al exportar: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -539,31 +618,34 @@ private void exportarDatosCSV() {
         lbl_total2 = new javax.swing.JLabel();
         Tabbed_Tesoreria = new javax.swing.JTabbedPane();
         panel_Ventas = new javax.swing.JPanel();
-        panelSuperiorNorte = new javax.swing.JPanel();
-        Filtros = new javax.swing.JPanel();
-        cb_sucursal = new javax.swing.JComboBox<>();
-        jLabel3 = new javax.swing.JLabel();
-        cb_productos2 = new javax.swing.JComboBox<>();
-        cb_rangoFechas = new javax.swing.JComboBox<>();
-        btn_exportar = new javax.swing.JButton();
-        panelKpis = new javax.swing.JPanel();
-        panel_TotalenSoles = new javax.swing.JPanel();
-        lbl_rentabilidad7 = new javax.swing.JLabel();
-        lbl_totalSoles = new javax.swing.JLabel();
-        panel_TotaldeVentas = new javax.swing.JPanel();
-        lbl_rentabilidad3 = new javax.swing.JLabel();
-        lbl_totalVentas = new javax.swing.JLabel();
-        panelProductosVendidos = new javax.swing.JPanel();
-        lbl_rentabilidad2 = new javax.swing.JLabel();
-        lbl_productosVendidos = new javax.swing.JLabel();
-        panelMedioDePagoUsado = new javax.swing.JPanel();
-        jLabel1 = new javax.swing.JLabel();
-        lbl_medioPagoMasUsado = new javax.swing.JLabel();
-        panelCentro3 = new javax.swing.JPanel();
-        grafico_ventasdiarias3 = new javax.swing.JPanel();
-        grafico_ventasXProducto = new javax.swing.JPanel();
-        grafico_ventasMensuales = new javax.swing.JPanel();
-        grafico_metodosPago = new javax.swing.JPanel();
+        panel_Filtros = new javax.swing.JPanel();
+        lblFiltrarPor = new javax.swing.JLabel();
+        cmbTienda = new javax.swing.JComboBox<>();
+        cmbProducto = new javax.swing.JComboBox<>();
+        btnFecha = new javax.swing.JButton();
+        btnExportar = new javax.swing.JButton();
+        panel_KPIs = new javax.swing.JPanel();
+        panel_KpiVentasTotales = new javax.swing.JPanel();
+        lblTituloVentasTotales = new javax.swing.JLabel();
+        lblValorVentasTotales = new javax.swing.JLabel();
+        panel_KpiNumeroVentas = new javax.swing.JPanel();
+        lblTituloNumeroVentas = new javax.swing.JLabel();
+        lblValorNumeroVentas = new javax.swing.JLabel();
+        panel_KpiProductosVendidos = new javax.swing.JPanel();
+        lblTituloProductosVendidos = new javax.swing.JLabel();
+        lblValorProductosVendidos = new javax.swing.JLabel();
+        panel_KpiMedioPago = new javax.swing.JPanel();
+        lblTituloMedioPago = new javax.swing.JLabel();
+        lblValorMedioPago = new javax.swing.JLabel();
+        panel_Graficos = new javax.swing.JPanel();
+        panel_VentasDiarias = new javax.swing.JPanel();
+        lblVentasDiarias = new javax.swing.JLabel();
+        panel_VentasMensuales = new javax.swing.JPanel();
+        lblVentasMensuales = new javax.swing.JLabel();
+        panel_VentasPorProducto = new javax.swing.JPanel();
+        lblVentasPorProducto = new javax.swing.JLabel();
+        panel_MediosPago = new javax.swing.JPanel();
+        lblMediosPago = new javax.swing.JLabel();
         panel_COMPRAS = new javax.swing.JPanel();
         cb_sucursal1 = new javax.swing.JComboBox<>();
         cb_productos1 = new javax.swing.JComboBox<>();
@@ -620,181 +702,175 @@ private void exportarDatosCSV() {
         lbl_total2.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
         setPreferredSize(new java.awt.Dimension(0, 0));
+        setLayout(new java.awt.BorderLayout());
 
+        Tabbed_Tesoreria.setPreferredSize(new java.awt.Dimension(0, 0));
+
+        panel_Ventas.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel_Ventas.setPreferredSize(new java.awt.Dimension(0, 0));
         panel_Ventas.setLayout(new java.awt.BorderLayout());
 
-        panelSuperiorNorte.setLayout(new java.awt.BorderLayout());
+        panel_Filtros.setBackground(new java.awt.Color(255, 255, 255));
+        panel_Filtros.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 5));
 
-        Filtros.setLayout(new java.awt.GridBagLayout());
+        lblFiltrarPor.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblFiltrarPor.setForeground(new java.awt.Color(0, 0, 0));
+        lblFiltrarPor.setText("Filtrar por:");
+        panel_Filtros.add(lblFiltrarPor);
 
-        cb_sucursal.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        Filtros.add(cb_sucursal, gridBagConstraints);
+        cmbTienda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cmbTienda.setPreferredSize(new java.awt.Dimension(140, 30));
+        panel_Filtros.add(cmbTienda);
 
-        jLabel3.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
-        jLabel3.setText("Filtrar por datos:");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        Filtros.add(jLabel3, gridBagConstraints);
+        cmbProducto.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cmbProducto.setPreferredSize(new java.awt.Dimension(120, 32));
+        panel_Filtros.add(cmbProducto);
 
-        cb_productos2.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        Filtros.add(cb_productos2, new java.awt.GridBagConstraints());
+        btnFecha.setText("FECHA");
+        btnFecha.setPreferredSize(new java.awt.Dimension(120, 30));
+        btnFecha.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnFechaActionPerformed(evt);
+            }
+        });
+        panel_Filtros.add(btnFecha);
 
-        cb_rangoFechas.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        Filtros.add(cb_rangoFechas, new java.awt.GridBagConstraints());
+        btnExportar.setText("EXPORTAR");
+        btnExportar.setPreferredSize(new java.awt.Dimension(120, 32));
+        panel_Filtros.add(btnExportar);
 
-        btn_exportar.setText("Exportar");
-        Filtros.add(btn_exportar, new java.awt.GridBagConstraints());
+        panel_Ventas.add(panel_Filtros, java.awt.BorderLayout.NORTH);
 
-        panelSuperiorNorte.add(Filtros, java.awt.BorderLayout.WEST);
+        panel_KPIs.setBackground(new java.awt.Color(204, 204, 204));
+        panel_KPIs.setPreferredSize(new java.awt.Dimension(260, 607));
+        panel_KPIs.setLayout(new java.awt.GridLayout(4, 1, 0, 10));
 
-        panelKpis.setLayout(new java.awt.GridLayout(1, 0, 10, 10));
+        panel_KpiVentasTotales.setBackground(new java.awt.Color(76, 175, 80));
+        panel_KpiVentasTotales.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel_KpiVentasTotales.setLayout(new java.awt.BorderLayout());
 
-        panel_TotalenSoles.setBackground(new java.awt.Color(51, 153, 0));
-        panel_TotalenSoles.setLayout(new java.awt.BorderLayout());
+        lblTituloVentasTotales.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloVentasTotales.setForeground(new java.awt.Color(255, 255, 255));
+        lblTituloVentasTotales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTituloVentasTotales.setText("VENTAS TOTALES");
+        panel_KpiVentasTotales.add(lblTituloVentasTotales, java.awt.BorderLayout.PAGE_START);
 
-        lbl_rentabilidad7.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
-        lbl_rentabilidad7.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_rentabilidad7.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_rentabilidad7.setText("0.00");
-        lbl_rentabilidad7.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        panel_TotalenSoles.add(lbl_rentabilidad7, java.awt.BorderLayout.CENTER);
+        lblValorVentasTotales.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
+        lblValorVentasTotales.setForeground(new java.awt.Color(255, 255, 255));
+        lblValorVentasTotales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblValorVentasTotales.setText("jLabel3");
+        panel_KpiVentasTotales.add(lblValorVentasTotales, java.awt.BorderLayout.CENTER);
 
-        lbl_totalSoles.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_totalSoles.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_totalSoles.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_totalSoles.setText("TOTAL EN SOLES");
-        panel_TotalenSoles.add(lbl_totalSoles, java.awt.BorderLayout.PAGE_START);
+        panel_KPIs.add(panel_KpiVentasTotales);
 
-        panelKpis.add(panel_TotalenSoles);
+        panel_KpiNumeroVentas.setBackground(new java.awt.Color(255, 152, 0));
+        panel_KpiNumeroVentas.setLayout(new java.awt.BorderLayout());
 
-        panel_TotaldeVentas.setBackground(new java.awt.Color(255, 153, 0));
-        panel_TotaldeVentas.setLayout(new java.awt.BorderLayout());
+        lblTituloNumeroVentas.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloNumeroVentas.setForeground(new java.awt.Color(255, 255, 255));
+        lblTituloNumeroVentas.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTituloNumeroVentas.setText("NUMERO DE VENTAS");
+        panel_KpiNumeroVentas.add(lblTituloNumeroVentas, java.awt.BorderLayout.PAGE_START);
 
-        lbl_rentabilidad3.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_rentabilidad3.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_rentabilidad3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_rentabilidad3.setText("TOTAL DE VENTAS");
-        lbl_rentabilidad3.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        panel_TotaldeVentas.add(lbl_rentabilidad3, java.awt.BorderLayout.PAGE_START);
+        lblValorNumeroVentas.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
+        lblValorNumeroVentas.setForeground(new java.awt.Color(255, 255, 255));
+        lblValorNumeroVentas.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblValorNumeroVentas.setText("jLabel8");
+        panel_KpiNumeroVentas.add(lblValorNumeroVentas, java.awt.BorderLayout.CENTER);
 
-        lbl_totalVentas.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
-        lbl_totalVentas.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_totalVentas.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_totalVentas.setText("0");
-        lbl_totalVentas.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        panel_TotaldeVentas.add(lbl_totalVentas, java.awt.BorderLayout.CENTER);
+        panel_KPIs.add(panel_KpiNumeroVentas);
 
-        panelKpis.add(panel_TotaldeVentas);
+        panel_KpiProductosVendidos.setBackground(new java.awt.Color(33, 150, 243));
+        panel_KpiProductosVendidos.setLayout(new java.awt.BorderLayout());
 
-        panelProductosVendidos.setBackground(new java.awt.Color(0, 102, 204));
-        panelProductosVendidos.setLayout(new java.awt.BorderLayout());
+        lblTituloProductosVendidos.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloProductosVendidos.setForeground(new java.awt.Color(255, 255, 255));
+        lblTituloProductosVendidos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTituloProductosVendidos.setText("PRODUCTOS VENDIDOS");
+        panel_KpiProductosVendidos.add(lblTituloProductosVendidos, java.awt.BorderLayout.PAGE_START);
 
-        lbl_rentabilidad2.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_rentabilidad2.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_rentabilidad2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_rentabilidad2.setText("PRODUCTOS VENDIDOS");
-        lbl_rentabilidad2.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        panelProductosVendidos.add(lbl_rentabilidad2, java.awt.BorderLayout.PAGE_START);
+        lblValorProductosVendidos.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
+        lblValorProductosVendidos.setForeground(new java.awt.Color(255, 255, 255));
+        lblValorProductosVendidos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblValorProductosVendidos.setText("jLabel9");
+        panel_KpiProductosVendidos.add(lblValorProductosVendidos, java.awt.BorderLayout.CENTER);
 
-        lbl_productosVendidos.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
-        lbl_productosVendidos.setForeground(new java.awt.Color(0, 0, 0));
-        lbl_productosVendidos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_productosVendidos.setText("0");
-        panelProductosVendidos.add(lbl_productosVendidos, java.awt.BorderLayout.CENTER);
+        panel_KPIs.add(panel_KpiProductosVendidos);
 
-        panelKpis.add(panelProductosVendidos);
+        panel_KpiMedioPago.setBackground(new java.awt.Color(156, 39, 176));
+        panel_KpiMedioPago.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel_KpiMedioPago.setLayout(new java.awt.BorderLayout());
 
-        panelMedioDePagoUsado.setBackground(new java.awt.Color(105, 102, 255));
-        panelMedioDePagoUsado.setLayout(new java.awt.BorderLayout());
+        lblTituloMedioPago.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloMedioPago.setForeground(new java.awt.Color(255, 255, 255));
+        lblTituloMedioPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblTituloMedioPago.setText("MEDIO DE PAGO MAS USADO");
+        panel_KpiMedioPago.add(lblTituloMedioPago, java.awt.BorderLayout.PAGE_START);
 
-        jLabel1.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel1.setText("MEDIO DE PAGO MAS USADO");
-        panelMedioDePagoUsado.add(jLabel1, java.awt.BorderLayout.PAGE_START);
+        lblValorMedioPago.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
+        lblValorMedioPago.setForeground(new java.awt.Color(255, 255, 255));
+        lblValorMedioPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblValorMedioPago.setText("jLabel10");
+        panel_KpiMedioPago.add(lblValorMedioPago, java.awt.BorderLayout.CENTER);
 
-        lbl_medioPagoMasUsado.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
-        lbl_medioPagoMasUsado.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lbl_medioPagoMasUsado.setText("jLabel5");
-        panelMedioDePagoUsado.add(lbl_medioPagoMasUsado, java.awt.BorderLayout.CENTER);
+        panel_KPIs.add(panel_KpiMedioPago);
 
-        panelKpis.add(panelMedioDePagoUsado);
+        panel_Ventas.add(panel_KPIs, java.awt.BorderLayout.EAST);
 
-        panelSuperiorNorte.add(panelKpis, java.awt.BorderLayout.CENTER);
+        panel_Graficos.setPreferredSize(new java.awt.Dimension(0, 0));
+        panel_Graficos.setLayout(new java.awt.GridLayout(2, 2, 10, 10));
 
-        panel_Ventas.add(panelSuperiorNorte, java.awt.BorderLayout.NORTH);
+        panel_VentasDiarias.setBackground(new java.awt.Color(255, 255, 255));
+        panel_VentasDiarias.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)));
+        panel_VentasDiarias.setLayout(new java.awt.BorderLayout());
 
-        panelCentro3.setLayout(new java.awt.GridLayout(2, 2, 5, 5));
+        lblVentasDiarias.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblVentasDiarias.setForeground(new java.awt.Color(0, 0, 0));
+        lblVentasDiarias.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblVentasDiarias.setText("VENTAS DIARIAS");
+        panel_VentasDiarias.add(lblVentasDiarias, java.awt.BorderLayout.PAGE_START);
 
-        grafico_ventasdiarias3.setBackground(new java.awt.Color(255, 255, 255));
-        grafico_ventasdiarias3.setPreferredSize(new java.awt.Dimension(0, 0));
+        panel_Graficos.add(panel_VentasDiarias);
 
-        javax.swing.GroupLayout grafico_ventasdiarias3Layout = new javax.swing.GroupLayout(grafico_ventasdiarias3);
-        grafico_ventasdiarias3.setLayout(grafico_ventasdiarias3Layout);
-        grafico_ventasdiarias3Layout.setHorizontalGroup(
-            grafico_ventasdiarias3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 554, Short.MAX_VALUE)
-        );
-        grafico_ventasdiarias3Layout.setVerticalGroup(
-            grafico_ventasdiarias3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        panel_VentasMensuales.setBackground(new java.awt.Color(255, 255, 255));
+        panel_VentasMensuales.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)));
+        panel_VentasMensuales.setLayout(new java.awt.BorderLayout());
 
-        panelCentro3.add(grafico_ventasdiarias3);
+        lblVentasMensuales.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblVentasMensuales.setForeground(new java.awt.Color(0, 0, 0));
+        lblVentasMensuales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblVentasMensuales.setText("VENTAS MENSUALES");
+        panel_VentasMensuales.add(lblVentasMensuales, java.awt.BorderLayout.PAGE_START);
 
-        grafico_ventasXProducto.setBackground(new java.awt.Color(255, 255, 255));
-        grafico_ventasXProducto.setPreferredSize(new java.awt.Dimension(0, 0));
+        panel_Graficos.add(panel_VentasMensuales);
 
-        javax.swing.GroupLayout grafico_ventasXProductoLayout = new javax.swing.GroupLayout(grafico_ventasXProducto);
-        grafico_ventasXProducto.setLayout(grafico_ventasXProductoLayout);
-        grafico_ventasXProductoLayout.setHorizontalGroup(
-            grafico_ventasXProductoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 554, Short.MAX_VALUE)
-        );
-        grafico_ventasXProductoLayout.setVerticalGroup(
-            grafico_ventasXProductoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        panel_VentasPorProducto.setBackground(new java.awt.Color(255, 255, 255));
+        panel_VentasPorProducto.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)));
+        panel_VentasPorProducto.setLayout(new java.awt.BorderLayout());
 
-        panelCentro3.add(grafico_ventasXProducto);
+        lblVentasPorProducto.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblVentasPorProducto.setForeground(new java.awt.Color(0, 0, 0));
+        lblVentasPorProducto.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblVentasPorProducto.setText("VENTAS POR PRODUCTO");
+        panel_VentasPorProducto.add(lblVentasPorProducto, java.awt.BorderLayout.PAGE_START);
 
-        grafico_ventasMensuales.setBackground(new java.awt.Color(255, 255, 255));
-        grafico_ventasMensuales.setPreferredSize(new java.awt.Dimension(0, 0));
+        panel_Graficos.add(panel_VentasPorProducto);
 
-        javax.swing.GroupLayout grafico_ventasMensualesLayout = new javax.swing.GroupLayout(grafico_ventasMensuales);
-        grafico_ventasMensuales.setLayout(grafico_ventasMensualesLayout);
-        grafico_ventasMensualesLayout.setHorizontalGroup(
-            grafico_ventasMensualesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 554, Short.MAX_VALUE)
-        );
-        grafico_ventasMensualesLayout.setVerticalGroup(
-            grafico_ventasMensualesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        panel_MediosPago.setBackground(new java.awt.Color(255, 255, 255));
+        panel_MediosPago.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200)));
+        panel_MediosPago.setLayout(new java.awt.BorderLayout());
 
-        panelCentro3.add(grafico_ventasMensuales);
+        lblMediosPago.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lblMediosPago.setForeground(new java.awt.Color(0, 0, 0));
+        lblMediosPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblMediosPago.setText("MEDIOS DE PAGO");
+        panel_MediosPago.add(lblMediosPago, java.awt.BorderLayout.PAGE_START);
 
-        grafico_metodosPago.setBackground(new java.awt.Color(255, 255, 255));
-        grafico_metodosPago.setPreferredSize(new java.awt.Dimension(0, 0));
+        panel_Graficos.add(panel_MediosPago);
 
-        javax.swing.GroupLayout grafico_metodosPagoLayout = new javax.swing.GroupLayout(grafico_metodosPago);
-        grafico_metodosPago.setLayout(grafico_metodosPagoLayout);
-        grafico_metodosPagoLayout.setHorizontalGroup(
-            grafico_metodosPagoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 554, Short.MAX_VALUE)
-        );
-        grafico_metodosPagoLayout.setVerticalGroup(
-            grafico_metodosPagoLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
+        panel_Ventas.add(panel_Graficos, java.awt.BorderLayout.CENTER);
 
-        panelCentro3.add(grafico_metodosPago);
-
-        panel_Ventas.add(panelCentro3, java.awt.BorderLayout.CENTER);
-
-        Tabbed_Tesoreria.addTab("VENTAS", panel_Ventas);
+        Tabbed_Tesoreria.addTab("tab3", panel_Ventas);
 
         cb_sucursal1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         cb_sucursal1.addActionListener(new java.awt.event.ActionListener() {
@@ -842,7 +918,7 @@ private void exportarDatosCSV() {
                         .addGap(33, 33, 33)
                         .addComponent(btn_exportar1, javax.swing.GroupLayout.PREFERRED_SIZE, 149, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 969, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(115, Short.MAX_VALUE))
+                .addContainerGap(171, Short.MAX_VALUE))
         );
         panel_COMPRASLayout.setVerticalGroup(
             panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1095,7 +1171,7 @@ private void exportarDatosCSV() {
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(28, Short.MAX_VALUE))
         );
         panel_RankingLayout.setVerticalGroup(
             panel_RankingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1278,7 +1354,7 @@ private void exportarDatosCSV() {
                         .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(panel_estadisticas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(420, Short.MAX_VALUE))
+                .addContainerGap(381, Short.MAX_VALUE))
         );
         jPanel9Layout.setVerticalGroup(
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1334,18 +1410,7 @@ private void exportarDatosCSV() {
 
         Tabbed_Tesoreria.addTab("ESTADISTICAS", panel_Estadisticas);
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(Tabbed_Tesoreria, javax.swing.GroupLayout.PREFERRED_SIZE, 1114, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(32, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Tesoreria)
-        );
+        add(Tabbed_Tesoreria, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     private void cb_sucursal1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_sucursal1ActionPerformed
@@ -1357,22 +1422,24 @@ private void exportarDatosCSV() {
     }//GEN-LAST:event_filtro_sucursalActionPerformed
 
     private void cb_tipoRankingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_tipoRankingActionPerformed
-cargarDatosRanking();
+
     }//GEN-LAST:event_cb_tipoRankingActionPerformed
 
     private void FiltrarporMesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FiltrarporMesActionPerformed
-cargarDatosRanking();
+
     }//GEN-LAST:event_FiltrarporMesActionPerformed
 
     private void PDFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PDFActionPerformed
-        GeneradorPDFRk pdf = new GeneradorPDFRk();
-        pdf.generarReporte(TablaRanking, chartRanking, FiltrarporMes.getSelectedItem().toString());
+
     }//GEN-LAST:event_PDFActionPerformed
 
     private void ExcelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExcelActionPerformed
-        GeneradorExcelRk excel = new GeneradorExcelRk();
-        excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
+
     }//GEN-LAST:event_ExcelActionPerformed
+
+    private void btnFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFechaActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btnFechaActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -1380,34 +1447,27 @@ cargarDatosRanking();
     private javax.swing.JLabel Exportar;
     private javax.swing.JLabel FiltrarporFecha;
     private javax.swing.JComboBox<String> FiltrarporMes;
-    private javax.swing.JPanel Filtros;
     private javax.swing.JPanel GraficoBarras;
     private javax.swing.JPanel Ingresos_totales;
     private javax.swing.JButton PDF;
     private javax.swing.JTabbedPane Tabbed_Estadisticas;
     private javax.swing.JTabbedPane Tabbed_Tesoreria;
     private javax.swing.JTable TablaRanking;
-    private javax.swing.JButton btn_exportar;
+    private javax.swing.JButton btnExportar;
+    private javax.swing.JButton btnFecha;
     private javax.swing.JButton btn_exportar1;
     private javax.swing.JComboBox<String> cb_productos1;
-    private javax.swing.JComboBox<String> cb_productos2;
-    private javax.swing.JComboBox<String> cb_rangoFechas;
     private javax.swing.JComboBox<String> cb_rangoFechas1;
     private javax.swing.JComboBox<String> cb_rangoss;
-    private javax.swing.JComboBox<String> cb_sucursal;
     private javax.swing.JComboBox<String> cb_sucursal1;
     private javax.swing.JComboBox<String> cb_tipoRanking;
+    private javax.swing.JComboBox<String> cmbProducto;
+    private javax.swing.JComboBox<String> cmbTienda;
     private javax.swing.JPanel costos_totales;
     private javax.swing.JComboBox<String> filtro_sucursal;
     private javax.swing.JPanel ganancia_bruta2;
     private javax.swing.JPanel ganancia_neta;
-    private javax.swing.JPanel grafico_metodosPago;
-    private javax.swing.JPanel grafico_ventasMensuales;
-    private javax.swing.JPanel grafico_ventasXProducto;
-    private javax.swing.JPanel grafico_ventasdiarias3;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel15;
     private javax.swing.JPanel jPanel9;
@@ -1420,37 +1480,47 @@ cargarDatosRanking();
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTable jTable3;
     private javax.swing.JTable jTable4;
+    private javax.swing.JLabel lblFiltrarPor;
+    private javax.swing.JLabel lblMediosPago;
+    private javax.swing.JLabel lblTituloMedioPago;
+    private javax.swing.JLabel lblTituloNumeroVentas;
+    private javax.swing.JLabel lblTituloProductosVendidos;
+    private javax.swing.JLabel lblTituloVentasTotales;
+    private javax.swing.JLabel lblValorMedioPago;
+    private javax.swing.JLabel lblValorNumeroVentas;
+    private javax.swing.JLabel lblValorProductosVendidos;
+    private javax.swing.JLabel lblValorVentasTotales;
+    private javax.swing.JLabel lblVentasDiarias;
+    private javax.swing.JLabel lblVentasMensuales;
+    private javax.swing.JLabel lblVentasPorProducto;
     private javax.swing.JLabel lbl_TiendaTOP;
     private javax.swing.JLabel lbl_TotalVenta;
     private javax.swing.JLabel lbl_costos;
     private javax.swing.JLabel lbl_gananciaBruta2;
     private javax.swing.JLabel lbl_gananciaNeta;
-    private javax.swing.JLabel lbl_medioPagoMasUsado;
-    private javax.swing.JLabel lbl_productosVendidos;
     private javax.swing.JLabel lbl_promedioVentas;
     private javax.swing.JLabel lbl_rentabilidad;
-    private javax.swing.JLabel lbl_rentabilidad2;
-    private javax.swing.JLabel lbl_rentabilidad3;
-    private javax.swing.JLabel lbl_rentabilidad7;
     private javax.swing.JLabel lbl_total2;
     private javax.swing.JLabel lbl_totalIngresos;
-    private javax.swing.JLabel lbl_totalSoles;
-    private javax.swing.JLabel lbl_totalVentas;
     private javax.swing.JLabel lbl_totalVentas3;
     private javax.swing.JLabel lbl_totalVentas4;
     private javax.swing.JLabel lbl_totalVentas5;
-    private javax.swing.JPanel panelCentro3;
-    private javax.swing.JPanel panelKpis;
-    private javax.swing.JPanel panelMedioDePagoUsado;
-    private javax.swing.JPanel panelProductosVendidos;
-    private javax.swing.JPanel panelSuperiorNorte;
     private javax.swing.JPanel panel_COMPRAS;
     private javax.swing.JPanel panel_Estadisticas;
+    private javax.swing.JPanel panel_Filtros;
+    private javax.swing.JPanel panel_Graficos;
+    private javax.swing.JPanel panel_KPIs;
+    private javax.swing.JPanel panel_KpiMedioPago;
+    private javax.swing.JPanel panel_KpiNumeroVentas;
+    private javax.swing.JPanel panel_KpiProductosVendidos;
+    private javax.swing.JPanel panel_KpiVentasTotales;
+    private javax.swing.JPanel panel_MediosPago;
     private javax.swing.JPanel panel_Ranking;
     private javax.swing.JPanel panel_Rentabilidad;
-    private javax.swing.JPanel panel_TotaldeVentas;
-    private javax.swing.JPanel panel_TotalenSoles;
     private javax.swing.JPanel panel_Ventas;
+    private javax.swing.JPanel panel_VentasDiarias;
+    private javax.swing.JPanel panel_VentasMensuales;
+    private javax.swing.JPanel panel_VentasPorProducto;
     private javax.swing.JPanel panel_estadisticas;
     private javax.swing.JPanel panel_rankingXVentas;
     // End of variables declaration//GEN-END:variables
