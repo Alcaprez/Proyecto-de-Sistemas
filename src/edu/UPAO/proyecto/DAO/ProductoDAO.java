@@ -7,7 +7,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ProductoDAO {
 
@@ -42,6 +46,106 @@ public class ProductoDAO {
             System.err.println("❌ Error obteniendo stock actual: " + e.getMessage());
             return 0;
         }
+    }
+    
+    
+    public Map<String, Integer> obtenerTopProductos(Date fechaInicio, Date fechaFin, String nombreSucursal, String categoria) {
+        // Usamos LinkedHashMap para mantener el orden (Mayor a menor)
+        Map<String, Integer> resultado = new LinkedHashMap<>();
+        
+        String sql = "SELECT p.nombre, SUM(dv.cantidad) as total_vendido " +
+                     "FROM detalle_venta dv " +
+                     "JOIN venta v ON dv.id_venta = v.id_venta " +
+                     "JOIN producto p ON dv.id_producto = p.id_producto " +
+                     "JOIN categoria c ON p.id_categoria = c.id_categoria " +
+                     "JOIN caja ca ON v.id_caja = ca.id_caja " +
+                     "JOIN sucursal s ON ca.id_sucursal = s.id_sucursal " +
+                     "WHERE v.fecha_hora BETWEEN ? AND ? ";
+
+        // Filtros dinámicos
+        if (nombreSucursal != null && !nombreSucursal.equals("TODAS")) {
+            sql += " AND s.nombre = ? ";
+        }
+        if (categoria != null && !categoria.equals("TODAS")) {
+            sql += " AND c.nombre = ? ";
+        }
+
+        sql += " GROUP BY p.nombre ORDER BY total_vendido DESC LIMIT 10";
+
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement pst = con.prepareStatement(sql)) {
+
+            // Convertir java.util.Date a java.sql.Timestamp para cubrir todo el día
+            pst.setTimestamp(1, new java.sql.Timestamp(fechaInicio.getTime())); 
+            // Ajustar fecha fin al final del día
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(fechaFin);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            pst.setTimestamp(2, new java.sql.Timestamp(cal.getTimeInMillis()));
+
+            int index = 3;
+            if (nombreSucursal != null && !nombreSucursal.equals("TODAS")) {
+                pst.setString(index++, nombreSucursal);
+            }
+            if (categoria != null && !categoria.equals("TODAS")) {
+                pst.setString(index++, categoria);
+            }
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                resultado.put(rs.getString("nombre"), rs.getInt("total_vendido"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al obtener top productos: " + e.getMessage());
+        }
+        return resultado;
+    }
+    
+    public Map<String, Integer> obtenerVentasPorCategoria(Date fechaInicio, Date fechaFin, String nombreSucursal) {
+        Map<String, Integer> resultado = new HashMap<>();
+        
+        String sql = "SELECT c.nombre, SUM(dv.cantidad) as total " +
+                     "FROM detalle_venta dv " +
+                     "JOIN venta v ON dv.id_venta = v.id_venta " +
+                     "JOIN producto p ON dv.id_producto = p.id_producto " +
+                     "JOIN categoria c ON p.id_categoria = c.id_categoria " +
+                     "JOIN caja ca ON v.id_caja = ca.id_caja " + // Asumiendo relación por caja o sucursal directa
+                     "JOIN sucursal s ON ca.id_sucursal = s.id_sucursal " +
+                     "WHERE v.fecha_hora BETWEEN ? AND ? ";
+
+        if (nombreSucursal != null && !nombreSucursal.equals("TODAS")) {
+            sql += " AND s.nombre = ? ";
+        }
+
+        sql += " GROUP BY c.nombre";
+
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement pst = con.prepareStatement(sql)) {
+
+            pst.setTimestamp(1, new java.sql.Timestamp(fechaInicio.getTime()));
+            
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(fechaFin);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            pst.setTimestamp(2, new java.sql.Timestamp(cal.getTimeInMillis()));
+
+            if (nombreSucursal != null && !nombreSucursal.equals("TODAS")) {
+                pst.setString(3, nombreSucursal);
+            }
+
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                resultado.put(rs.getString("nombre"), rs.getInt("total"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al obtener categorías: " + e.getMessage());
+        }
+        return resultado;
     }
 
     // ✅ LISTAR PRODUCTOS (SIN la columna vendidos)
