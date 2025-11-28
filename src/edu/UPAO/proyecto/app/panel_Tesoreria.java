@@ -19,10 +19,17 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 
+import org.jfree.chart.renderer.category.StandardBarPainter;
+import java.awt.Color;
+import java.awt.BorderLayout;
+
+
 public class panel_Tesoreria extends javax.swing.JPanel {
 
     private Connection conn;
     private JFreeChart chartVentasPorProducto;
+    // Variable para el gráfico del Ranking
+    private JFreeChart chartRanking;
 
     private LocalDate fechaDesde = null;
     private LocalDate fechaHasta = null;
@@ -53,6 +60,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
         // Carga inicial (todo)
         actualizarDashboard();
+        iniciarSistemaRanking();
     }
 
     private void envolverEnScroll() {
@@ -610,10 +618,142 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         }
     }
 
+    // =======================================================================
+    //  MÓDULO DE RANKING (VENTAS vs TRANSACCIONES)
+    // =======================================================================
+
+    private void iniciarSistemaRanking() {
+        // 1. Limpiar listeners previos por seguridad
+        for(java.awt.event.ActionListener al : FiltrarporMes.getActionListeners()) FiltrarporMes.removeActionListener(al);
+        for(java.awt.event.ActionListener al : cb_tipoRanking.getActionListeners()) cb_tipoRanking.removeActionListener(al);
+
+        // 2. Activar recarga automática
+        FiltrarporMes.addActionListener(e -> cargarDatosRanking());
+        cb_tipoRanking.addActionListener(e -> cargarDatosRanking());
+        
+        // 3. Carga inicial
+        cargarDatosRanking();
+    }
+
+    private void cargarDatosRanking() {
+        // Validación de conexión
+        if (this.conn == null) return;
+
+        // A. Obtener datos de la Interfaz
+        int mesIndex = FiltrarporMes.getSelectedIndex(); // 0=Anual
+        String tipoRanking = cb_tipoRanking.getSelectedItem().toString(); 
+        
+        // B. Filtros SQL
+        String filtroV = (mesIndex == 0) ? "" : " AND MONTH(v.fecha_hora) = " + mesIndex;
+        String filtroC = (mesIndex == 0) ? "" : " AND MONTH(mc.fecha_hora) = " + mesIndex;
+        
+        // C. Consulta SQL (Ventas Suma, Transacciones Conteo)
+        String sql = "SELECT s.nombre_sucursal, " +
+                     "COALESCE(v.total_v, 0) as ventas, " +
+                     "COALESCE(mc.total_count, 0) as transacciones, " +
+                     "(COALESCE(v.total_v, 0) + COALESCE(mc.total_count, 0))/2 as puntaje " +
+                     "FROM sucursal s " +
+                     "LEFT JOIN (SELECT id_sucursal, SUM(total) as total_v FROM venta v WHERE 1=1 " + filtroV + " GROUP BY id_sucursal) v ON s.id_sucursal=v.id_sucursal " +
+                     "LEFT JOIN (SELECT id_sucursal, COUNT(*) as total_count FROM movimiento_caja mc WHERE 1=1 " + filtroC + " GROUP BY id_sucursal) mc ON s.id_sucursal=mc.id_sucursal " +
+                     "ORDER BY puntaje DESC";
+
+        try (PreparedStatement pstmt = this.conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            // 1. Preparar Tabla y Dataset
+            DefaultTableModel modelo = (DefaultTableModel) TablaRanking.getModel();
+            modelo.setRowCount(0); 
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+            // Variables para Labels
+            int puesto = 1;
+            double sumaTotalVentas = 0;
+            String topLocal = "-";
+            String mejorPromedioLocal = "-";
+
+            // 2. Recorrer Datos
+            while (rs.next()) {
+                String nom = rs.getString("nombre_sucursal");
+                double vtas = rs.getDouble("ventas");
+                int trxs = rs.getInt("transacciones");
+                
+                // -> Llenar Tabla
+                modelo.addRow(new Object[]{
+                    puesto, nom, "S/ " + String.format("%,.2f", vtas), trxs
+                });
+                
+                // -> Llenar Gráfico
+                double valorG = (tipoRanking.equalsIgnoreCase("Ventas")) ? vtas : trxs;
+                dataset.addValue(valorG, tipoRanking, nom);
+
+                // -> Calcular Labels
+                sumaTotalVentas += vtas;
+                if (puesto == 1) { topLocal = nom; mejorPromedioLocal = nom; }
+                puesto++;
+            }
+
+            // 3. Actualizar UI
+            TablaRanking.setModel(modelo);
+            lbl_TotalVenta.setText("S/ " + String.format("%,.2f", sumaTotalVentas));
+            lbl_TiendaTOP.setText(topLocal);
+            lbl_promedioVentas.setText(mejorPromedioLocal);
+            
+            // Pintar Gráfico (Dinámico)
+            String labelY = tipoRanking.equalsIgnoreCase("Ventas") ? "Monto (S/)" : "N° Transacciones";
+            pintarGraficoRanking(dataset, labelY);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error Ranking: " + e.getMessage());
+        }
+    }
+
+    private void pintarGraficoRanking(DefaultCategoryDataset dataset, String labelY) {
+        chartRanking = ChartFactory.createBarChart(
+                "", "", labelY, dataset, 
+                PlotOrientation.VERTICAL, true, true, false
+        );
+        
+        // Estilo Plano (Sin brillo excesivo)
+        org.jfree.chart.plot.CategoryPlot plot = chartRanking.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(245, 245, 245));
+        plot.setRangeGridlinePaint(Color.GRAY);
+        chartRanking.setBackgroundPaint(Color.WHITE);
+
+        org.jfree.chart.renderer.category.BarRenderer renderer = (org.jfree.chart.renderer.category.BarRenderer) plot.getRenderer();
+        renderer.setBarPainter(new StandardBarPainter()); 
+        renderer.setShadowVisible(false);
+        renderer.setSeriesPaint(0, new Color(70, 130, 180)); // Azul acero
+
+        ChartPanel cp = new ChartPanel(chartRanking);
+        // Ajustar altura a 250px o lo que necesites
+        if (GraficoBarras.getWidth() > 0) {
+             cp.setPreferredSize(new java.awt.Dimension(GraficoBarras.getWidth(), 250));
+        }
+        
+        GraficoBarras.removeAll();
+        GraficoBarras.setLayout(new BorderLayout());
+        GraficoBarras.add(cp, BorderLayout.CENTER);
+        GraficoBarras.validate();
+        GraficoBarras.repaint();
+    }
+
+    // --- MÉTODOS PARA CONECTAR TUS BOTONES ---
+    public void accionBotonPDF() {
+        GeneradorPDFRk pdf = new GeneradorPDFRk();
+        // Asumo que tu método se llama generarReporte, si es otro cambialo aquí
+        pdf.generarReporte(TablaRanking, chartRanking, FiltrarporMes.getSelectedItem().toString());
+    }
+
+    public void accionBotonExcel() {
+        GeneradorExcelRk excel = new GeneradorExcelRk();
+        // Asumo que tu método se llama generarExcel, si es otro cambialo aquí
+        excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
+    }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
-        java.awt.GridBagConstraints gridBagConstraints;
 
         lbl_total2 = new javax.swing.JLabel();
         Tabbed_Tesoreria = new javax.swing.JTabbedPane();
@@ -918,7 +1058,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                         .addGap(33, 33, 33)
                         .addComponent(btn_exportar1, javax.swing.GroupLayout.PREFERRED_SIZE, 149, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 969, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(171, Short.MAX_VALUE))
+                .addContainerGap(160, Short.MAX_VALUE))
         );
         panel_COMPRASLayout.setVerticalGroup(
             panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1054,11 +1194,11 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         GraficoBarras.setLayout(GraficoBarrasLayout);
         GraficoBarrasLayout.setHorizontalGroup(
             GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 443, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
         GraficoBarrasLayout.setVerticalGroup(
             GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 415, Short.MAX_VALUE)
+            .addGap(0, 0, Short.MAX_VALUE)
         );
 
         panel_rankingXVentas.add(GraficoBarras, java.awt.BorderLayout.CENTER);
@@ -1155,13 +1295,13 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                                     .addComponent(Exportar)
                                     .addComponent(jSplitPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addComponent(jPanelPromedioVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(0, 8, Short.MAX_VALUE))
+                        .addGap(0, 0, Short.MAX_VALUE))
                     .addComponent(jPanelTiendaTOP, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(37, 37, 37)
-                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jScrollPane5)
-                    .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(399, 399, 399))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 437, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(76, 76, 76))
         );
 
         javax.swing.GroupLayout panel_RankingLayout = new javax.swing.GroupLayout(panel_Ranking);
@@ -1171,14 +1311,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(28, Short.MAX_VALUE))
+                .addContainerGap(17, Short.MAX_VALUE))
         );
         panel_RankingLayout.setVerticalGroup(
             panel_RankingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addGap(25, 25, 25)
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(391, Short.MAX_VALUE))
         );
 
         Tabbed_Estadisticas.addTab("RANKING", panel_Ranking);
@@ -1354,7 +1494,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                         .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(panel_estadisticas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(381, Short.MAX_VALUE))
+                .addContainerGap(370, Short.MAX_VALUE))
         );
         jPanel9Layout.setVerticalGroup(
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1391,7 +1531,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_RentabilidadLayout.setVerticalGroup(
             panel_RentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panel_RentabilidadLayout.createSequentialGroup()
-                .addGap(0, 378, Short.MAX_VALUE)
+                .addGap(0, 413, Short.MAX_VALUE)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -1401,7 +1541,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_Estadisticas.setLayout(panel_EstadisticasLayout);
         panel_EstadisticasLayout.setHorizontalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Estadisticas)
+            .addComponent(Tabbed_Estadisticas, javax.swing.GroupLayout.DEFAULT_SIZE, 1159, Short.MAX_VALUE)
         );
         panel_EstadisticasLayout.setVerticalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1422,19 +1562,19 @@ public class panel_Tesoreria extends javax.swing.JPanel {
     }//GEN-LAST:event_filtro_sucursalActionPerformed
 
     private void cb_tipoRankingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_tipoRankingActionPerformed
-
+cargarDatosRanking();
     }//GEN-LAST:event_cb_tipoRankingActionPerformed
 
     private void FiltrarporMesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FiltrarporMesActionPerformed
-
+cargarDatosRanking();
     }//GEN-LAST:event_FiltrarporMesActionPerformed
 
     private void PDFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PDFActionPerformed
-
+accionBotonPDF();
     }//GEN-LAST:event_PDFActionPerformed
 
     private void ExcelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExcelActionPerformed
-
+accionBotonExcel();
     }//GEN-LAST:event_ExcelActionPerformed
 
     private void btnFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFechaActionPerformed
