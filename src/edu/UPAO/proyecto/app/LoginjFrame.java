@@ -193,7 +193,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         );
 
         jPanel1.add(Left);
-        Left.setBounds(400, 0, 400, 502);
+        Left.setBounds(400, 0, 400, 505);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);

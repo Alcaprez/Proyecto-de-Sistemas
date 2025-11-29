@@ -885,14 +885,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_KPIs.setPreferredSize(new java.awt.Dimension(260, 607));
         panel_KPIs.setLayout(new java.awt.GridLayout(4, 1, 0, 10));
 
-        panel_KpiVentasTotales.setBackground(new java.awt.Color(76, 175, 80));
+        panel_KpiVentasTotales.setBackground(new java.awt.Color(51, 153, 0));
         panel_KpiVentasTotales.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panel_KpiVentasTotales.setLayout(new java.awt.BorderLayout());
 
-        lblTituloVentasTotales.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloVentasTotales.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTituloVentasTotales.setForeground(new java.awt.Color(255, 255, 255));
         lblTituloVentasTotales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        lblTituloVentasTotales.setText("VENTAS TOTALES");
+        lblTituloVentasTotales.setText("VENTAS TOTALES (S/)");
         panel_KpiVentasTotales.add(lblTituloVentasTotales, java.awt.BorderLayout.PAGE_START);
 
         lblValorVentasTotales.setFont(new java.awt.Font("Segoe UI", 1, 20)); // NOI18N
@@ -906,7 +906,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_KpiNumeroVentas.setBackground(new java.awt.Color(255, 152, 0));
         panel_KpiNumeroVentas.setLayout(new java.awt.BorderLayout());
 
-        lblTituloNumeroVentas.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloNumeroVentas.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTituloNumeroVentas.setForeground(new java.awt.Color(255, 255, 255));
         lblTituloNumeroVentas.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblTituloNumeroVentas.setText("NUMERO DE VENTAS");
@@ -923,7 +923,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_KpiProductosVendidos.setBackground(new java.awt.Color(33, 150, 243));
         panel_KpiProductosVendidos.setLayout(new java.awt.BorderLayout());
 
-        lblTituloProductosVendidos.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloProductosVendidos.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTituloProductosVendidos.setForeground(new java.awt.Color(255, 255, 255));
         lblTituloProductosVendidos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblTituloProductosVendidos.setText("PRODUCTOS VENDIDOS");
@@ -941,7 +941,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_KpiMedioPago.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
         panel_KpiMedioPago.setLayout(new java.awt.BorderLayout());
 
-        lblTituloMedioPago.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lblTituloMedioPago.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblTituloMedioPago.setForeground(new java.awt.Color(255, 255, 255));
         lblTituloMedioPago.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lblTituloMedioPago.setText("MEDIO DE PAGO MAS USADO");
@@ -1010,7 +1010,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
         panel_Ventas.add(panel_Graficos, java.awt.BorderLayout.CENTER);
 
-        Tabbed_Tesoreria.addTab("tab3", panel_Ventas);
+        Tabbed_Tesoreria.addTab("REPORTE DE VENTAS", panel_Ventas);
 
         cb_sucursal1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         cb_sucursal1.addActionListener(new java.awt.event.ActionListener() {
@@ -1073,33 +1073,34 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                     .addComponent(btn_exportar1))
                 .addGap(56, 56, 56)
                 .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 511, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(403, Short.MAX_VALUE))
+                .addContainerGap(25, Short.MAX_VALUE))
         );
 
-        Tabbed_Tesoreria.addTab("COMPRAS", panel_COMPRAS);
+        Tabbed_Tesoreria.addTab("REPORTE DE COMPRAS", panel_COMPRAS);
 
-        jPanelVentasTotales.setBackground(new java.awt.Color(204, 255, 204));
+        jPanelVentasTotales.setBackground(new java.awt.Color(0, 153, 102));
 
         lbl_TotalVenta.setFont(new java.awt.Font("Dialog", 1, 24)); // NOI18N
-        lbl_TotalVenta.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_TotalVenta.setForeground(new java.awt.Color(255, 255, 255));
         lbl_TotalVenta.setText("0.00");
 
-        lbl_totalVentas5.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        lbl_totalVentas5.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_totalVentas5.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lbl_totalVentas5.setForeground(new java.awt.Color(255, 255, 255));
         lbl_totalVentas5.setText("Ventas totales");
 
         javax.swing.GroupLayout jPanelVentasTotalesLayout = new javax.swing.GroupLayout(jPanelVentasTotales);
         jPanelVentasTotales.setLayout(jPanelVentasTotalesLayout);
         jPanelVentasTotalesLayout.setHorizontalGroup(
             jPanelVentasTotalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelVentasTotalesLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lbl_TotalVenta)
-                .addGap(80, 80, 80))
             .addGroup(jPanelVentasTotalesLayout.createSequentialGroup()
-                .addGap(42, 42, 42)
-                .addComponent(lbl_totalVentas5)
-                .addContainerGap(48, Short.MAX_VALUE))
+                .addContainerGap(47, Short.MAX_VALUE)
+                .addGroup(jPanelVentasTotalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelVentasTotalesLayout.createSequentialGroup()
+                        .addComponent(lbl_TotalVenta, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(17, 17, 17))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelVentasTotalesLayout.createSequentialGroup()
+                        .addComponent(lbl_totalVentas5)
+                        .addGap(44, 44, 44))))
         );
         jPanelVentasTotalesLayout.setVerticalGroup(
             jPanelVentasTotalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1111,47 +1112,47 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 .addGap(18, 18, 18))
         );
 
-        jPanelTiendaTOP.setBackground(new java.awt.Color(204, 204, 204));
+        jPanelTiendaTOP.setBackground(new java.awt.Color(255, 153, 0));
 
-        lbl_TiendaTOP.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_TiendaTOP.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_TiendaTOP.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        lbl_TiendaTOP.setForeground(new java.awt.Color(255, 255, 255));
         lbl_TiendaTOP.setText("SUCURSAL A");
 
-        lbl_totalVentas4.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        lbl_totalVentas4.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_totalVentas4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lbl_totalVentas4.setForeground(new java.awt.Color(255, 255, 255));
         lbl_totalVentas4.setText("Tienda TOP");
 
         javax.swing.GroupLayout jPanelTiendaTOPLayout = new javax.swing.GroupLayout(jPanelTiendaTOP);
         jPanelTiendaTOP.setLayout(jPanelTiendaTOPLayout);
         jPanelTiendaTOPLayout.setHorizontalGroup(
             jPanelTiendaTOPLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lbl_totalVentas4)
-                .addGap(30, 30, 30))
             .addGroup(jPanelTiendaTOPLayout.createSequentialGroup()
-                .addGap(17, 17, 17)
-                .addComponent(lbl_TiendaTOP)
-                .addContainerGap(26, Short.MAX_VALUE))
+                .addGap(58, 58, 58)
+                .addComponent(lbl_totalVentas4)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
+                .addContainerGap(35, Short.MAX_VALUE)
+                .addComponent(lbl_TiendaTOP, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26))
         );
         jPanelTiendaTOPLayout.setVerticalGroup(
             jPanelTiendaTOPLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(lbl_totalVentas4)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lbl_TiendaTOP)
                 .addGap(24, 24, 24))
         );
 
-        jPanelPromedioVentas.setBackground(new java.awt.Color(153, 204, 255));
+        jPanelPromedioVentas.setBackground(new java.awt.Color(0, 153, 204));
 
-        lbl_totalVentas3.setFont(new java.awt.Font("Dialog", 0, 18)); // NOI18N
-        lbl_totalVentas3.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_totalVentas3.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        lbl_totalVentas3.setForeground(new java.awt.Color(255, 255, 255));
         lbl_totalVentas3.setText("Promedio ventas");
 
-        lbl_promedioVentas.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
-        lbl_promedioVentas.setForeground(new java.awt.Color(0, 0, 0));
+        lbl_promedioVentas.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
+        lbl_promedioVentas.setForeground(new java.awt.Color(255, 255, 255));
         lbl_promedioVentas.setText("SUCURSAL A");
 
         javax.swing.GroupLayout jPanelPromedioVentasLayout = new javax.swing.GroupLayout(jPanelPromedioVentas);
@@ -1159,11 +1160,9 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         jPanelPromedioVentasLayout.setHorizontalGroup(
             jPanelPromedioVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelPromedioVentasLayout.createSequentialGroup()
-                .addContainerGap(34, Short.MAX_VALUE)
+                .addContainerGap(40, Short.MAX_VALUE)
                 .addGroup(jPanelPromedioVentasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanelPromedioVentasLayout.createSequentialGroup()
-                        .addGap(6, 6, 6)
-                        .addComponent(lbl_promedioVentas))
+                    .addComponent(lbl_promedioVentas)
                     .addComponent(lbl_totalVentas3))
                 .addGap(34, 34, 34))
         );
@@ -1198,7 +1197,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         );
         GraficoBarrasLayout.setVerticalGroup(
             GraficoBarrasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+            .addGap(0, 415, Short.MAX_VALUE)
         );
 
         panel_rankingXVentas.add(GraficoBarras, java.awt.BorderLayout.CENTER);
@@ -1251,26 +1250,25 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         jPanel15Layout.setHorizontalGroup(
             jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel15Layout.createSequentialGroup()
+                .addGap(25, 25, 25)
                 .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 613, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jScrollPane5)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, 443, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel15Layout.createSequentialGroup()
-                        .addGap(25, 25, 25)
                         .addComponent(jPanelVentasTotales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(32, 32, 32)
+                        .addGap(26, 26, 26)
                         .addComponent(jPanelTiendaTOP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(26, 26, 26)
+                        .addComponent(jPanelPromedioVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel15Layout.createSequentialGroup()
-                                .addGap(44, 44, 44)
-                                .addComponent(jPanelPromedioVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(67, 67, 67)
+                                .addGap(42, 42, 42)
                                 .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel15Layout.createSequentialGroup()
                                         .addComponent(FiltrarporFecha)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 53, Short.MAX_VALUE)
                                         .addComponent(FiltrarporMes, javax.swing.GroupLayout.PREFERRED_SIZE, 142, javax.swing.GroupLayout.PREFERRED_SIZE))
                                     .addComponent(Exportar)))
                             .addGroup(jPanel15Layout.createSequentialGroup()
@@ -1298,10 +1296,12 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                         .addGap(0, 0, Short.MAX_VALUE))
                     .addComponent(jPanelTiendaTOP, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(18, 18, 18)
-                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 437, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(76, 76, 76))
+                .addGroup(jPanel15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(panel_rankingXVentas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel15Layout.createSequentialGroup()
+                        .addGap(4, 4, 4)
+                        .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 334, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(46, 46, 46))
         );
 
         javax.swing.GroupLayout panel_RankingLayout = new javax.swing.GroupLayout(panel_Ranking);
@@ -1311,14 +1311,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addContainerGap()
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(17, Short.MAX_VALUE))
+                .addContainerGap(41, Short.MAX_VALUE))
         );
         panel_RankingLayout.setVerticalGroup(
             panel_RankingLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addGap(25, 25, 25)
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(391, Short.MAX_VALUE))
+                .addContainerGap(14, Short.MAX_VALUE))
         );
 
         Tabbed_Estadisticas.addTab("RANKING", panel_Ranking);
@@ -1494,7 +1494,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                         .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(panel_estadisticas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(370, Short.MAX_VALUE))
+                .addContainerGap(366, Short.MAX_VALUE))
         );
         jPanel9Layout.setVerticalGroup(
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1531,7 +1531,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_RentabilidadLayout.setVerticalGroup(
             panel_RentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panel_RentabilidadLayout.createSequentialGroup()
-                .addGap(0, 413, Short.MAX_VALUE)
+                .addGap(0, 0, Short.MAX_VALUE)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -1541,7 +1541,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_Estadisticas.setLayout(panel_EstadisticasLayout);
         panel_EstadisticasLayout.setHorizontalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Estadisticas, javax.swing.GroupLayout.DEFAULT_SIZE, 1159, Short.MAX_VALUE)
+            .addComponent(Tabbed_Estadisticas)
         );
         panel_EstadisticasLayout.setVerticalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
