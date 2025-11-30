@@ -1,17 +1,35 @@
 package edu.UPAO.proyecto.app;
 
+
 import BaseDatos.Conexion;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.Image;
 import edu.UPAO.proyecto.Util.GeneradorExcelRk;
 import edu.UPAO.proyecto.Util.GeneradorPDFRk;
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.io.FileOutputStream;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -28,8 +46,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
     private Connection conn;
     private JFreeChart chartVentasPorProducto;
+
+    private JFreeChart chartVentasDiarias;
+    private JFreeChart chartVentasMensuales;
+    private JFreeChart chartMediosPago;
+
     // Variable para el gráfico del Ranking
     private JFreeChart chartRanking;
+
 
     private LocalDate fechaDesde = null;
     private LocalDate fechaHasta = null;
@@ -141,15 +165,22 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
     // =====================  FILTRO DE FECHAS  =====================
     private void seleccionarRangoFechas() {
-        String[] opciones = {"Hoy", "Últimos 7 días", "Últimos 30 días", "Todo"};
-        int op = JOptionPane.showOptionDialog(this,
+        String[] opciones = {"Hoy", "Últimos 7 días", "Últimos 30 días", "Por mes", "Todo"};
+
+        int op = JOptionPane.showOptionDialog(
+                this,
                 "Selecciona el rango de fechas:",
                 "Filtro de fecha",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
                 null,
                 opciones,
-                opciones[0]);
+                opciones[0]
+        );
+
+        if (op == JOptionPane.CLOSED_OPTION) {
+            return;
+        }
 
         LocalDate hoy = LocalDate.now();
 
@@ -158,20 +189,61 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 fechaDesde = hoy;
                 fechaHasta = hoy;
                 break;
-            case 1: // 7 días
+
+            case 1: // Últimos 7 días
+                fechaHasta = hoy;
                 fechaDesde = hoy.minusDays(6);
-                fechaHasta = hoy;
                 break;
-            case 2: // 30 días
+
+            case 2: // Últimos 30 días
+                fechaHasta = hoy;
                 fechaDesde = hoy.minusDays(29);
-                fechaHasta = hoy;
                 break;
-            default: // Todo
+
+            case 3: // Por mes
+                seleccionarMes();   // 👉 nuevo método de abajo
+                break;
+
+            case 4: // Todo
                 fechaDesde = null;
                 fechaHasta = null;
+                break;
         }
 
-        actualizarDashboard();
+        actualizarDashboard();  // recarga gráficos y KPIs
+    }
+
+    private void seleccionarMes() {
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Setiembre", "Octubre", "Noviembre", "Diciembre"};
+
+        JComboBox<String> cmbMes = new JComboBox<>(meses);
+        int anioActual = LocalDate.now().getYear();
+        JSpinner spAnio = new JSpinner(new SpinnerNumberModel(anioActual, 2000, 2100, 1));
+
+        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+        panel.add(new JLabel("Mes:"));
+        panel.add(cmbMes);
+        panel.add(new JLabel("Año:"));
+        panel.add(spAnio);
+
+        int res = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Seleccionar mes",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (res != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        int mesSeleccionado = cmbMes.getSelectedIndex() + 1; // 1–12
+        int anioSeleccionado = (int) spAnio.getValue();
+
+        fechaDesde = LocalDate.of(anioSeleccionado, mesSeleccionado, 1);
+        fechaHasta = fechaDesde.with(TemporalAdjusters.lastDayOfMonth());
     }
 
     // Construye la parte dinámica del WHERE
@@ -360,8 +432,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 dataset,
                 PlotOrientation.VERTICAL,
                 false, true, false);
-
+        chartVentasDiarias = chart;
         mostrarChartEnPanel(panel_VentasDiarias, chart);
+
+        ChartPanel panel = new ChartPanel(chart);
+        panel_VentasDiarias.removeAll();
+        panel_VentasDiarias.setLayout(new BorderLayout());
+        panel_VentasDiarias.add(panel, BorderLayout.CENTER);
+        panel_VentasDiarias.revalidate();
     }
 
     private void cargarGraficoVentasMensuales(Integer idSucursal, Integer idProducto) {
@@ -400,6 +478,13 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 false, true, false);
 
         mostrarChartEnPanel(panel_VentasMensuales, chart);
+        chartVentasMensuales = chart; // 👉 guardar
+
+        ChartPanel panel = new ChartPanel(chart);
+        panel_VentasMensuales.removeAll();
+        panel_VentasMensuales.setLayout(new BorderLayout());
+        panel_VentasMensuales.add(panel, BorderLayout.CENTER);
+        panel_VentasMensuales.revalidate();
     }
 
     private void cargarGraficoVentasPorProducto(Integer idSucursal, Integer idProducto) {
@@ -427,15 +512,22 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             ex.printStackTrace();
         }
 
-       chartVentasPorProducto = ChartFactory.createBarChart(
-            "Ventas por producto (Top 5)",
-            "Producto",
-            "Total (S/)",
-            dataset,
-            PlotOrientation.HORIZONTAL,
-            false, true, false);
+        JFreeChart chart = ChartFactory.createBarChart(
+                "Ventas por producto (Top 5)",
+                "Producto",
+                "Total (S/)",
+                dataset,
+                PlotOrientation.HORIZONTAL,
+                false, true, false);
 
-    mostrarChartEnPanel(panel_VentasPorProducto, chartVentasPorProducto);
+        mostrarChartEnPanel(panel_VentasPorProducto, chartVentasPorProducto);
+        chartVentasPorProducto = chart; // 👉 ya lo usas para exportar
+
+        ChartPanel panel = new ChartPanel(chart);
+        panel_VentasPorProducto.removeAll();
+        panel_VentasPorProducto.setLayout(new BorderLayout());
+        panel_VentasPorProducto.add(panel, BorderLayout.CENTER);
+        panel_VentasPorProducto.revalidate();
     }
 
     private void cargarGraficoMediosPago(Integer idSucursal, Integer idProducto) {
@@ -472,6 +564,107 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 false, true, false);
 
         mostrarChartEnPanel(panel_MediosPago, chart);
+
+        chartMediosPago = chart;
+
+        ChartPanel panel = new ChartPanel(chart);
+        panel_MediosPago.removeAll();
+        panel_MediosPago.setLayout(new BorderLayout());
+        panel_MediosPago.add(panel, BorderLayout.CENTER);
+        panel_MediosPago.revalidate();
+    }
+
+    public void generarReporteCompleto(JTable tabla,
+            JFreeChart chartDiario,
+            JFreeChart chartMensual,
+            JFreeChart chartProductos,
+            JFreeChart chartMediosPago,
+            String mes) {
+        try {
+            String ruta = "Reporte_Ranking_" + mes + ".pdf"; // mismo formato de nombre
+            Document doc = new Document(PageSize.A4.rotate());
+            {
+            }; // horizontal para que entren los gráficos
+            PdfWriter.getInstance(doc, new FileOutputStream(ruta));
+            doc.open();
+
+            // ===== TÍTULO =====
+            Font fontTitulo = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Paragraph titulo = new Paragraph("Reporte general de ventas: " + mes, fontTitulo);
+            titulo.setAlignment(Element.ALIGN_CENTER);
+            doc.add(titulo);
+            doc.add(Chunk.NEWLINE);
+
+            // ===== BLOQUE DE GRÁFICOS (2 x 2) =====
+            PdfPTable tablaGraficos = new PdfPTable(2);
+            tablaGraficos.setWidthPercentage(100);
+
+            agregarGraficoACelda(tablaGraficos, chartDiario, "Ventas diarias");
+            agregarGraficoACelda(tablaGraficos, chartMensual, "Ventas mensuales");
+            agregarGraficoACelda(tablaGraficos, chartProductos, "Ventas por producto (Top 5)");
+            agregarGraficoACelda(tablaGraficos, chartMediosPago, "Medios de pago");
+
+            doc.add(tablaGraficos);
+            doc.add(Chunk.NEWLINE);
+
+            // ===== TABLA RESUMEN (KPI + ranking) =====
+            PdfPTable pdfTable = new PdfPTable(4); // 4 columnas
+            pdfTable.setWidthPercentage(100);
+
+            String[] headers = {"TOP", "LOCALES", "VENTAS", "TRANSACCIONES"};
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(
+                        new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD))
+                );
+                cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                pdfTable.addCell(cell);
+            }
+
+            for (int i = 0; i < tabla.getRowCount(); i++) {
+                for (int j = 0; j < 4; j++) {
+                    Object val = tabla.getValueAt(i, j);
+                    pdfTable.addCell(val != null ? val.toString() : "");
+                }
+            }
+
+            doc.add(pdfTable);
+            doc.close();
+            JOptionPane.showMessageDialog(null, "PDF Exportado: " + ruta);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Error PDF: " + e.getMessage());
+        }
+    }
+
+// ==== helper privado ====
+    private void agregarGraficoACelda(PdfPTable tabla, JFreeChart grafico, String titulo) throws Exception {
+        PdfPCell cell;
+
+        if (grafico == null) {
+            cell = new PdfPCell(new Phrase("Sin datos para " + titulo));
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            tabla.addCell(cell);
+            return;
+        }
+
+        java.awt.image.BufferedImage img = grafico.createBufferedImage(400, 250);
+        Image pdfImg = Image.getInstance(img, null);
+
+        cell = new PdfPCell();
+        cell.setPadding(5f);
+
+        Paragraph tituloPar = new Paragraph(
+                titulo,
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)
+        );
+        tituloPar.setAlignment(Element.ALIGN_CENTER);
+
+        cell.addElement(tituloPar);
+        pdfImg.setAlignment(Element.ALIGN_CENTER);
+        cell.addElement(pdfImg);
+
+        tabla.addCell(cell);
     }
 
     // =====================  UTILIDADES  =====================
@@ -578,8 +771,8 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 return;
             }
 
-         String mes = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm")
-                 .format(new java.util.Date());
+            String mes = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm")
+                    .format(new java.util.Date());
 
             String[] opciones = {"PDF", "Excel", "Cancelar"};
             int op = JOptionPane.showOptionDialog(this,
@@ -601,7 +794,15 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                     return;
                 }
                 GeneradorPDFRk genPdf = new GeneradorPDFRk();
-                genPdf.generarReporte(tablaRanking, chartVentasPorProducto, mes);
+
+                genPdf.generarReporteCompleto(
+                        tablaRanking,
+                        chartVentasDiarias,
+                        chartVentasMensuales,
+                        chartVentasPorProducto,
+                        chartMediosPago,
+                        mes
+                );
 
             } else if (op == 1) {
                 // Excel
@@ -750,7 +951,6 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         // Asumo que tu método se llama generarExcel, si es otro cambialo aquí
         excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
     }
-
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
