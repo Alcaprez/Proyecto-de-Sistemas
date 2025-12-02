@@ -2,6 +2,13 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+<<<<<<< HEAD
         <group/>
+=======
+        <group>
+            <file>file:/C:/Users/WIN-10/OneDrive/Documentos/CURSOS%20IMPORTANTES/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/app/panel_Tesoreria.java</file>
+            <file>file:/C:/Users/WIN-10/OneDrive/Documentos/CURSOS%20IMPORTANTES/Proyecto-de-Sistemas/src/edu/UPAO/proyecto/Util/GeneradorPDFRk.java</file>
+        </group>
+>>>>>>> c855539c10d02fc5e27f26fb6c1c744b056ac075
     </open-files>
 </project-private>

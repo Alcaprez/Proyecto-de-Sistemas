@@ -11,15 +11,27 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import BaseDatos.Conexion;
+import edu.UPAO.proyecto.DAO.AsistenciaDAO;
 import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.SucursalDAO;
+import edu.UPAO.proyecto.Modelo.Asistencia;
 import edu.UPAO.proyecto.Modelo.Empleado;
 import java.util.ArrayList;
 import java.util.List;
 import edu.UPAO.proyecto.modelo.Sucursal;
 import java.awt.Dimension;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import javax.swing.JFileChooser;
+import javax.swing.table.TableModel;
 
 public class panel_PersonalGerente extends javax.swing.JPanel {
+// Para filtrar la tabla de asistencias (texto + estado)
+private TableRowSorter<DefaultTableModel> sorterAsistencias;
 
     public panel_PersonalGerente() {
         initComponents();
@@ -35,15 +47,13 @@ public class panel_PersonalGerente extends javax.swing.JPanel {
                 llenarFormularioDesdeTabla();
             }
         });
-        
-jPanel1.setLayout(new java.awt.BorderLayout());
+
+        jPanel1.setLayout(new java.awt.BorderLayout());
         jPanel1.removeAll(); // Limpiar lo que haya
         jPanel1.add(new PanelNominaGerente(), java.awt.BorderLayout.CENTER);
         jPanel1.revalidate();
         jPanel1.repaint();
-        
-        
-        
+
         // Evento DNI (Enter)
         txtDni.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyPressed(java.awt.event.KeyEvent evt) {
@@ -79,34 +89,65 @@ jPanel1.setLayout(new java.awt.BorderLayout());
     }
 
     private void configurarTabAsistencias() {
-        // 1. Configurar columnas de la tabla
-        DefaultTableModel modelo = new DefaultTableModel();
-        modelo.addColumn("ID Empleado");
-        modelo.addColumn("Nombres");
-        modelo.addColumn("Cargo");
-        modelo.addColumn("Tienda");
-        modelo.addColumn("Entrada");
-        modelo.addColumn("Salida");
-        modelo.addColumn("Estado");
-
+       // 1. Modelo de columnas de la tabla (no editable)
+        DefaultTableModel modelo = new DefaultTableModel(
+                new Object[]{"ID Empleado", "Nombres", "Cargo", "Tienda", "Entrada", "Salida", "Estado"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         tablaAsistencias.setModel(modelo);
 
-        // 2. Cargar Combo de Tiendas (Filtro)
-        cargarComboFiltroTienda();
+        // 2. Sorter para poder filtrar
+        sorterAsistencias = new TableRowSorter<>(modelo);
+        tablaAsistencias.setRowSorter(sorterAsistencias);
 
-        // 3. Cargar datos iniciales (Todas)
+        // 3. Combo de sucursales
+        cargarComboFiltroTienda(); // llena cbTienda
+
+        // 4. Combo de estado (lado derecho del "Lista de empleados")
+        cbFiltroEstado.setModel(new javax.swing.DefaultComboBoxModel<>(
+                new String[]{"Ver todos", "Presentes", "Tardanzas", "Ausencias"}));
+
+        // 5. Cargar datos iniciales (todas las sucursales)
         cargarTablaAsistencias(null);
+        aplicarFiltrosAsistencias(); // para que calcule KPIs
 
-        // 4. Evento del Filtro
+        // ============ LISTENERS ============
+        // Filtro por sucursal
         cbTienda.addActionListener(e -> {
             String seleccion = (String) cbTienda.getSelectedItem();
-            cargarTablaAsistencias(seleccion);
+            if (seleccion != null && seleccion.startsWith("Todas")) {
+                cargarTablaAsistencias(null);
+            } else {
+                cargarTablaAsistencias(seleccion);
+            }
+            aplicarFiltrosAsistencias();
         });
 
-        // 5. Botón Actualizar/Fecha (Opcional, para refrescar)
-        if (btnFecha != null) {
-            btnFecha.addActionListener(e -> cargarTablaAsistencias((String) cbTienda.getSelectedItem()));
-        }
+        // Botón FECHA 
+      dateChooserAsistencia.addPropertyChangeListener("date", evt -> {
+    java.util.Date fechaUtil = dateChooserAsistencia.getDate();
+    if (fechaUtil != null) {
+        java.sql.Date fechaSql = new java.sql.Date(fechaUtil.getTime());
+        cargarTablaAsistenciasPorFecha(fechaSql);
+        aplicarFiltrosAsistencias();
+    }
+});
+
+        // Combo "Ver todos / Presentes / Tardanzas / Ausencias"
+        cbFiltroEstado.addActionListener(e -> aplicarFiltrosAsistencias());
+
+        // Buscador por nombre / id (txtBuscar)
+        txtBuscar.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                aplicarFiltrosAsistencias();
+            }
+        });
+        btnExportar.addActionListener(e -> exportarAsistenciasCSV());
+
     }
 
     private void cargarComboFiltroTienda() {
@@ -124,17 +165,116 @@ jPanel1.setLayout(new java.awt.BorderLayout());
             cbTienda.addItem(t);
         }
     }
+    private void exportarAsistenciasCSV() {
+    if (tablaAsistencias.getRowCount() == 0) {
+        JOptionPane.showMessageDialog(
+                this,
+                "No hay datos para exportar.",
+                "Información",
+                JOptionPane.INFORMATION_MESSAGE);
+        return;
+    }
 
+    JFileChooser chooser = new JFileChooser();
+    chooser.setDialogTitle("Guardar reporte de asistencias");
+    chooser.setSelectedFile(new File("reporte_asistencias.csv"));
 
+    int opcion = chooser.showSaveDialog(this);
+    if (opcion != JFileChooser.APPROVE_OPTION) {
+        return; // usuario canceló
+    }
+
+    File archivo = chooser.getSelectedFile();
+
+    try (PrintWriter pw = new PrintWriter(
+            new OutputStreamWriter(new FileOutputStream(archivo), StandardCharsets.UTF_8))) {
+
+        TableModel model = tablaAsistencias.getModel();
+
+        // Encabezados
+        for (int c = 0; c < model.getColumnCount(); c++) {
+            if (c > 0) pw.print(';'); // separador ; para que Excel lo lea bonito
+            pw.print(model.getColumnName(c));
+        }
+        pw.println();
+
+        // Filas
+        for (int r = 0; r < model.getRowCount(); r++) {
+            for (int c = 0; c < model.getColumnCount(); c++) {
+                if (c > 0) pw.print(';');
+                Object val = model.getValueAt(r, c);
+                if (val != null) {
+                    // Evitar que un ; dentro de un texto rompa el CSV
+                    String texto = val.toString().replace(";", ",");
+                    pw.print(texto);
+                }
+            }
+            pw.println();
+        }
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Reporte exportado correctamente:\n" + archivo.getAbsolutePath(),
+                "Éxito",
+                JOptionPane.INFORMATION_MESSAGE);
+
+    } catch (IOException ex) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Error al exportar: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        ex.printStackTrace();
+    }
+}
+
+private void actualizarKpisAsistencias() {
+    java.util.Set<String> empleadosUnicos = new java.util.HashSet<>();
+
+    int presentes = 0;
+    int tardanzas = 0;
+    int ausencias = 0;
+
+    // Recorremos las filas visibles de la tabla (NO el modelo)
+    int filas = tablaAsistencias.getRowCount();
+    for (int i = 0; i < filas; i++) {
+        String idEmpleado = String.valueOf(tablaAsistencias.getValueAt(i, 0));
+        String estado = String.valueOf(tablaAsistencias.getValueAt(i, 6));
+
+        empleadosUnicos.add(idEmpleado);
+
+        if (estado == null) continue;
+        String e = estado.toUpperCase();
+
+        if (e.contains("RESPONSABLE") || e.contains("CIERRE AUTOM")) {
+            presentes++;
+        } else if (e.contains("TARDE")) {
+            presentes++;
+            tardanzas++;
+        } else if (e.contains("AUSENTE")) {
+            ausencias++;
+        }
+    }
+
+    // Total de empleados: distintos IDs que aparecen en la tabla filtrada
+    lblTtotalEmpleadosValor.setText(String.valueOf(empleadosUnicos.size()));
+    lblPresentesValor.setText(String.valueOf(presentes));
+    lblTardanzasValor.setText(String.valueOf(tardanzas));
+    lblAusenciasValor.setText(String.valueOf(ausencias));
+}
 
     private void cargarTablaAsistencias(String filtroTienda) {
         DefaultTableModel modelo = (DefaultTableModel) tablaAsistencias.getModel();
-        modelo.setRowCount(0); // Limpiar
+        modelo.setRowCount(0); // Limpiar tabla
 
         edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
 
-        // Si es nulo o vacío, el DAO interpretará "Todas"
-        List<Object[]> datos = asisDao.listarAsistenciasDetalladas(filtroTienda);
+        // Si filtroTienda es null o “Todas…”, el DAO devuelve todo
+        String filtroReal = (filtroTienda == null || filtroTienda.startsWith("Todas"))
+                ? null
+                : filtroTienda;
+
+        java.util.List<Object[]> datos = asisDao.listarAsistenciasDetalladas(filtroReal);
 
         for (Object[] fila : datos) {
             modelo.addRow(fila);
@@ -146,6 +286,53 @@ jPanel1.setLayout(new java.awt.BorderLayout());
             cb_turno.setModel(new javax.swing.DefaultComboBoxModel<>(new String[]{"MAÑANA", "TARDE", "NOCHE"}));
         }
     }
+private void aplicarFiltrosAsistencias() {
+    if (sorterAsistencias == null) {
+        return;
+    }
+
+    java.util.List<RowFilter<Object, Object>> filtros = new java.util.ArrayList<>();
+
+    // 1. Filtro por texto (busca en todas las columnas)
+    String texto = txtBuscar.getText().trim();
+    if (!texto.isEmpty()) {
+        filtros.add(RowFilter.regexFilter("(?i)" + texto));
+    }
+
+    // 2. Filtro por estado (columna 6)
+    String opcionEstado = (String) cbFiltroEstado.getSelectedItem();
+    if (opcionEstado != null && !"Ver todos".equals(opcionEstado)) {
+        int colEstado = 6;
+        String patron = null;
+
+        switch (opcionEstado) {
+            case "Presentes":
+                // RESPONSABLE, CIERRE AUTOMÁTICO y TARDE cuentan como presentes
+                patron = "(?i)RESPONSABLE|CIERRE AUTOM[ÁA]TICO|TARDE";
+                break;
+            case "Tardanzas":
+                patron = "(?i)TARDE";
+                break;
+            case "Ausencias":
+                patron = "(?i)AUSENTE";
+                break;
+        }
+
+        if (patron != null) {
+            filtros.add(RowFilter.regexFilter(patron, colEstado));
+        }
+    }
+
+    // Aplicar filtros combinados
+    if (filtros.isEmpty()) {
+        sorterAsistencias.setRowFilter(null);
+    } else {
+        sorterAsistencias.setRowFilter(RowFilter.andFilter(filtros));
+    }
+
+    // 3. Actualizar KPIs según lo que queda visible
+    actualizarKpisAsistencias();
+}
 
     private void cargarEmpleadosEnTabla() {
         // 1. Configurar el modelo de la tabla
@@ -344,8 +531,40 @@ jPanel1.setLayout(new java.awt.BorderLayout());
             }
         }
     }
+private void cargarTablaAsistenciasPorFecha(java.sql.Date fecha) {
+    DefaultTableModel model = (DefaultTableModel) tablaAsistencias.getModel();
+    model.setRowCount(0);
 
+    AsistenciaDAO dao = new AsistenciaDAO();
+    List<Object[]> lista = dao.obtenerAsistenciasPorFecha(fecha);
+
+    for (Object[] fila : lista) {
+        model.addRow(fila);
+    }
+}
+
+
+private void btnFechaActionPerformed(java.awt.event.ActionEvent evt) {                                         
+    // Mostrar el dateChooser emergente
+    dateChooserAsistencia.setVisible(true);
+
+    // Forzar que el usuario abra el popup de calendario
+    dateChooserAsistencia.getCalendarButton().doClick();
     
+    // Listener para cuando el usuario seleccione una fecha
+    dateChooserAsistencia.addPropertyChangeListener("date", (e) -> {
+        if (dateChooserAsistencia.getDate() != null) {
+            java.util.Date fecha = dateChooserAsistencia.getDate();
+            java.sql.Date fechaSQL = new java.sql.Date(fecha.getTime());
+
+            // Recargar tabla y KPIs usando esa fecha
+            cargarTablaAsistenciasPorFecha(fechaSQL);
+            aplicarFiltrosAsistencias();
+
+            dateChooserAsistencia.setVisible(false);
+        }
+    });
+}
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -355,11 +574,11 @@ jPanel1.setLayout(new java.awt.BorderLayout());
         ASISTENCIAS = new javax.swing.JPanel();
         panelTop = new javax.swing.JPanel();
         cbTienda = new javax.swing.JComboBox<>();
-        btnFecha = new javax.swing.JButton();
         btnExportar = new javax.swing.JButton();
         lblListaEmpleados = new javax.swing.JLabel();
         txtBuscar = new javax.swing.JTextField();
         cbFiltroEstado = new javax.swing.JComboBox<>();
+        dateChooserAsistencia = new com.toedter.calendar.JDateChooser();
         panelCenter = new javax.swing.JPanel();
         panelKpis = new javax.swing.JPanel();
         panelKpiTotal = new javax.swing.JPanel();
@@ -423,21 +642,29 @@ jPanel1.setLayout(new java.awt.BorderLayout());
         cbTienda.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
         cbTienda.setPreferredSize(new java.awt.Dimension(150, 30));
         gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.ipadx = 20;
+        gridBagConstraints.weightx = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
         panelTop.add(cbTienda, gridBagConstraints);
-
-        btnFecha.setText("FECHA");
-        btnFecha.setPreferredSize(new java.awt.Dimension(150, 30));
-        panelTop.add(btnFecha, new java.awt.GridBagConstraints());
 
         btnExportar.setText("EXPORTAR");
         btnExportar.setPreferredSize(new java.awt.Dimension(150, 30));
-        panelTop.add(btnExportar, new java.awt.GridBagConstraints());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.ipadx = 30;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
+        gridBagConstraints.insets = new java.awt.Insets(5, 15, 5, 10);
+        panelTop.add(btnExportar, gridBagConstraints);
 
         lblListaEmpleados.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lblListaEmpleados.setText("Lista de Empleados");
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
         panelTop.add(lblListaEmpleados, gridBagConstraints);
 
         txtBuscar.setMinimumSize(new java.awt.Dimension(15, 100));
@@ -447,13 +674,30 @@ jPanel1.setLayout(new java.awt.BorderLayout());
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.ipadx = 60;
+        gridBagConstraints.weightx = 0.6;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
         panelTop.add(txtBuscar, gridBagConstraints);
 
         cbFiltroEstado.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Ver Todos", "Presentes", "Tardanzas", "Ausentes" }));
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.ipadx = 20;
+        gridBagConstraints.weightx = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
         panelTop.add(cbFiltroEstado, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelTop.add(dateChooserAsistencia, gridBagConstraints);
 
         ASISTENCIAS.add(panelTop, java.awt.BorderLayout.NORTH);
 
@@ -1135,6 +1379,7 @@ jPanel1.setLayout(new java.awt.BorderLayout());
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this, "Error al actualizar: " + e.getMessage());
         }
+        
     }//GEN-LAST:event_btnActualizarActionPerformed
 
     private void btn_horariosActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_horariosActionPerformed
@@ -1159,7 +1404,6 @@ jPanel1.setLayout(new java.awt.BorderLayout());
     private javax.swing.JButton btnActualizar;
     private javax.swing.JButton btnAgregar;
     private javax.swing.JButton btnExportar;
-    private javax.swing.JButton btnFecha;
     private javax.swing.JButton btnLimpiar;
     private javax.swing.JButton btn_horarios;
     private javax.swing.JComboBox<String> cbCargo;
@@ -1168,6 +1412,7 @@ jPanel1.setLayout(new java.awt.BorderLayout());
     private javax.swing.JComboBox<String> cbTienda;
     private javax.swing.JComboBox<String> cbTiendaP;
     private javax.swing.JComboBox<String> cb_turno;
+    private com.toedter.calendar.JDateChooser dateChooserAsistencia;
     private javax.swing.JButton jButton1;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JComboBox<String> jComboBox2;

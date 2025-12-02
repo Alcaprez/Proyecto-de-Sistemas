@@ -106,7 +106,12 @@ public class ProveedorDAO {
                     psPr.setString(3, p.getDniAsociado());
                     psPr.setString(4, p.getRuc());
                     psPr.setString(5, p.getDireccion());
-                    psPr.setInt(6, p.getIdSucursal());
+                    if (p.getIdSucursal() == 0) {
+                        psPr.setNull(6, java.sql.Types.INTEGER);
+                    } else {
+                        psPr.setInt(6, p.getIdSucursal());
+                    }
+
                     psPr.setString(7, p.getEstado());
                     psPr.executeUpdate();
                 }

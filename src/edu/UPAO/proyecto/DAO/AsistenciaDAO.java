@@ -334,4 +334,43 @@ public class AsistenciaDAO {
         }
         return lista;
     }
+
+    public List<Object[]> obtenerAsistenciasPorFecha(java.sql.Date fecha) {
+        List<Object[]> lista = new ArrayList<>();
+
+        String sql = """
+    SELECT e.id_empleado, p.nombres, e.rol, s.nombre_sucursal,
+           a.fecha_hora_entrada, a.fecha_hora_salida, a.estado
+    FROM asistencia a
+    JOIN empleado e ON a.id_empleado = e.id_empleado
+    JOIN persona  p ON e.dni = p.dni
+    JOIN sucursal s ON e.id_sucursal = s.id_sucursal
+    WHERE DATE(a.fecha_hora_entrada) = ?
+    ORDER BY a.fecha_hora_entrada DESC
+    """;
+        try (Connection con = Conexion.getConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setDate(1, fecha);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Object[] fila = new Object[]{
+                    rs.getInt(1), // id_empleado
+                    rs.getString(2), // nombres
+                    rs.getString(3), // rol
+                    rs.getString(4), // sucursal
+                    rs.getTimestamp(5), // entrada
+                    rs.getTimestamp(6), // salida
+                    rs.getString(7) // estado
+                };
+                lista.add(fila);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        return lista;
+    }
+
 }

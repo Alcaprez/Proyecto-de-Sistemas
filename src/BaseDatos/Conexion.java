@@ -38,4 +38,8 @@ public class Conexion {
         }
         return conectar;
     }
+    public static Connection getConexion() {
+        // crea un objeto Conexion y usa establecerConexion()
+        return new Conexion().establecerConexion();
+    }
 }
