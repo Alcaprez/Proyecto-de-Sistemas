@@ -1,6 +1,5 @@
 package edu.UPAO.proyecto.app;
 
-
 import BaseDatos.Conexion;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Chunk;
@@ -15,6 +14,8 @@ import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Image;
+import edu.UPAO.proyecto.DAO.ReporteComprasDAO;
+import edu.UPAO.proyecto.DAO.ReporteComprasDAO.ComboItem;
 import edu.UPAO.proyecto.Util.GeneradorExcelRk;
 import edu.UPAO.proyecto.Util.GeneradorPDFRk;
 import java.awt.BorderLayout;
@@ -40,13 +41,14 @@ import org.jfree.data.general.DefaultPieDataset;
 import org.jfree.chart.renderer.category.StandardBarPainter;
 import java.awt.Color;
 import java.awt.BorderLayout;
-
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class panel_Tesoreria extends javax.swing.JPanel {
 
     private Connection conn;
     private JFreeChart chartVentasPorProducto;
-
+    private ReporteComprasDAO reporteComprasDAO;
     private JFreeChart chartVentasDiarias;
     private JFreeChart chartVentasMensuales;
     private JFreeChart chartMediosPago;
@@ -54,14 +56,18 @@ public class panel_Tesoreria extends javax.swing.JPanel {
     // Variable para el gráfico del Ranking
     private JFreeChart chartRanking;
 
-
     private LocalDate fechaDesde = null;
     private LocalDate fechaHasta = null;
 
     public panel_Tesoreria() {
         initComponents();
+        reporteComprasDAO = new ReporteComprasDAO();
         envolverEnScroll();
         inicializar();
+        configurarModelosTablasCompras();
+        configurarCombosCompras();
+        configurarEventosTablasCompras();
+        aplicarFiltrosCompras();
     }
 
     private void inicializar() {
@@ -85,6 +91,154 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         // Carga inicial (todo)
         actualizarDashboard();
         iniciarSistemaRanking();
+    }
+
+    private void configurarModelosTablasCompras() {
+        // Tabla RESUMEN (arriba)
+        DefaultTableModel modeloResumen = new DefaultTableModel(
+                new Object[]{
+                    "ID Proveedor", "Proveedor", "Total",
+                    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+                }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tblResumenCompras.setModel(modeloResumen);
+
+        // Ocultar columna ID Proveedor
+        tblResumenCompras.getColumnModel().getColumn(0).setMinWidth(0);
+        tblResumenCompras.getColumnModel().getColumn(0).setMaxWidth(0);
+        tblResumenCompras.getColumnModel().getColumn(0).setWidth(0);
+
+        // Tabla DETALLE (abajo)
+        DefaultTableModel modeloDetalle = new DefaultTableModel(
+                new Object[]{"ID Compra", "Fecha", "Tienda", "Total", "Estado"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        tblDetalleCompras.setModel(modeloDetalle);
+
+        // Opcional: inicialmente ocultar detalle
+        panelDetalleCompras.setVisible(false);
+        lblDetalleProveedor.setText("Detalle del proveedor:");
+    }
+
+    private void configurarEventosTablasCompras() {
+        tblResumenCompras.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                cargarDetalleProveedorSeleccionado();
+            }
+        });
+    }
+
+    private void cargarDetalleProveedorSeleccionado() {
+        int fila = tblResumenCompras.getSelectedRow();
+        if (fila < 0) {
+            return;
+        }
+
+        String idProveedor = (String) tblResumenCompras.getValueAt(fila, 0); // col 0 oculto
+        String nombreProveedor = (String) tblResumenCompras.getValueAt(fila, 1);
+        javax.swing.JComboBox comboTienda = (javax.swing.JComboBox) cbTiendaCompras;
+        // Sucursal actual (para mantener filtro)
+        ComboItem sucItem = (ComboItem) comboTienda.getSelectedItem();
+        Integer idSucursal = null;
+        if (sucItem != null && sucItem.getId() instanceof Integer) {
+            int id = (Integer) sucItem.getId();
+            idSucursal = (id == 0) ? null : id;
+        }
+
+        // Fechas actuales
+        Date fDesde = null;
+        Date fHasta = null;
+        if (dcFechaInicioCompras.getDate() != null) {
+            fDesde = new Date(dcFechaInicioCompras.getDate().getTime());
+        }
+        if (dcFechaFinCompras.getDate() != null) {
+            fHasta = new Date(dcFechaFinCompras.getDate().getTime());
+        }
+
+        reporteComprasDAO.llenarTablaDetalle(
+                tblDetalleCompras,
+                idProveedor,
+                idSucursal,
+                fDesde,
+                fHasta
+        );
+
+        lblDetalleProveedor.setText("Detalle del proveedor: " + nombreProveedor);
+        panelDetalleCompras.setVisible(true);
+    }
+
+    private void configurarCombosCompras() {
+        // Trabajamos con los combos como "raw" para saltarnos el <String>
+        javax.swing.JComboBox comboTienda = (javax.swing.JComboBox) cbTiendaCompras;
+        javax.swing.JComboBox comboProveedor = (javax.swing.JComboBox) cbProveedorCompras;
+
+        // TIENDAS
+        comboTienda.removeAllItems();
+        comboTienda.addItem(new ComboItem(0, "Todas"));
+
+        for (ComboItem suc : reporteComprasDAO.listarSucursales()) {
+            comboTienda.addItem(suc);
+        }
+
+        // PROVEEDORES
+        comboProveedor.removeAllItems();
+        comboProveedor.addItem(new ComboItem("", "Todos"));
+
+        for (ComboItem prov : reporteComprasDAO.listarProveedores()) {
+            comboProveedor.addItem(prov);
+        }
+
+    }
+
+    private void exportarTablaCSV(JTable tabla) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Guardar reporte de compras");
+
+        int seleccion = chooser.showSaveDialog(this);
+        if (seleccion == JFileChooser.APPROVE_OPTION) {
+            java.io.File file = chooser.getSelectedFile();
+            if (!file.getName().toLowerCase().endsWith(".csv")) {
+                file = new java.io.File(file.getAbsolutePath() + ".csv");
+            }
+
+            try (FileWriter fw = new FileWriter(file)) {
+                DefaultTableModel model = (DefaultTableModel) tabla.getModel();
+
+                // Encabezados (omitimos columna ID proveedor si quieres)
+                for (int col = 1; col < model.getColumnCount(); col++) {
+                    fw.write(model.getColumnName(col));
+                    if (col < model.getColumnCount() - 1) {
+                        fw.write(";");
+                    }
+                }
+                fw.write("\n");
+
+                // Filas
+                for (int row = 0; row < model.getRowCount(); row++) {
+                    for (int col = 1; col < model.getColumnCount(); col++) {
+                        Object value = model.getValueAt(row, col);
+                        fw.write(value == null ? "" : value.toString());
+                        if (col < model.getColumnCount() - 1) {
+                            fw.write(";");
+                        }
+                    }
+                    fw.write("\n");
+                }
+
+                JOptionPane.showMessageDialog(this, "Reporte exportado correctamente.");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error al exportar: " + ex.getMessage());
+            }
+        }
     }
 
     private void envolverEnScroll() {
@@ -822,48 +976,52 @@ public class panel_Tesoreria extends javax.swing.JPanel {
     // =======================================================================
     //  MÓDULO DE RANKING (VENTAS vs TRANSACCIONES)
     // =======================================================================
-
     private void iniciarSistemaRanking() {
         // 1. Limpiar listeners previos por seguridad
-        for(java.awt.event.ActionListener al : FiltrarporMes.getActionListeners()) FiltrarporMes.removeActionListener(al);
-        for(java.awt.event.ActionListener al : cb_tipoRanking.getActionListeners()) cb_tipoRanking.removeActionListener(al);
+        for (java.awt.event.ActionListener al : FiltrarporMes.getActionListeners()) {
+            FiltrarporMes.removeActionListener(al);
+        }
+        for (java.awt.event.ActionListener al : cb_tipoRanking.getActionListeners()) {
+            cb_tipoRanking.removeActionListener(al);
+        }
 
         // 2. Activar recarga automática
         FiltrarporMes.addActionListener(e -> cargarDatosRanking());
         cb_tipoRanking.addActionListener(e -> cargarDatosRanking());
-        
+
         // 3. Carga inicial
         cargarDatosRanking();
     }
 
     private void cargarDatosRanking() {
         // Validación de conexión
-        if (this.conn == null) return;
+        if (this.conn == null) {
+            return;
+        }
 
         // A. Obtener datos de la Interfaz
         int mesIndex = FiltrarporMes.getSelectedIndex(); // 0=Anual
-        String tipoRanking = cb_tipoRanking.getSelectedItem().toString(); 
-        
+        String tipoRanking = cb_tipoRanking.getSelectedItem().toString();
+
         // B. Filtros SQL
         String filtroV = (mesIndex == 0) ? "" : " AND MONTH(v.fecha_hora) = " + mesIndex;
         String filtroC = (mesIndex == 0) ? "" : " AND MONTH(mc.fecha_hora) = " + mesIndex;
-        
-        // C. Consulta SQL (Ventas Suma, Transacciones Conteo)
-        String sql = "SELECT s.nombre_sucursal, " +
-                     "COALESCE(v.total_v, 0) as ventas, " +
-                     "COALESCE(mc.total_count, 0) as transacciones, " +
-                     "(COALESCE(v.total_v, 0) + COALESCE(mc.total_count, 0))/2 as puntaje " +
-                     "FROM sucursal s " +
-                     "LEFT JOIN (SELECT id_sucursal, SUM(total) as total_v FROM venta v WHERE 1=1 " + filtroV + " GROUP BY id_sucursal) v ON s.id_sucursal=v.id_sucursal " +
-                     "LEFT JOIN (SELECT id_sucursal, COUNT(*) as total_count FROM movimiento_caja mc WHERE 1=1 " + filtroC + " GROUP BY id_sucursal) mc ON s.id_sucursal=mc.id_sucursal " +
-                     "ORDER BY puntaje DESC";
 
-        try (PreparedStatement pstmt = this.conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+        // C. Consulta SQL (Ventas Suma, Transacciones Conteo)
+        String sql = "SELECT s.nombre_sucursal, "
+                + "COALESCE(v.total_v, 0) as ventas, "
+                + "COALESCE(mc.total_count, 0) as transacciones, "
+                + "(COALESCE(v.total_v, 0) + COALESCE(mc.total_count, 0))/2 as puntaje "
+                + "FROM sucursal s "
+                + "LEFT JOIN (SELECT id_sucursal, SUM(total) as total_v FROM venta v WHERE 1=1 " + filtroV + " GROUP BY id_sucursal) v ON s.id_sucursal=v.id_sucursal "
+                + "LEFT JOIN (SELECT id_sucursal, COUNT(*) as total_count FROM movimiento_caja mc WHERE 1=1 " + filtroC + " GROUP BY id_sucursal) mc ON s.id_sucursal=mc.id_sucursal "
+                + "ORDER BY puntaje DESC";
+
+        try (PreparedStatement pstmt = this.conn.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
 
             // 1. Preparar Tabla y Dataset
             DefaultTableModel modelo = (DefaultTableModel) TablaRanking.getModel();
-            modelo.setRowCount(0); 
+            modelo.setRowCount(0);
             DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
             // Variables para Labels
@@ -877,19 +1035,22 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 String nom = rs.getString("nombre_sucursal");
                 double vtas = rs.getDouble("ventas");
                 int trxs = rs.getInt("transacciones");
-                
+
                 // -> Llenar Tabla
                 modelo.addRow(new Object[]{
                     puesto, nom, "S/ " + String.format("%,.2f", vtas), trxs
                 });
-                
+
                 // -> Llenar Gráfico
                 double valorG = (tipoRanking.equalsIgnoreCase("Ventas")) ? vtas : trxs;
                 dataset.addValue(valorG, tipoRanking, nom);
 
                 // -> Calcular Labels
                 sumaTotalVentas += vtas;
-                if (puesto == 1) { topLocal = nom; mejorPromedioLocal = nom; }
+                if (puesto == 1) {
+                    topLocal = nom;
+                    mejorPromedioLocal = nom;
+                }
                 puesto++;
             }
 
@@ -898,7 +1059,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             lbl_TotalVenta.setText("S/ " + String.format("%,.2f", sumaTotalVentas));
             lbl_TiendaTOP.setText(topLocal);
             lbl_promedioVentas.setText(mejorPromedioLocal);
-            
+
             // Pintar Gráfico (Dinámico)
             String labelY = tipoRanking.equalsIgnoreCase("Ventas") ? "Monto (S/)" : "N° Transacciones";
             pintarGraficoRanking(dataset, labelY);
@@ -909,12 +1070,57 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         }
     }
 
+    private void aplicarFiltrosCompras() {
+        javax.swing.JComboBox comboTienda = (javax.swing.JComboBox) cbTiendaCompras;
+        javax.swing.JComboBox comboProveedor = (javax.swing.JComboBox) cbProveedorCompras;
+
+        // Sucursal
+        ComboItem sucItem = (ComboItem) comboTienda.getSelectedItem();
+        Integer idSucursal = null;
+        if (sucItem != null && sucItem.getId() instanceof Integer) {
+            int id = (Integer) sucItem.getId();
+            idSucursal = (id == 0) ? null : id;
+        }
+
+        // Proveedor
+        ComboItem provItem = (ComboItem) comboProveedor.getSelectedItem();
+        String idProveedor = null;
+        if (provItem != null && provItem.getId() instanceof String) {
+            String id = (String) provItem.getId();
+            idProveedor = id.isEmpty() ? null : id;
+        }
+
+        // Fechas
+        Date fDesde = null;
+        Date fHasta = null;
+        if (dcFechaInicioCompras.getDate() != null) {
+            fDesde = new Date(dcFechaInicioCompras.getDate().getTime());
+        }
+        if (dcFechaFinCompras.getDate() != null) {
+            fHasta = new Date(dcFechaFinCompras.getDate().getTime());
+        }
+
+        // Llenar tabla de resumen
+        reporteComprasDAO.llenarTablaResumen(
+                tblResumenCompras,
+                idSucursal,
+                idProveedor,
+                fDesde,
+                fHasta
+        );
+
+        // Limpiar detalle
+        ((DefaultTableModel) tblDetalleCompras.getModel()).setRowCount(0);
+        panelDetalleCompras.setVisible(false);
+        lblDetalleProveedor.setText("Detalle del proveedor:");
+    }
+
     private void pintarGraficoRanking(DefaultCategoryDataset dataset, String labelY) {
         chartRanking = ChartFactory.createBarChart(
-                "", "", labelY, dataset, 
+                "", "", labelY, dataset,
                 PlotOrientation.VERTICAL, true, true, false
         );
-        
+
         // Estilo Plano (Sin brillo excesivo)
         org.jfree.chart.plot.CategoryPlot plot = chartRanking.getCategoryPlot();
         plot.setBackgroundPaint(new Color(245, 245, 245));
@@ -922,16 +1128,16 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         chartRanking.setBackgroundPaint(Color.WHITE);
 
         org.jfree.chart.renderer.category.BarRenderer renderer = (org.jfree.chart.renderer.category.BarRenderer) plot.getRenderer();
-        renderer.setBarPainter(new StandardBarPainter()); 
+        renderer.setBarPainter(new StandardBarPainter());
         renderer.setShadowVisible(false);
         renderer.setSeriesPaint(0, new Color(70, 130, 180)); // Azul acero
 
         ChartPanel cp = new ChartPanel(chartRanking);
         // Ajustar altura a 250px o lo que necesites
         if (GraficoBarras.getWidth() > 0) {
-             cp.setPreferredSize(new java.awt.Dimension(GraficoBarras.getWidth(), 250));
+            cp.setPreferredSize(new java.awt.Dimension(GraficoBarras.getWidth(), 250));
         }
-        
+
         GraficoBarras.removeAll();
         GraficoBarras.setLayout(new BorderLayout());
         GraficoBarras.add(cp, BorderLayout.CENTER);
@@ -951,9 +1157,11 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         // Asumo que tu método se llama generarExcel, si es otro cambialo aquí
         excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
     }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
+        java.awt.GridBagConstraints gridBagConstraints;
 
         lbl_total2 = new javax.swing.JLabel();
         Tabbed_Tesoreria = new javax.swing.JTabbedPane();
@@ -987,13 +1195,25 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_MediosPago = new javax.swing.JPanel();
         lblMediosPago = new javax.swing.JLabel();
         panel_COMPRAS = new javax.swing.JPanel();
-        cb_sucursal1 = new javax.swing.JComboBox<>();
-        cb_productos1 = new javax.swing.JComboBox<>();
-        cb_rangoFechas1 = new javax.swing.JComboBox<>();
-        btn_exportar1 = new javax.swing.JButton();
-        jScrollPane4 = new javax.swing.JScrollPane();
-        jTable4 = new javax.swing.JTable();
-        jLabel4 = new javax.swing.JLabel();
+        panelFiltrosCompras = new javax.swing.JPanel();
+        lblFiltrarPor_Pcompras = new javax.swing.JLabel();
+        lblTienda_Pcompras = new javax.swing.JLabel();
+        cbTiendaCompras = new javax.swing.JComboBox<>();
+        lblProveedorCompras = new javax.swing.JLabel();
+        cbProveedorCompras = new javax.swing.JComboBox<>();
+        lblDesdeCompras = new javax.swing.JLabel();
+        dcFechaInicioCompras = new com.toedter.calendar.JDateChooser();
+        lblHastaCompras = new javax.swing.JLabel();
+        dcFechaFinCompras = new com.toedter.calendar.JDateChooser();
+        btnFiltrarCompras = new javax.swing.JButton();
+        btnExportarCompras = new javax.swing.JButton();
+        panelTablasCompras = new javax.swing.JPanel();
+        scrollResumenCompras = new javax.swing.JScrollPane();
+        tblResumenCompras = new javax.swing.JTable();
+        panelDetalleCompras = new javax.swing.JPanel();
+        lblDetalleProveedor = new javax.swing.JLabel();
+        scrollDetalleCompras = new javax.swing.JScrollPane();
+        tblDetalleCompras = new javax.swing.JTable();
         panel_Estadisticas = new javax.swing.JPanel();
         Tabbed_Estadisticas = new javax.swing.JTabbedPane();
         panel_Ranking = new javax.swing.JPanel();
@@ -1212,20 +1432,116 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
         Tabbed_Tesoreria.addTab("REPORTE DE VENTAS", panel_Ventas);
 
-        cb_sucursal1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
-        cb_sucursal1.addActionListener(new java.awt.event.ActionListener() {
+        panel_COMPRAS.setLayout(new java.awt.BorderLayout());
+
+        panelFiltrosCompras.setLayout(new java.awt.GridBagLayout());
+
+        lblFiltrarPor_Pcompras.setText("FILTRAR POR:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(lblFiltrarPor_Pcompras, gridBagConstraints);
+
+        lblTienda_Pcompras.setText("TIENDA:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(lblTienda_Pcompras, gridBagConstraints);
+
+        cbTiendaCompras.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.2;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(cbTiendaCompras, gridBagConstraints);
+
+        lblProveedorCompras.setText("PROVEEDOR:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(lblProveedorCompras, gridBagConstraints);
+
+        cbProveedorCompras.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 4;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.2;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(cbProveedorCompras, gridBagConstraints);
+
+        lblDesdeCompras.setText("DESDE:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 5;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(lblDesdeCompras, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 6;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(dcFechaInicioCompras, gridBagConstraints);
+
+        lblHastaCompras.setText("HASTA:");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 7;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(lblHastaCompras, gridBagConstraints);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 8;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(dcFechaFinCompras, gridBagConstraints);
+
+        btnFiltrarCompras.setText("APLICAR FILTROS");
+        btnFiltrarCompras.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cb_sucursal1ActionPerformed(evt);
+                btnFiltrarComprasActionPerformed(evt);
             }
         });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 9;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(btnFiltrarCompras, gridBagConstraints);
 
-        cb_productos1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        btnExportarCompras.setText("EXPORTAR");
+        btnExportarCompras.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnExportarComprasActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 10;
+        gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
+        panelFiltrosCompras.add(btnExportarCompras, gridBagConstraints);
 
-        cb_rangoFechas1.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        panel_COMPRAS.add(panelFiltrosCompras, java.awt.BorderLayout.NORTH);
 
-        btn_exportar1.setText("Exportar");
+        panelTablasCompras.setLayout(new java.awt.BorderLayout());
 
-        jTable4.setModel(new javax.swing.table.DefaultTableModel(
+        tblResumenCompras.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null, null, null, null, null, null, null, null}
+            },
+            new String [] {
+                "Proveedor", "Total", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            }
+        ));
+        scrollResumenCompras.setViewportView(tblResumenCompras);
+
+        panelTablasCompras.add(scrollResumenCompras, java.awt.BorderLayout.NORTH);
+
+        panelDetalleCompras.setLayout(new java.awt.BorderLayout());
+
+        lblDetalleProveedor.setText("Detalle del Proveedor:");
+        panelDetalleCompras.add(lblDetalleProveedor, java.awt.BorderLayout.NORTH);
+
+        tblDetalleCompras.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
                 {null, null, null, null},
                 {null, null, null, null},
@@ -1236,45 +1552,13 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                 "Title 1", "Title 2", "Title 3", "Title 4"
             }
         ));
-        jScrollPane4.setViewportView(jTable4);
+        scrollDetalleCompras.setViewportView(tblDetalleCompras);
 
-        jLabel4.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
-        jLabel4.setText("Filtrar por datos:");
+        panelDetalleCompras.add(scrollDetalleCompras, java.awt.BorderLayout.CENTER);
 
-        javax.swing.GroupLayout panel_COMPRASLayout = new javax.swing.GroupLayout(panel_COMPRAS);
-        panel_COMPRAS.setLayout(panel_COMPRASLayout);
-        panel_COMPRASLayout.setHorizontalGroup(
-            panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panel_COMPRASLayout.createSequentialGroup()
-                .addGap(30, 30, 30)
-                .addGroup(panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel4)
-                    .addGroup(panel_COMPRASLayout.createSequentialGroup()
-                        .addComponent(cb_sucursal1, javax.swing.GroupLayout.PREFERRED_SIZE, 157, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(cb_productos1, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(cb_rangoFechas1, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(33, 33, 33)
-                        .addComponent(btn_exportar1, javax.swing.GroupLayout.PREFERRED_SIZE, 149, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 969, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(160, Short.MAX_VALUE))
-        );
-        panel_COMPRASLayout.setVerticalGroup(
-            panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(panel_COMPRASLayout.createSequentialGroup()
-                .addGap(40, 40, 40)
-                .addComponent(jLabel4)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(panel_COMPRASLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(cb_sucursal1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(cb_productos1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(cb_rangoFechas1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btn_exportar1))
-                .addGap(56, 56, 56)
-                .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 511, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(25, Short.MAX_VALUE))
-        );
+        panelTablasCompras.add(panelDetalleCompras, java.awt.BorderLayout.CENTER);
+
+        panel_COMPRAS.add(panelTablasCompras, java.awt.BorderLayout.CENTER);
 
         Tabbed_Tesoreria.addTab("REPORTE DE COMPRAS", panel_COMPRAS);
 
@@ -1753,33 +2037,37 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         add(Tabbed_Tesoreria, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void cb_sucursal1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_sucursal1ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_cb_sucursal1ActionPerformed
-
     private void filtro_sucursalActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filtro_sucursalActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_filtro_sucursalActionPerformed
 
     private void cb_tipoRankingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_tipoRankingActionPerformed
-cargarDatosRanking();
+        cargarDatosRanking();
     }//GEN-LAST:event_cb_tipoRankingActionPerformed
 
     private void FiltrarporMesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FiltrarporMesActionPerformed
-cargarDatosRanking();
+        cargarDatosRanking();
     }//GEN-LAST:event_FiltrarporMesActionPerformed
 
     private void PDFActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PDFActionPerformed
-accionBotonPDF();
+        accionBotonPDF();
     }//GEN-LAST:event_PDFActionPerformed
 
     private void ExcelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExcelActionPerformed
-accionBotonExcel();
+        accionBotonExcel();
     }//GEN-LAST:event_ExcelActionPerformed
 
     private void btnFechaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFechaActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_btnFechaActionPerformed
+
+    private void btnFiltrarComprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnFiltrarComprasActionPerformed
+        aplicarFiltrosCompras();
+    }//GEN-LAST:event_btnFiltrarComprasActionPerformed
+
+    private void btnExportarComprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnExportarComprasActionPerformed
+        exportarTablaCSV(tblResumenCompras);
+    }//GEN-LAST:event_btnExportarComprasActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -1794,34 +2082,39 @@ accionBotonExcel();
     private javax.swing.JTabbedPane Tabbed_Tesoreria;
     private javax.swing.JTable TablaRanking;
     private javax.swing.JButton btnExportar;
+    private javax.swing.JButton btnExportarCompras;
     private javax.swing.JButton btnFecha;
-    private javax.swing.JButton btn_exportar1;
-    private javax.swing.JComboBox<String> cb_productos1;
-    private javax.swing.JComboBox<String> cb_rangoFechas1;
+    private javax.swing.JButton btnFiltrarCompras;
+    private javax.swing.JComboBox<String> cbProveedorCompras;
+    private javax.swing.JComboBox<String> cbTiendaCompras;
     private javax.swing.JComboBox<String> cb_rangoss;
-    private javax.swing.JComboBox<String> cb_sucursal1;
     private javax.swing.JComboBox<String> cb_tipoRanking;
     private javax.swing.JComboBox<String> cmbProducto;
     private javax.swing.JComboBox<String> cmbTienda;
     private javax.swing.JPanel costos_totales;
+    private com.toedter.calendar.JDateChooser dcFechaFinCompras;
+    private com.toedter.calendar.JDateChooser dcFechaInicioCompras;
     private javax.swing.JComboBox<String> filtro_sucursal;
     private javax.swing.JPanel ganancia_bruta2;
     private javax.swing.JPanel ganancia_neta;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel15;
     private javax.swing.JPanel jPanel9;
     private javax.swing.JPanel jPanelPromedioVentas;
     private javax.swing.JPanel jPanelTiendaTOP;
     private javax.swing.JPanel jPanelVentasTotales;
     private javax.swing.JScrollPane jScrollPane3;
-    private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTable jTable3;
-    private javax.swing.JTable jTable4;
+    private javax.swing.JLabel lblDesdeCompras;
+    private javax.swing.JLabel lblDetalleProveedor;
     private javax.swing.JLabel lblFiltrarPor;
+    private javax.swing.JLabel lblFiltrarPor_Pcompras;
+    private javax.swing.JLabel lblHastaCompras;
     private javax.swing.JLabel lblMediosPago;
+    private javax.swing.JLabel lblProveedorCompras;
+    private javax.swing.JLabel lblTienda_Pcompras;
     private javax.swing.JLabel lblTituloMedioPago;
     private javax.swing.JLabel lblTituloNumeroVentas;
     private javax.swing.JLabel lblTituloProductosVendidos;
@@ -1845,6 +2138,9 @@ accionBotonExcel();
     private javax.swing.JLabel lbl_totalVentas3;
     private javax.swing.JLabel lbl_totalVentas4;
     private javax.swing.JLabel lbl_totalVentas5;
+    private javax.swing.JPanel panelDetalleCompras;
+    private javax.swing.JPanel panelFiltrosCompras;
+    private javax.swing.JPanel panelTablasCompras;
     private javax.swing.JPanel panel_COMPRAS;
     private javax.swing.JPanel panel_Estadisticas;
     private javax.swing.JPanel panel_Filtros;
@@ -1863,5 +2159,9 @@ accionBotonExcel();
     private javax.swing.JPanel panel_VentasPorProducto;
     private javax.swing.JPanel panel_estadisticas;
     private javax.swing.JPanel panel_rankingXVentas;
+    private javax.swing.JScrollPane scrollDetalleCompras;
+    private javax.swing.JScrollPane scrollResumenCompras;
+    private javax.swing.JTable tblDetalleCompras;
+    private javax.swing.JTable tblResumenCompras;
     // End of variables declaration//GEN-END:variables
 }
