@@ -83,6 +83,8 @@ public class CONTROL_PERSONAL extends javax.swing.JPanel {
         Historial = new javax.swing.JButton();
         jPanel7 = new javax.swing.JPanel();
 
+        setBackground(new java.awt.Color(0, 153, 153));
+
         jPanel1.setLayout(new java.awt.BorderLayout());
         jTabbedPane1.addTab("ASISTENCIAS", jPanel1);
 
