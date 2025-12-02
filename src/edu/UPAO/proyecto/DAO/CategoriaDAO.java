@@ -1,7 +1,7 @@
 package edu.UPAO.proyecto.DAO;
 
-import BaseDatos.Conexion; // ✅ Importante: Tu clase de conexión
-import java.sql.Connection; // ✅ CORREGIDO: java.sql, NO com.sun.jdi...
+import BaseDatos.Conexion;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,17 +11,16 @@ import javax.swing.JOptionPane;
 
 public class CategoriaDAO {
 
-    // Método para insertar
+// Método para insertar
     public boolean insertar(Categoria categoria) {
-        String sql = "INSERT INTO categoria (nombre, descripcion) VALUES (?, ?)";
+        // CORREGIDO: Solo insertamos 'nombre'
+        String sql = "INSERT INTO categoria (nombre) VALUES (?)";
 
-        // ✅ El try-with-resources ahora funcionará porque Connection es el tipo correcto
         try (Connection con = new Conexion().establecerConexion(); 
              PreparedStatement ps = con.prepareStatement(sql)) {
 
             ps.setString(1, categoria.getNombre());
-            ps.setString(2, categoria.getDescripcion());
-
+            
             int filas = ps.executeUpdate();
             return filas > 0;
 
@@ -34,17 +33,19 @@ public class CategoriaDAO {
     // Método para listar
     public List<Categoria> listar() {
         List<Categoria> lista = new ArrayList<>();
-        String sql = "SELECT id_categoria, nombre, descripcion FROM categoria ORDER BY nombre ASC";
+        // CORREGIDO: Eliminada la columna 'descripcion' del SELECT
+        // Aseguramos usar 'id_categoria' que es el nombre real en tu BD
+        String sql = "SELECT id_categoria, nombre FROM categoria ORDER BY nombre ASC";
 
         try (Connection con = new Conexion().establecerConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
+                // Usamos el constructor nuevo que solo acepta (id, nombre)
                 lista.add(new Categoria(
                     rs.getInt("id_categoria"),
-                    rs.getString("nombre"),
-                    rs.getString("descripcion")
+                    rs.getString("nombre")
                 ));
             }
         } catch (SQLException e) {

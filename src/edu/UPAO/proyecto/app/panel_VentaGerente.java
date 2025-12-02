@@ -80,11 +80,13 @@ public class panel_VentaGerente extends javax.swing.JPanel {
     }
 
     private void initRotacion() {
-        // 1. Configurar Fechas por defecto (Inicio de mes hasta hoy)
+        // 1. Configurar Fechas por defecto (Últimos 6 meses para ver datos antiguos)
         java.util.Calendar cal = java.util.Calendar.getInstance();
         jDateChooser2.setDate(cal.getTime()); // Hoy
-        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
-        jDateChooser1.setDate(cal.getTime()); // Primer día del mes
+
+        // TRUCO: Retrocedemos 6 meses para que aparezcan tus ventas de prueba
+        cal.add(java.util.Calendar.MONTH, -6);
+        jDateChooser1.setDate(cal.getTime());
 
         // 2. Cargar Combos
         cargarCombosRotacion();
@@ -330,14 +332,19 @@ public class panel_VentaGerente extends javax.swing.JPanel {
 
         RotacionProductoDAO dao = new RotacionProductoDAO();
 
-        // A. GRÁFICO DE BARRAS (TOP 10)
+        // A. GRÁFICO DE BARRAS
         Map<String, Integer> topData = dao.obtenerTopProductos(inicio, fin, sucursal, categoria);
+        System.out.println("DEBUG - Productos encontrados: " + topData.size()); // <--- NUEVO
         actualizarGraficoBarrasTop(topData);
+
+        // B. GRÁFICO DE PASTEL
+        Map<String, Integer> catData = dao.obtenerVentasPorCategoria(inicio, fin, sucursal, categoria);
+        System.out.println("DEBUG - Categorías encontradas: " + catData.size()); // <--- NUEVO
+        actualizarGraficoPastelCategorias(catData);
 
         // B. GRÁFICO DE PASTEL (CATEGORÍAS) -> ¡AQUÍ CAMBIAMOS!
         // Antes: dao.obtenerVentasPorCategoria(inicio, fin, sucursal);
         // Ahora pasamos también 'categoria':
-        Map<String, Integer> catData = dao.obtenerVentasPorCategoria(inicio, fin, sucursal, categoria);
         actualizarGraficoPastelCategorias(catData);
 
         // C. ACTUALIZAR TARJETAS (KPIs)
@@ -493,18 +500,24 @@ public class panel_VentaGerente extends javax.swing.JPanel {
         renderizarGrafico(panel_tendenciaDevoluciones, chart);
     }
 
-    // 5. Método Auxiliar para pintar en el Panel sin deformarse
     private void renderizarGrafico(javax.swing.JPanel panelContenedor, JFreeChart chart) {
         chart.setBackgroundPaint(Color.WHITE);
+
         ChartPanel chartPanel = new ChartPanel(chart);
 
-        // Ajuste crítico para layouts
-        chartPanel.setMinimumSize(new java.awt.Dimension(479, 284));
-        chartPanel.setPreferredSize(new java.awt.Dimension(479, 284));
+        // --- SOLUCIÓN PARA EL TAMAÑO ---
+        // Esto evita que se vuelvan "gigantes". 
+        // Puedes cambiar 500 y 270 si quieres que sean más chicos o grandes.
+        chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
 
+        chartPanel.setFillZoomRectangle(true);
+        chartPanel.setMouseWheelEnabled(true);
+
+        // Mantenemos esto para asegurar que se "peguen" bien al panel
         panelContenedor.removeAll();
         panelContenedor.setLayout(new BorderLayout());
         panelContenedor.add(chartPanel, BorderLayout.CENTER);
+
         panelContenedor.revalidate();
         panelContenedor.repaint();
     }

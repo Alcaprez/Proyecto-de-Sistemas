@@ -1,4 +1,4 @@
-package edu.UPAO.proyecto.DAO; // O package edu.UPAO.proyecto.Modelo; si lo mueves
+package edu.UPAO.proyecto.DAO; // Asegúrate que el package sea el correcto según tu proyecto
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,13 +7,13 @@ public class Categoria {
 
     private int id;
     private String nombre;
-    private String descripcion;
+    // Eliminamos 'descripcion' porque no existe en la base de datos
     private List<String> subcategorias;
 
-    public Categoria(int id, String nombre, String descripcion) {
+    // Constructor corregido: solo pide ID y Nombre
+    public Categoria(int id, String nombre) {
         this.id = id;
         this.nombre = nombre;
-        this.descripcion = descripcion;
         this.subcategorias = new ArrayList<>();
     }
 
@@ -34,13 +34,7 @@ public class Categoria {
         this.nombre = nombre;
     }
 
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
-    }
+    // Eliminamos los getters y setters de descripcion
 
     public List<String> getSubcategorias() {
         return subcategorias;

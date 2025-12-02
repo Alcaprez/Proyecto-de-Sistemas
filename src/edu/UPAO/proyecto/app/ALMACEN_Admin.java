@@ -197,8 +197,10 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
     // Lógica de Filtros en Memoria (Para la tabla)
     private void filtrarProductos() {
-        if (listaProductos == null) return;
-        
+        if (listaProductos == null) {
+            return;
+        }
+
         String estadoSel = (String) Estado.getSelectedItem();
 
         // Limpieza del buscador
@@ -269,25 +271,26 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jScrollPane2.setViewportView(panelCategorias);
     }
 
-    // Carga Categorías que tengan productos con stock
+// Carga Categorías que tengan productos con stock
     private void cargarCategoriasBD() {
         listaCategorias.clear();
         String sql = "SELECT DISTINCT c.id_categoria, c.nombre "
                 + "FROM categoria c "
                 + "INNER JOIN producto p ON c.id_categoria = p.id_categoria "
                 + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
-                + "WHERE i.stock_actual > 0 AND i.id_sucursal = ?"; // CAMBIO AQUÍ
+                + "WHERE i.stock_actual > 0 AND i.id_sucursal = ?";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, idSucursalUsuario); // USAMOS LA VARIABLE
+            ps.setInt(1, idSucursalUsuario);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 int id = rs.getInt("id_categoria");
                 String nombre = rs.getString("nombre");
-                // Creamos el objeto Categoria (Ajusta el constructor según tu clase DAO)
-                // Asumimos: id, nombre, descripción
-                listaCategorias.add(new Categoria(id, nombre, "Categoría de " + nombre));
+
+                // --- CORRECCIÓN AQUÍ ---
+                // Eliminamos el tercer parámetro "descripcion"
+                listaCategorias.add(new Categoria(id, nombre));
             }
         } catch (SQLException e) {
             System.out.println("Error categorías: " + e);

@@ -9,13 +9,13 @@ import javax.swing.border.EmptyBorder;
 public class DialogoNuevaCategoria extends javax.swing.JDialog {
 
     private JTextField txtNombre;
-    private JTextArea txtDescripcion;
-    private boolean guardadoExitoso = false; // Para saber si recargar la pantalla anterior
+    // Eliminamos txtDescripcion porque no existe en la BD
+    private boolean guardadoExitoso = false; 
 
     public DialogoNuevaCategoria(java.awt.Frame parent, boolean modal) {
         super(parent, modal);
         setTitle("Nueva Categoría");
-        setSize(400, 300);
+        setSize(400, 200); // Reducimos altura ya que quitamos descripción
         setLocationRelativeTo(parent);
         inicializarComponentes();
     }
@@ -34,16 +34,6 @@ public class DialogoNuevaCategoria extends javax.swing.JDialog {
         txtNombre = new JTextField();
         txtNombre.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         
-        // --- Campo Descripción ---
-        JLabel lblDesc = new JLabel("Descripción (Opcional):");
-        lblDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-        lblDesc.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
-        txtDescripcion = new JTextArea(5, 20);
-        txtDescripcion.setLineWrap(true);
-        JScrollPane scrollDesc = new JScrollPane(txtDescripcion);
-        scrollDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         // --- Botones ---
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         panelBotones.setBackground(Color.WHITE);
@@ -63,11 +53,7 @@ public class DialogoNuevaCategoria extends javax.swing.JDialog {
         panelPrincipal.add(lblNombre);
         panelPrincipal.add(Box.createVerticalStrut(5));
         panelPrincipal.add(txtNombre);
-        panelPrincipal.add(Box.createVerticalStrut(15));
-        panelPrincipal.add(lblDesc);
-        panelPrincipal.add(Box.createVerticalStrut(5));
-        panelPrincipal.add(scrollDesc);
-        panelPrincipal.add(Box.createVerticalStrut(15));
+        panelPrincipal.add(Box.createVerticalStrut(20)); // Espacio extra
         panelPrincipal.add(panelBotones);
 
         add(panelPrincipal);
@@ -75,14 +61,15 @@ public class DialogoNuevaCategoria extends javax.swing.JDialog {
 
     private void guardarCategoria() {
         String nombre = txtNombre.getText().trim();
-        String descripcion = txtDescripcion.getText().trim();
 
         if (nombre.isEmpty()) {
             JOptionPane.showMessageDialog(this, "El nombre es obligatorio.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Categoria nuevaCategoria = new Categoria(0, nombre, descripcion);
+        // --- CORRECCIÓN AQUÍ ---
+        // Usamos el constructor nuevo que solo pide (id, nombre)
+        Categoria nuevaCategoria = new Categoria(0, nombre);
         CategoriaDAO dao = new CategoriaDAO();
 
         if (dao.insertar(nuevaCategoria)) {
