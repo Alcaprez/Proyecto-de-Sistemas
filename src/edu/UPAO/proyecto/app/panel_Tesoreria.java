@@ -46,7 +46,7 @@ import java.io.IOException;
 
 // --- IMPORTS DE BASE DE DATOS Y UTILIDADES ---
 import BaseDatos.Conexion;
-import edu.UPAO.proyecto.Util.GeneradorExcelRentabilidad; 
+import edu.UPAO.proyecto.Util.GeneradorExcelRentabilidad;
 import edu.UPAO.proyecto.Util.GeneradorPDFRentabilidad;
 
 // --- IMPORTS DE JAVA ---
@@ -576,42 +576,82 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         return null;
     }
 
-    // =====================  GRÁFICOS  =====================
     private void cargarGraficoVentasDiarias(Integer idSucursal, Integer idProducto) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-
         List<Object> params = new ArrayList<>();
         boolean joinProducto = (idProducto != null);
+        
+        // Lógica inteligente: Si el rango es grande (o nulo = "Todo"), agrupamos por MES.
+        // Si es pequeño (ej: un mes o una semana), agrupamos por DÍA.
+        boolean agruparPorMes = (fechaDesde == null || fechaHasta == null || 
+                                 java.time.temporal.ChronoUnit.DAYS.between(fechaDesde, fechaHasta) > 35);
 
-        StringBuilder sql = new StringBuilder(
-                "SELECT DATE(v.fecha_hora) AS dia, SUM(v.total) AS total "
-                + "FROM venta v ");
+        StringBuilder sql = new StringBuilder();
+        
+        if (agruparPorMes) {
+            // Consulta para rango largo: Agrupa por Año-Mes (Ej: "2025-01")
+            sql.append("SELECT DATE_FORMAT(v.fecha_hora, '%Y-%m') AS fecha_group, SUM(v.total) AS total ")
+               .append("FROM venta v ");
+        } else {
+            // Consulta normal para rango corto: Agrupa por Día (Ej: "2025-01-15")
+            sql.append("SELECT DATE(v.fecha_hora) AS fecha_group, SUM(v.total) AS total ")
+               .append("FROM venta v ");
+        }
 
         if (joinProducto) {
             sql.append("JOIN detalle_venta dv ON dv.id_venta = v.id_venta ");
         }
 
         sql.append(construirWhereVentas(idSucursal, idProducto, params, joinProducto));
-        sql.append(" GROUP BY DATE(v.fecha_hora) ORDER BY DATE(v.fecha_hora)");
+        
+        if (agruparPorMes) {
+            sql.append(" GROUP BY DATE_FORMAT(v.fecha_hora, '%Y-%m') ORDER BY fecha_group");
+        } else {
+            sql.append(" GROUP BY DATE(v.fecha_hora) ORDER BY fecha_group");
+        }
 
         try (PreparedStatement ps = preparar(sql.toString(), params); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                Date fecha = rs.getDate("dia");
                 BigDecimal total = rs.getBigDecimal("total");
-                String etiqueta = fecha.toLocalDate().toString();
+                String etiqueta;
+                
+                if (agruparPorMes) {
+                    // Formato Mes: "2025-11" -> "Nov-25" o "11/2025"
+                    String fechaGroup = rs.getString("fecha_group"); // Viene como "YYYY-MM"
+                    String[] partes = fechaGroup.split("-");
+                    etiqueta = obtenerNombreMes(Integer.parseInt(partes[1])) + "-" + partes[0];
+                } else {
+                    // Formato Día: "2025-11-25" -> "25"
+                    Date fecha = rs.getDate("fecha_group");
+                    LocalDate localDate = fecha.toLocalDate();
+                    etiqueta = String.format("%02d", localDate.getDayOfMonth());
+                }
+
                 dataset.addValue(total, "Ventas", etiqueta);
             }
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
 
+        // Crear gráfico
         JFreeChart chart = ChartFactory.createAreaChart(
-                "Ventas diarias",
-                "Día",
+                agruparPorMes ? "Evolución Mensual" : "Ventas Diarias", // Título dinámico
+                agruparPorMes ? "Mes" : "Día",
                 "Total (S/)",
                 dataset,
                 PlotOrientation.VERTICAL,
                 false, true, false);
+        
+        // Estilo
+        org.jfree.chart.plot.CategoryPlot plot = chart.getCategoryPlot();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+        
+        // Rotar etiquetas si son muchas (solo si no agrupamos por mes, aunque por mes suelen caber bien)
+        if (!agruparPorMes && dataset.getColumnCount() > 10) {
+            plot.getDomainAxis().setCategoryLabelPositions(org.jfree.chart.axis.CategoryLabelPositions.UP_90);
+        }
+
         chartVentasDiarias = chart;
         mostrarChartEnPanel(panel_VentasDiarias, chart);
 
@@ -620,6 +660,13 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         panel_VentasDiarias.setLayout(new BorderLayout());
         panel_VentasDiarias.add(panel, BorderLayout.CENTER);
         panel_VentasDiarias.revalidate();
+    }
+
+    // Helper pequeño para nombres de mes
+    private String obtenerNombreMes(int mes) {
+        String[] meses = {"Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"};
+        if (mes >= 1 && mes <= 12) return meses[mes - 1];
+        return String.valueOf(mes);
     }
 
     private void cargarGraficoVentasMensuales(Integer idSucursal, Integer idProducto) {
@@ -1183,36 +1230,43 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         // Asumo que tu método se llama generarExcel, si es otro cambialo aquí
         excel.generarExcel(TablaRanking, FiltrarporMes.getSelectedItem().toString());
     }
-    
+
 // =======================================================================
     //   MÓDULO RENTABILIDAD (FORMATO FINAL: S/ 18,142.25)
     // =======================================================================
-
     private void initRentabilidad() {
         // 1. Configurar Combo
         if (RangoFechas.getItemCount() == 0) {
             RangoFechas.addItem("Anual");
-            String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
-                              "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
-            for (String m : meses) RangoFechas.addItem(m);
+            String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+            for (String m : meses) {
+                RangoFechas.addItem(m);
+            }
         }
 
         // 2. Listeners
-        for(java.awt.event.ActionListener al : RangoFechas.getActionListeners()) RangoFechas.removeActionListener(al);
+        for (java.awt.event.ActionListener al : RangoFechas.getActionListeners()) {
+            RangoFechas.removeActionListener(al);
+        }
         RangoFechas.addActionListener(e -> {
             System.out.println("🔄 Cambio de mes en Rentabilidad...");
             cargarDatosRentabilidad();
         });
-        
+
         // Botones
-        for(java.awt.event.ActionListener al : PDFRentabilidad.getActionListeners()) PDFRentabilidad.removeActionListener(al);
-        PDFRentabilidad.addActionListener(e -> 
-            GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025")
+        for (java.awt.event.ActionListener al : PDFRentabilidad.getActionListeners()) {
+            PDFRentabilidad.removeActionListener(al);
+        }
+        PDFRentabilidad.addActionListener(e
+                -> GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025")
         );
-        
-        for(java.awt.event.ActionListener al : ExcelRentabilidad.getActionListeners()) ExcelRentabilidad.removeActionListener(al);
-        ExcelRentabilidad.addActionListener(e -> 
-            GeneradorExcelRentabilidad.generarExcel(TablaRentabilidad, "Rentabilidad_2025")
+
+        for (java.awt.event.ActionListener al : ExcelRentabilidad.getActionListeners()) {
+            ExcelRentabilidad.removeActionListener(al);
+        }
+        ExcelRentabilidad.addActionListener(e
+                -> GeneradorExcelRentabilidad.generarExcel(TablaRentabilidad, "Rentabilidad_2025")
         );
 
         // 3. Ejecución inicial
@@ -1220,10 +1274,12 @@ public class panel_Tesoreria extends javax.swing.JPanel {
     }
 
     private void cargarDatosRentabilidad() {
-        if (RangoFechas.getItemCount() == 0) return;
+        if (RangoFechas.getItemCount() == 0) {
+            return;
+        }
 
         // --- A. DEFINIR FECHAS ---
-        int mesIndex = RangoFechas.getSelectedIndex(); 
+        int mesIndex = RangoFechas.getSelectedIndex();
         String fechaInicio, fechaFin;
         int anioFijo = 2025;
 
@@ -1232,9 +1288,9 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             fechaFin = anioFijo + "-12-31 23:59:59";
         } else { // Mes específico
             int ultimoDia = 31;
-            if (mesIndex == 2) { 
+            if (mesIndex == 2) {
                 ultimoDia = (anioFijo % 4 == 0) ? 29 : 28;
-            } else if (mesIndex == 4 || mesIndex == 6 || mesIndex == 9 || mesIndex == 11) { 
+            } else if (mesIndex == 4 || mesIndex == 6 || mesIndex == 9 || mesIndex == 11) {
                 ultimoDia = 30;
             }
             String mesStr = String.format("%02d", mesIndex);
@@ -1245,39 +1301,38 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         System.out.println("📅 Rentabilidad Fechas: " + fechaInicio + " al " + fechaFin);
 
         // --- B. CONSULTA SQL (TU LÓGICA DEFINIDA) ---
-        DefaultTableModel modelo = new DefaultTableModel(null, 
-            new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "RENTABILIDAD"});
+        DefaultTableModel modelo = new DefaultTableModel(null,
+                new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "RENTABILIDAD"});
 
-        String sql = 
-            "SELECT s.nombre_sucursal AS LOCALES, " +
-            "   COALESCE(v_stats.ingresos, 0) AS INGRESOS, " +
-            "   COALESCE(c_stats.costos, 0) AS COSTOS " +
-            "FROM sucursal s " +
-            // JOIN 1: INGRESOS (Lógica Ranking)
-            "LEFT JOIN ( " +
-            "   SELECT id_sucursal, SUM(total) as ingresos " +
-            "   FROM venta " +
-            "   WHERE fecha_hora BETWEEN ? AND ? " +
-            "   GROUP BY id_sucursal " +
-            ") v_stats ON s.id_sucursal = v_stats.id_sucursal " +
-            // JOIN 2: COSTOS (Lógica Stock Min * Precio Compra)
-            "LEFT JOIN ( " +
-            "   SELECT v.id_sucursal, SUM(p.stock_minimo * p.precio_compra) as costos " +
-            "   FROM venta v " +
-            "   JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
-            "   JOIN producto p ON dv.id_producto = p.id_producto " +
-            "   WHERE v.fecha_hora BETWEEN ? AND ? " +
-            "   GROUP BY v.id_sucursal " +
-            ") c_stats ON s.id_sucursal = c_stats.id_sucursal";
+        String sql
+                = "SELECT s.nombre_sucursal AS LOCALES, "
+                + "   COALESCE(v_stats.ingresos, 0) AS INGRESOS, "
+                + "   COALESCE(c_stats.costos, 0) AS COSTOS "
+                + "FROM sucursal s "
+                + // JOIN 1: INGRESOS (Lógica Ranking)
+                "LEFT JOIN ( "
+                + "   SELECT id_sucursal, SUM(total) as ingresos "
+                + "   FROM venta "
+                + "   WHERE fecha_hora BETWEEN ? AND ? "
+                + "   GROUP BY id_sucursal "
+                + ") v_stats ON s.id_sucursal = v_stats.id_sucursal "
+                + // JOIN 2: COSTOS (Lógica Stock Min * Precio Compra)
+                "LEFT JOIN ( "
+                + "   SELECT v.id_sucursal, SUM(p.stock_minimo * p.precio_compra) as costos "
+                + "   FROM venta v "
+                + "   JOIN detalle_venta dv ON v.id_venta = dv.id_venta "
+                + "   JOIN producto p ON dv.id_producto = p.id_producto "
+                + "   WHERE v.fecha_hora BETWEEN ? AND ? "
+                + "   GROUP BY v.id_sucursal "
+                + ") c_stats ON s.id_sucursal = c_stats.id_sucursal";
 
-        try (Connection cnRent = new Conexion().establecerConexion(); 
-             PreparedStatement ps = cnRent.prepareStatement(sql)) {
-            
+        try (Connection cnRent = new Conexion().establecerConexion(); PreparedStatement ps = cnRent.prepareStatement(sql)) {
+
             ps.setString(1, fechaInicio);
             ps.setString(2, fechaFin);
             ps.setString(3, fechaInicio);
             ps.setString(4, fechaFin);
-            
+
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String local = rs.getString("LOCALES");
@@ -1288,10 +1343,10 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
                     // --- AQUÍ ESTÁ EL CAMBIO DE FORMATO (%,.2f) ---
                     modelo.addRow(new Object[]{
-                        local, 
+                        local,
                         "S/ " + String.format(Locale.US, "%,.2f", ingresos), // Ej: S/ 1,500.00
-                        "S/ " + String.format(Locale.US, "%,.2f", costos), 
-                        "S/ " + String.format(Locale.US, "%,.2f", ganancia), 
+                        "S/ " + String.format(Locale.US, "%,.2f", costos),
+                        "S/ " + String.format(Locale.US, "%,.2f", ganancia),
                         String.format(Locale.US, "%.2f", rentabilidad) + "%"
                     });
                 }
@@ -1306,7 +1361,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         actualizarKPIsYGraficoRentabilidad(modelo);
     }
 
-private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
+    private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
         double tIngresos = 0, tCostos = 0, tGanancia = 0;
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
@@ -1316,33 +1371,36 @@ private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
                 String ingStr = modelo.getValueAt(i, 1).toString().replace("S/ ", "").replace(",", "");
                 String cosStr = modelo.getValueAt(i, 2).toString().replace("S/ ", "").replace(",", "");
                 String ganStr = modelo.getValueAt(i, 3).toString().replace("S/ ", "").replace(",", "");
-                
+
                 tIngresos += Double.parseDouble(ingStr);
-                tCostos   += Double.parseDouble(cosStr);
+                tCostos += Double.parseDouble(cosStr);
                 tGanancia += Double.parseDouble(ganStr);
 
                 // Datos Gráfico
                 String local = modelo.getValueAt(i, 0).toString();
                 String rentStr = modelo.getValueAt(i, 4).toString().replace("%", "").replace(",", "");
                 dataset.addValue(Double.parseDouble(rentStr), "Rentabilidad %", local);
-            } catch (Exception e) { 
+            } catch (Exception e) {
                 System.err.println("⚠️ Error fila " + i);
             }
         }
 
         // 1. ETIQUETAS KPI (FORMATO: S/ 18,142.25)
-        if(lbl_totalIngresos != null) 
+        if (lbl_totalIngresos != null) {
             lbl_totalIngresos.setText("S/ " + String.format(Locale.US, "%,.2f", tIngresos));
-            
-        if(lbl_costos != null) 
+        }
+
+        if (lbl_costos != null) {
             lbl_costos.setText("S/ " + String.format(Locale.US, "%,.2f", tCostos));
-        
+        }
+
         // --- AQUÍ ESTÁ LA CORRECCIÓN VISUAL ---
-        if (lbl_gananciastotales != null)
+        if (lbl_gananciastotales != null) {
             lbl_gananciastotales.setText("S/ " + String.format(Locale.US, "%,.2f", tGanancia));
+        }
 
         // 2. GRÁFICO
-        chartRentabilidad = ChartFactory.createBarChart("", "LOCALES", "Margen Rentabilidad (%)", 
+        chartRentabilidad = ChartFactory.createBarChart("", "LOCALES", "Margen Rentabilidad (%)",
                 dataset, PlotOrientation.VERTICAL, false, true, false);
 
         CategoryPlot plot = chartRentabilidad.getCategoryPlot();
@@ -1352,16 +1410,17 @@ private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
         renderer.setSeriesPaint(0, new Color(46, 139, 87));
 
         ChartPanel chartPanel = new ChartPanel(chartRentabilidad);
-        chartPanel.setPreferredSize(new java.awt.Dimension(479, 320)); 
-        
-        if(GraficoBarrasRentabilidad != null) {
+        chartPanel.setPreferredSize(new java.awt.Dimension(479, 320));
+
+        if (GraficoBarrasRentabilidad != null) {
             GraficoBarrasRentabilidad.removeAll();
-            GraficoBarrasRentabilidad.setLayout(new FlowLayout(FlowLayout.CENTER)); 
+            GraficoBarrasRentabilidad.setLayout(new FlowLayout(FlowLayout.CENTER));
             GraficoBarrasRentabilidad.add(chartPanel);
             GraficoBarrasRentabilidad.revalidate();
             GraficoBarrasRentabilidad.repaint();
         }
     }
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -2288,19 +2347,19 @@ private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
     }//GEN-LAST:event_btnExportarComprasActionPerformed
 
     private void PDFRentabilidadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PDFRentabilidadActionPerformed
-if (chartRentabilidad != null) {
-        GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025");
-    } else {
-        javax.swing.JOptionPane.showMessageDialog(this, "El gráfico aún no se ha cargado. Intenta refrescar.");
-    }
+        if (chartRentabilidad != null) {
+            GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025");
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this, "El gráfico aún no se ha cargado. Intenta refrescar.");
+        }
     }//GEN-LAST:event_PDFRentabilidadActionPerformed
 
     private void ExcelRentabilidadActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExcelRentabilidadActionPerformed
-GeneradorExcelRentabilidad.generarExcel(TablaRentabilidad, "Rentabilidad_2025");
+        GeneradorExcelRentabilidad.generarExcel(TablaRentabilidad, "Rentabilidad_2025");
     }//GEN-LAST:event_ExcelRentabilidadActionPerformed
 
     private void RangoFechasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_RangoFechasActionPerformed
-cargarDatosRentabilidad();
+        cargarDatosRentabilidad();
     }//GEN-LAST:event_RangoFechasActionPerformed
 
 
