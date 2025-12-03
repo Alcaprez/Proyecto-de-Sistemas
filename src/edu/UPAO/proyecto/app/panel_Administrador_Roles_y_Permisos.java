@@ -1,8 +1,7 @@
-
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.UsuarioDAOADM;
 import edu.UPAO.proyecto.dao.RepositorioLog; // <--- IMPORTACIÓN IMPORTANTE
-import edu.UPAO.proyecto.dao.UsuarioDAOADM; // <--- Usamos el DAO correcto
 import edu.UPAO.proyecto.modelo.HistorialCambio;
 import edu.UPAO.proyecto.modelo.Permiso;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
@@ -25,51 +24,62 @@ import javax.swing.JScrollPane;
 
 public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
 
-    private int idAdministrador = 1; 
+    private int idAdministrador = 1;
     private UsuarioADM usuarioSeleccionado;
-    
+
     private UsuarioDAOADM usuarioDAO = new UsuarioDAOADM();
-    
+
     private List<UsuarioADM> usuariosReales;
-    private List<Permiso> permisosLogicos; 
-    private List<HistorialCambio> historialSesion; 
-    
+    private List<Permiso> permisosLogicos;
+    private List<HistorialCambio> historialSesion;
+
     private Map<String, UsuarioADM> mapaUsuariosCombo;
     private JPanel panelPermisosContenido;
-    
+
     private boolean isUpdating = false;
-    
+
     public panel_Administrador_Roles_y_Permisos() {
         initComponents();
         configurarPanelPermisos();
-        inicializarPermisosLogicos(); 
-        historialSimulado(); 
+        inicializarPermisosLogicos();
+        historialSimulado();
         cargarUsuariosDesdeBD();
-        
+
         jScrollPane1.getVerticalScrollBar().setUnitIncrement(16);
         cargarHistorialVisualGlobal();
     }
 
-    private void configurarPanelPermisos() {
+private void configurarPanelPermisos() {
+        // 1. Ocultar los labels del diseño original (placeholders)
         jLabel9.setVisible(false); jLabel10.setVisible(false);
         jLabel11.setVisible(false); jLabel12.setVisible(false); jLabel13.setVisible(false);
         
-        Dimension tamanoOriginal = jPanel3.getPreferredSize();
-        jPanel3.setMinimumSize(tamanoOriginal);
-        jPanel3.setPreferredSize(tamanoOriginal);
+        // 2. Limpiar jPanel3 y usar BorderLayout (Clave para que se estire)
+        jPanel3.removeAll();
+        jPanel3.setLayout(new java.awt.BorderLayout()); 
         
+        // 3. Configurar el panel contenedor interno
         panelPermisosContenido = new JPanel();
         panelPermisosContenido.setLayout(new BoxLayout(panelPermisosContenido, BoxLayout.Y_AXIS));
         panelPermisosContenido.setBackground(Color.WHITE);
-        panelPermisosContenido.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        panelPermisosContenido.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         
-        jPanel3.removeAll();
-        jPanel3.setLayout(new BoxLayout(jPanel3, BoxLayout.Y_AXIS));
-        jPanel3.add(panelPermisosContenido);
+        // 4. AGREGAR SCROLL: Esto evita que se corte si hay muchos permisos
+        JScrollPane scrollPermisos = new JScrollPane(panelPermisosContenido);
+        scrollPermisos.setBorder(null); // Quitar borde para que se vea limpio
+        scrollPermisos.getViewport().setBackground(Color.WHITE);
         
+        // 5. Agregar el scroll al centro de jPanel3
+        jPanel3.add(scrollPermisos, java.awt.BorderLayout.CENTER);
+        
+        // 6. Refrescar la interfaz
+        jPanel3.revalidate();
+        jPanel3.repaint();
+        
+        // Color de fondo opcional para el panel de historial (jPanel4)
         jPanel4.setBackground(new Color(245, 247, 250)); 
     }
-    
+
     private void historialSimulado() {
         historialSesion = new ArrayList<>();
     }
@@ -93,13 +103,13 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
     }
 
     private void cargarUsuariosDesdeBD() {
-        isUpdating = true; 
+        isUpdating = true;
         jComboBox1.removeAllItems();
         jComboBox1.addItem("Seleccione un usuario...");
         mapaUsuariosCombo = new HashMap<>();
-        
+
         usuariosReales = usuarioDAO.listar();
-        
+
         for (UsuarioADM u : usuariosReales) {
             String item = u.getNombre() + "  [" + u.getNombreRol() + "]";
             if (!mapaUsuariosCombo.containsKey(item)) {
@@ -107,21 +117,23 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
                 mapaUsuariosCombo.put(item, u);
             }
         }
-        isUpdating = false; 
+        isUpdating = false;
     }
 
     private void mostrarInformacionUsuario(UsuarioADM usuario) {
         this.usuarioSeleccionado = usuario;
         jLabel6.setText(usuario.getNombre());
         jLabel7.setText(usuario.getNombreSucursal());
-        jLabel8.setText(usuario.getNombreRol()); 
-        
+        jLabel8.setText(usuario.getNombreRol());
+
         cargarPermisosVisuales(usuario.getNombreRol());
         cargarHistorialVisualGlobal();
     }
-    
+
     private void limpiarInformacionUsuario() {
-        if (isUpdating) return; 
+        if (isUpdating) {
+            return;
+        }
         this.usuarioSeleccionado = null;
         jLabel6.setText("-");
         jLabel7.setText("-");
@@ -133,18 +145,22 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
 
     private void cargarPermisosVisuales(String rolTexto) {
         int idRolLogico = 0;
-        if (rolTexto.equalsIgnoreCase("ADMINISTRADOR")) idRolLogico = 1;
-        else if (rolTexto.equalsIgnoreCase("CAJERO")) idRolLogico = 2;
-        else if (rolTexto.equalsIgnoreCase("GERENTE")) idRolLogico = 3;
-        
+        if (rolTexto.equalsIgnoreCase("ADMINISTRADOR")) {
+            idRolLogico = 1;
+        } else if (rolTexto.equalsIgnoreCase("CAJERO")) {
+            idRolLogico = 2;
+        } else if (rolTexto.equalsIgnoreCase("GERENTE")) {
+            idRolLogico = 3;
+        }
+
         panelPermisosContenido.removeAll();
-        
+
         JLabel titulo = new JLabel("Capacidades del Rol: " + rolTexto);
         titulo.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 13));
-        titulo.setForeground(new Color(100, 100, 100)); 
+        titulo.setForeground(new Color(100, 100, 100));
         titulo.setAlignmentX(LEFT_ALIGNMENT);
         panelPermisosContenido.add(titulo);
-        
+
         JPanel separador = new JPanel();
         separador.setMaximumSize(new Dimension(1000, 1));
         separador.setBackground(new Color(220, 220, 220));
@@ -152,7 +168,7 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         panelPermisosContenido.add(Box.createVerticalStrut(8));
         panelPermisosContenido.add(separador);
         panelPermisosContenido.add(Box.createVerticalStrut(12));
-        
+
         boolean tienePermisos = false;
         for (Permiso p : permisosLogicos) {
             if (p.getIdRol() == idRolLogico) {
@@ -161,30 +177,33 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
                 pPanel.setLayout(new BoxLayout(pPanel, BoxLayout.X_AXIS));
                 pPanel.setBackground(Color.WHITE);
                 pPanel.setAlignmentX(LEFT_ALIGNMENT);
-                
+                pPanel.setMaximumSize(new Dimension(1000, 30)); // Altura fija para uniformidad
+
                 JLabel check = new JLabel("✔");
                 check.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
-                check.setForeground(new Color(34, 177, 76)); 
-                
+                check.setForeground(new Color(34, 177, 76));
+
                 JLabel texto = new JLabel(p.getNombre());
                 texto.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                texto.setForeground(new Color(50, 50, 50)); 
-                
+                texto.setForeground(new Color(50, 50, 50));
+
                 pPanel.add(check);
-                pPanel.add(Box.createHorizontalStrut(10)); 
+                pPanel.add(Box.createHorizontalStrut(10));
                 pPanel.add(texto);
+
                 panelPermisosContenido.add(pPanel);
-                panelPermisosContenido.add(Box.createVerticalStrut(8)); 
+                panelPermisosContenido.add(Box.createVerticalStrut(5));
             }
         }
-        
+
         if (!tienePermisos) {
             JLabel lbl = new JLabel("Este rol no tiene permisos configurados.");
             lbl.setFont(new Font("Segoe UI", Font.ITALIC, 12));
             lbl.setForeground(Color.GRAY);
             panelPermisosContenido.add(lbl);
         }
-        panelPermisosContenido.add(Box.createVerticalGlue());
+
+        // Importante: Forzar actualización visual
         panelPermisosContenido.revalidate();
         panelPermisosContenido.repaint();
     }
@@ -192,69 +211,70 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
     private void cargarHistorialVisualGlobal() {
         jPanel4.removeAll();
         jPanel4.setLayout(new BoxLayout(jPanel4, BoxLayout.Y_AXIS));
-        
+
         JLabel titulo = new JLabel("Log de Cambios (Sesión Actual)");
         titulo.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 14));
         titulo.setForeground(new Color(50, 50, 50));
         titulo.setAlignmentX(LEFT_ALIGNMENT);
-        
+
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
         headerPanel.setOpaque(false);
         headerPanel.add(Box.createHorizontalStrut(5));
         headerPanel.add(titulo);
         headerPanel.setAlignmentX(LEFT_ALIGNMENT);
-        
+        headerPanel.setMaximumSize(new Dimension(1000, 30));
+
         jPanel4.add(Box.createVerticalStrut(10));
         jPanel4.add(headerPanel);
         jPanel4.add(Box.createVerticalStrut(15));
-        
+
         boolean hayCambios = false;
-        
+
         for (int i = historialSesion.size() - 1; i >= 0; i--) {
             HistorialCambio h = historialSesion.get(i);
             hayCambios = true;
-            
+
             JPanel card = new JPanel();
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
             card.setBackground(Color.WHITE);
             card.setAlignmentX(LEFT_ALIGNMENT);
-            card.setMaximumSize(new Dimension(1000, 90)); 
-            
+            card.setMaximumSize(new Dimension(1000, 80));
+
             card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 4, 1, 0, new Color(0, 102, 204)), 
-                BorderFactory.createEmptyBorder(10, 15, 10, 15) 
+                    BorderFactory.createMatteBorder(0, 4, 1, 0, new Color(0, 102, 204)),
+                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
             ));
-            
+
             JLabel lblDesc = new JLabel("<html>" + h.getDescripcionCambio() + "</html>");
             lblDesc.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 12));
             lblDesc.setForeground(new Color(33, 37, 41));
             lblDesc.setAlignmentX(LEFT_ALIGNMENT);
-            
-            String textoMotivo = (h.getMotivo() != null && !h.getMotivo().isEmpty()) 
-                                 ? "Motivo: " + h.getMotivo() 
-                                 : "Sin motivo especificado";
+
+            String textoMotivo = (h.getMotivo() != null && !h.getMotivo().isEmpty())
+                    ? "Motivo: " + h.getMotivo()
+                    : "Sin motivo especificado";
             JLabel lblMotivo = new JLabel(textoMotivo);
             lblMotivo.setFont(new java.awt.Font("Segoe UI", Font.ITALIC, 11));
-            lblMotivo.setForeground(new Color(100, 100, 100)); 
+            lblMotivo.setForeground(new Color(100, 100, 100));
             lblMotivo.setAlignmentX(LEFT_ALIGNMENT);
-            
+
             String horaStr = h.getFechaCambio().format(DateTimeFormatter.ofPattern("hh:mm a"));
             JLabel lblHora = new JLabel("🕒 " + horaStr);
             lblHora.setFont(new java.awt.Font("Segoe UI", Font.PLAIN, 10));
-            lblHora.setForeground(new Color(150, 150, 150)); 
+            lblHora.setForeground(new Color(150, 150, 150));
             lblHora.setAlignmentX(LEFT_ALIGNMENT);
-            
+
             card.add(lblDesc);
-            card.add(Box.createVerticalStrut(4)); 
+            card.add(Box.createVerticalStrut(4));
             card.add(lblMotivo);
-            card.add(Box.createVerticalStrut(4)); 
+            card.add(Box.createVerticalStrut(4));
             card.add(lblHora);
-            
+
             jPanel4.add(card);
-            jPanel4.add(Box.createVerticalStrut(10)); 
+            jPanel4.add(Box.createVerticalStrut(10));
         }
-        
+
         if (!hayCambios) {
             JPanel emptyPanel = new JPanel();
             emptyPanel.setOpaque(false);
@@ -271,70 +291,71 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jPanel4.repaint();
     }
 
-    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
     private void mostrarDialogoCambiarRol() {
         if (usuarioSeleccionado == null) {
             JOptionPane.showMessageDialog(this, "Seleccione un usuario.");
             return;
         }
-        
+
         String[] rolesDisponibles = {"ADMINISTRADOR", "GERENTE", "CAJERO"};
-        
+
         String nuevoRol = (String) JOptionPane.showInputDialog(
-            this, "Cambiar rol de " + usuarioSeleccionado.getNombre() + ":",
-            "Gestión de Roles", JOptionPane.QUESTION_MESSAGE, null,
-            rolesDisponibles, usuarioSeleccionado.getNombreRol()
+                this, "Cambiar rol de " + usuarioSeleccionado.getNombre() + ":",
+                "Gestión de Roles", JOptionPane.QUESTION_MESSAGE, null,
+                rolesDisponibles, usuarioSeleccionado.getNombreRol()
         );
-        
+
         if (nuevoRol != null && !nuevoRol.equals(usuarioSeleccionado.getNombreRol())) {
-            
-            String motivo = JOptionPane.showInputDialog(this, 
-                "Ingrese el motivo del cambio (Opcional):", 
-                "Registro de Auditoría", 
-                JOptionPane.PLAIN_MESSAGE);
-            if (motivo == null) motivo = "Sin motivo"; 
-            
+
+            String motivo = JOptionPane.showInputDialog(this,
+                    "Ingrese el motivo del cambio (Opcional):",
+                    "Registro de Auditoría",
+                    JOptionPane.PLAIN_MESSAGE);
+            if (motivo == null) {
+                motivo = "Sin motivo";
+            }
+
             boolean exito = usuarioDAO.actualizarRol(usuarioSeleccionado.getId(), nuevoRol);
-            
+
             if (exito) {
                 String rolAnterior = usuarioSeleccionado.getNombreRol();
                 usuarioSeleccionado.setNombreRol(nuevoRol);
-                
-                String descripcion = "Usuario: " + usuarioSeleccionado.getNombre() + 
-                                     " | Rol: " + rolAnterior + " -> " + nuevoRol;
-                
+
+                String descripcion = "Usuario: " + usuarioSeleccionado.getNombre()
+                        + " | Rol: " + rolAnterior + " -> " + nuevoRol;
+
                 // Creamos el log
                 HistorialCambio nuevoLog = new HistorialCambio(
-                    historialSesion.size() + 1, 
-                    usuarioSeleccionado.getId(), 
-                    idAdministrador, 
-                    descripcion, 
-                    LocalDateTime.now(), 
-                    "Admin", 
-                    motivo 
+                        historialSesion.size() + 1,
+                        usuarioSeleccionado.getId(),
+                        idAdministrador,
+                        descripcion,
+                        LocalDateTime.now(),
+                        "Admin",
+                        motivo
                 );
-                
-                // 1. Guardar en lista local (Para ver en este panel)
+
+                // Guardar en lista local
                 historialSesion.add(nuevoLog);
-                
-                // 2. ¡¡¡GUARDAR EN MEMORIA COMPARTIDA!!! (Para ver en Reportes)
-                RepositorioLog.agregarLog(nuevoLog); 
-                
+
+                // Guardar en memoria compartida (Singleton)
+                RepositorioLog.agregarLog(nuevoLog);
+
                 jLabel8.setText(nuevoRol);
                 cargarPermisosVisuales(nuevoRol);
-                cargarHistorialVisualGlobal(); 
+                cargarHistorialVisualGlobal();
                 actualizarNombreEnCombo(usuarioSeleccionado, nuevoRol);
-                
+
                 JOptionPane.showMessageDialog(this, "Rol actualizado correctamente.");
-                
+
             } else {
                 JOptionPane.showMessageDialog(this, "Error al actualizar BD.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
-    
+
     private void actualizarNombreEnCombo(UsuarioADM usuario, String nuevoRol) {
-        isUpdating = true; 
+        isUpdating = true;
         int index = jComboBox1.getSelectedIndex();
         String nuevoTexto = usuario.getNombre() + "  [" + nuevoRol + "]";
         String viejoTexto = (String) jComboBox1.getItemAt(index);
@@ -342,10 +363,10 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         mapaUsuariosCombo.put(nuevoTexto, usuario);
         jComboBox1.removeItemAt(index);
         jComboBox1.insertItemAt(nuevoTexto, index);
-        jComboBox1.setSelectedIndex(index); 
-        isUpdating = false; 
+        jComboBox1.setSelectedIndex(index);
+        isUpdating = false;
     }
-    
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -389,20 +410,20 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(26, 26, 26)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
-                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 254, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(22, 22, 22)
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 52, Short.MAX_VALUE)
+                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 254, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(26, 26, 26))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(12, Short.MAX_VALUE))
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel1)
+                    .addComponent(jComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
@@ -437,20 +458,19 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(20, 20, 20)
+                .addGap(21, 21, 21)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel8)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel8)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 116, Short.MAX_VALUE)
+                        .addComponent(CambiarRol, javax.swing.GroupLayout.PREFERRED_SIZE, 212, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jLabel7)
                     .addComponent(jLabel6)
                     .addComponent(jLabel5)
                     .addComponent(jLabel4)
                     .addComponent(jLabel3)
                     .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 165, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addContainerGap(157, Short.MAX_VALUE)
-                .addComponent(CambiarRol, javax.swing.GroupLayout.PREFERRED_SIZE, 227, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(19, 19, 19))
+                .addGap(20, 20, 20))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -468,10 +488,10 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
                 .addGap(18, 18, 18)
                 .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jLabel8)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(CambiarRol, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel8)
+                    .addComponent(CambiarRol, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(17, Short.MAX_VALUE))
         );
 
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
@@ -492,21 +512,21 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(84, 84, 84)
+                .addGap(22, 22, 22)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel9)
                     .addComponent(jLabel11)
                     .addComponent(jLabel10)
                     .addComponent(jLabel12)
                     .addComponent(jLabel13))
-                .addContainerGap(281, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(19, 19, 19)
+                .addGap(14, 14, 14)
                 .addComponent(jLabel9)
-                .addGap(37, 37, 37)
+                .addGap(18, 18, 18)
                 .addComponent(jLabel10)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel11)
@@ -514,7 +534,7 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
                 .addComponent(jLabel12)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel13)
-                .addContainerGap(83, Short.MAX_VALUE))
+                .addContainerGap(38, Short.MAX_VALUE))
         );
 
         jLabel14.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -534,7 +554,7 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(16, 16, 16)
                 .addComponent(jLabel14)
-                .addContainerGap(79, Short.MAX_VALUE))
+                .addContainerGap(115, Short.MAX_VALUE))
         );
 
         jScrollPane1.setViewportView(jPanel4);
@@ -546,38 +566,42 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
             .addGroup(layout.createSequentialGroup()
                 .addGap(26, 26, 26)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 932, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(43, 43, 43)
-                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                        .addGap(38, 38, 38)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jPanel3, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap(46, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(25, 25, 25)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGap(17, 17, 17)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 113, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(66, Short.MAX_VALUE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(18, 18, 18)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(39, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
-        if (isUpdating) return; 
-        
+        if (isUpdating) {
+            return;
+        }
+
         String item = (String) jComboBox1.getSelectedItem();
         if (item != null && mapaUsuariosCombo != null && mapaUsuariosCombo.containsKey(item)) {
             mostrarInformacionUsuario(mapaUsuariosCombo.get(item));
         } else {
             limpiarInformacionUsuario();
-        }      
+        }
     }//GEN-LAST:event_jComboBox1ActionPerformed
 
     private void CambiarRolActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CambiarRolActionPerformed

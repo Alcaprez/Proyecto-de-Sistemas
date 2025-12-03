@@ -1,8 +1,8 @@
 
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.UsuarioDAOADM;
 import edu.UPAO.proyecto.dao.RepositorioLog;
-import edu.UPAO.proyecto.dao.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.HistorialCambio;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.awt.Color;

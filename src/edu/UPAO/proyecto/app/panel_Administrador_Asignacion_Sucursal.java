@@ -1,91 +1,100 @@
-
 package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.Sucursal;
+import edu.UPAO.proyecto.DAO.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 public class panel_Administrador_Asignacion_Sucursal extends javax.swing.JPanel {
-    
-    private edu.UPAO.proyecto.dao.UsuarioDAOADM usuarioDAO = new edu.UPAO.proyecto.dao.UsuarioDAOADM();
-    
+
+private UsuarioDAOADM usuarioDAO = new UsuarioDAOADM();
     public panel_Administrador_Asignacion_Sucursal() {
         initComponents();
+
+        // TRUCO CLAVE: Renderizador para mostrar el nombre SIN tocar la clase Sucursal
+        jComboBox1.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof Sucursal) {
+                    // Aquí extraemos el nombre manualmente para mostrarlo
+                    setText(((Sucursal) value).getNombre());
+                }
+                return this;
+            }
+        });
+
         configurarTabla();
         cargarSucursalesDesdeBD();
     }
-    
-     public panel_Administrador_Asignacion_Sucursal(int idAdministrador) {
+
+    public panel_Administrador_Asignacion_Sucursal(int idAdministrador) {
         this();
     }
-     
+
     private void configurarTabla() {
         DefaultTableModel modelo = new DefaultTableModel(
-            new Object[]{"ID", "Nombre", "Rol", "Fecha Asignación", "Acción"}, 0
+                new Object[]{"ID", "Nombre", "Rol", "Fecha Asignación", "Acción"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; 
+                return column == 4;
             }
         };
         jTable1.setModel(modelo);
-        
+
         jTable1.getColumnModel().getColumn(0).setMinWidth(0);
         jTable1.getColumnModel().getColumn(0).setMaxWidth(0);
         jTable1.getColumnModel().getColumn(1).setPreferredWidth(250);
-        jTable1.getColumnModel().getColumn(2).setPreferredWidth(150);
-        jTable1.getColumnModel().getColumn(3).setPreferredWidth(180);
-        jTable1.getColumnModel().getColumn(4).setPreferredWidth(120);
-        
+
         jTable1.getColumn("Acción").setCellRenderer(new ButtonRenderer());
-        
+
         TableButtonEditor editor = new TableButtonEditor(new JCheckBox());
         editor.setActionListener(e -> {
             int row = jTable1.getSelectedRow();
             if (row != -1) {
+                if (jTable1.getCellEditor() != null) {
+                    jTable1.getCellEditor().stopCellEditing();
+                }
                 quitarEmpleadoDeSucursal(row);
             }
         });
         jTable1.getColumn("Acción").setCellEditor(editor);
         jTable1.setRowHeight(35);
     }
-    
+
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() { setOpaque(true); }
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setText("Quitar");
             setFont(new Font("Segoe UI", Font.BOLD, 12));
-            setForeground(Color.BLACK); 
-            setBackground(Color.WHITE);
-            setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,200,200), 1));
-            if (isSelected) {
-                setBackground(new Color(220, 53, 69));
-                setForeground(Color.WHITE);
-            }
+            setForeground(Color.WHITE); 
+            setBackground(new Color(220, 53, 69)); 
             return this;
         }
     }
     
     private void cargarSucursalesDesdeBD() {
         jComboBox1.removeAllItems();
-        jComboBox1.addItem("Seleccione una sucursal...");
+        // Agregamos un objeto "falso" o null para el texto inicial, o simplemente el texto
+        // Para evitar problemas de tipos, usaremos un ítem nulo si es necesario o validamos en el evento
+        jComboBox1.addItem("Seleccione una sucursal..."); 
         
-        // Llamada al DAO
         List<Sucursal> listaSucursales = usuarioDAO.listarSucursales();
-        
         for (Sucursal sucursal : listaSucursales) {
             jComboBox1.addItem(sucursal);
         }
@@ -94,105 +103,72 @@ public class panel_Administrador_Asignacion_Sucursal extends javax.swing.JPanel 
     private void cargarEmpleadosPorSucursal(int idSucursal) {
         DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
         modelo.setRowCount(0);
-        
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         
-        // 1. Traer TODOS los usuarios reales
         List<UsuarioADM> todosLosUsuarios = usuarioDAO.listar();
-        
-        boolean hayEmpleados = false;
         for (UsuarioADM usuario : todosLosUsuarios) {
-            // 2. Filtrar solo los de la sucursal seleccionada
             if (usuario.getIdSucursal() == idSucursal) {
-                hayEmpleados = true;
-                modelo.addRow(new Object[]{
-                    usuario.getId(),
-                    usuario.getNombre(),
-                    usuario.getNombreRol(),
-                    usuario.getUltimoCambio().format(formatter),
-                    "Quitar"
-                });
+                String fechaStr = (usuario.getUltimoCambio() != null) ? usuario.getUltimoCambio().format(formatter) : "";
+                modelo.addRow(new Object[]{usuario.getId(), usuario.getNombre(), usuario.getNombreRol(), fechaStr, "Quitar"});
             }
-        }
-        
-        if (!hayEmpleados) {
-            // Opcional: Mostrar mensaje o dejar tabla vacía
         }
     }
     
     private void quitarEmpleadoDeSucursal(int row) {
         DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
-        // Validar que la fila exista
         if (row >= modelo.getRowCount()) return;
         
         int idUsuario = (int) modelo.getValueAt(row, 0);
         String nombreUsuario = (String) modelo.getValueAt(row, 1);
+        Object item = jComboBox1.getSelectedItem();
         
-        Object sucursalSeleccionada = jComboBox1.getSelectedItem();
-        if (sucursalSeleccionada == null || sucursalSeleccionada instanceof String) return;
+        if (!(item instanceof Sucursal)) return;
+        Sucursal sucursal = (Sucursal) item;
         
-        Sucursal sucursal = (Sucursal) sucursalSeleccionada;
-        
-        int confirm = JOptionPane.showConfirmDialog(this,
-            "¿Quitar a " + nombreUsuario + " de " + sucursal.getNombre() + "?",
-            "Confirmar", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Quitar a " + nombreUsuario + " de " + sucursal.getNombre() + "?", "Confirmar", JOptionPane.YES_NO_OPTION);
         
         if (confirm == JOptionPane.YES_OPTION) {
-            // ACTUALIZAR BD: Enviar 'null' (0) como idSucursal
-            boolean exito = usuarioDAO.actualizarSucursal(idUsuario, null);
-            
-            if (exito) {
-                JOptionPane.showMessageDialog(this, "Empleado removido exitosamente.");
-                cargarEmpleadosPorSucursal(sucursal.getId()); // Recargar tabla
+            if (usuarioDAO.actualizarSucursal(idUsuario, 0)) {
+                JOptionPane.showMessageDialog(this, "Empleado removido.");
+                cargarEmpleadosPorSucursal(sucursal.getId());
             } else {
-                mostrarError("Error al actualizar la base de datos.");
+                JOptionPane.showMessageDialog(this, "Error al actualizar.");
             }
         }
     }
     
     private void mostrarDialogoAsignarEmpleado() {
-        Object sucursalSeleccionada = jComboBox1.getSelectedItem();
-        
-        if (sucursalSeleccionada == null || sucursalSeleccionada instanceof String) {
-            JOptionPane.showMessageDialog(this, "Debe seleccionar una sucursal primero.", 
-                    "Advertencia", JOptionPane.WARNING_MESSAGE);
+        Object item = jComboBox1.getSelectedItem();
+        if (!(item instanceof Sucursal)) {
+            JOptionPane.showMessageDialog(this, "Seleccione una sucursal primero.");
             return;
         }
+        Sucursal sucursal = (Sucursal) item;
         
-        Sucursal sucursal = (Sucursal) sucursalSeleccionada;
-        
-        // 1. TRAER USUARIOS SIN SUCURSAL DESDE BD
         List<UsuarioADM> disponibles = usuarioDAO.listarSinSucursal();
-        
         if (disponibles.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay empleados libres para asignar.", 
-                    "Información", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No hay empleados libres.");
             return;
         }
         
         UsuarioADM seleccionado = (UsuarioADM) JOptionPane.showInputDialog(
-            this, "Seleccione empleado:", "Asignar Empleado",
-            JOptionPane.QUESTION_MESSAGE, null,
-            disponibles.toArray(), disponibles.get(0)
+            this, "Seleccione empleado:", "Asignar", JOptionPane.QUESTION_MESSAGE, null, disponibles.toArray(), disponibles.get(0)
         );
         
         if (seleccionado != null) {
-            // ACTUALIZAR BD
-            boolean exito = usuarioDAO.actualizarSucursal(seleccionado.getId(), sucursal.getId());
-            
-            if (exito) {
-                JOptionPane.showMessageDialog(this, "Empleado asignado con éxito.");
+            if (usuarioDAO.actualizarSucursal(seleccionado.getId(), sucursal.getId())) {
+                JOptionPane.showMessageDialog(this, "Empleado asignado.");
                 cargarEmpleadosPorSucursal(sucursal.getId());
             } else {
-                mostrarError("Error al asignar empleado.");
+                JOptionPane.showMessageDialog(this, "Error al asignar.");
             }
         }
     }
-    
+
     private void mostrarError(String mensaje) {
         JOptionPane.showMessageDialog(this, mensaje, "Error", JOptionPane.ERROR_MESSAGE);
     }
-    
+
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {

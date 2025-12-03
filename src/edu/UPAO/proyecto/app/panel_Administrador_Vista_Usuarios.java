@@ -1,6 +1,7 @@
 
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.DAO.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -14,8 +15,7 @@ import javax.swing.table.DefaultTableModel;
 
 public class panel_Administrador_Vista_Usuarios extends javax.swing.JPanel {
 
-    // DATOS REALES
-    private edu.UPAO.proyecto.dao.UsuarioDAOADM usuarioDAO = new edu.UPAO.proyecto.dao.UsuarioDAOADM();
+  private UsuarioDAOADM usuarioDAO = new UsuarioDAOADM();
     private List<UsuarioADM> listaUsuariosReales;
     
     public panel_Administrador_Vista_Usuarios() {
