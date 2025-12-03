@@ -1185,11 +1185,11 @@ public class panel_Tesoreria extends javax.swing.JPanel {
     }
     
 // =======================================================================
-    //   MÓDULO DE RENTABILIDAD (FINAL Y CORREGIDO)
+    //   MÓDULO RENTABILIDAD (FORMATO FINAL: S/ 18,142.25)
     // =======================================================================
 
     private void initRentabilidad() {
-        // 1. Llenar Combo de Fechas
+        // 1. Configurar Combo
         if (RangoFechas.getItemCount() == 0) {
             RangoFechas.addItem("Anual");
             String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
@@ -1197,30 +1197,32 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             for (String m : meses) RangoFechas.addItem(m);
         }
 
-        // 2. Listeners (Limpiamos anteriores y ponemos los nuevos)
+        // 2. Listeners
         for(java.awt.event.ActionListener al : RangoFechas.getActionListeners()) RangoFechas.removeActionListener(al);
-        RangoFechas.addActionListener(e -> cargarDatosRentabilidad());
+        RangoFechas.addActionListener(e -> {
+            System.out.println("🔄 Cambio de mes en Rentabilidad...");
+            cargarDatosRentabilidad();
+        });
         
-        // BOTÓN PDF: Ahora pasa la Tabla + El Gráfico + El Nombre
+        // Botones
         for(java.awt.event.ActionListener al : PDFRentabilidad.getActionListeners()) PDFRentabilidad.removeActionListener(al);
         PDFRentabilidad.addActionListener(e -> 
             GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025")
         );
         
-        // BOTÓN EXCEL
         for(java.awt.event.ActionListener al : ExcelRentabilidad.getActionListeners()) ExcelRentabilidad.removeActionListener(al);
         ExcelRentabilidad.addActionListener(e -> 
             GeneradorExcelRentabilidad.generarExcel(TablaRentabilidad, "Rentabilidad_2025")
         );
 
-        // 3. Carga inicial
+        // 3. Ejecución inicial
         cargarDatosRentabilidad();
     }
 
     private void cargarDatosRentabilidad() {
         if (RangoFechas.getItemCount() == 0) return;
 
-        // --- A. DEFINIR RANGO DE FECHAS ---
+        // --- A. DEFINIR FECHAS ---
         int mesIndex = RangoFechas.getSelectedIndex(); 
         String fechaInicio, fechaFin;
         int anioFijo = 2025;
@@ -1229,33 +1231,52 @@ public class panel_Tesoreria extends javax.swing.JPanel {
             fechaInicio = anioFijo + "-01-01 00:00:00";
             fechaFin = anioFijo + "-12-31 23:59:59";
         } else { // Mes específico
-            Calendar cal = Calendar.getInstance();
-            cal.set(anioFijo, mesIndex - 1, 1);
-            int ultimoDia = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+            int ultimoDia = 31;
+            if (mesIndex == 2) { 
+                ultimoDia = (anioFijo % 4 == 0) ? 29 : 28;
+            } else if (mesIndex == 4 || mesIndex == 6 || mesIndex == 9 || mesIndex == 11) { 
+                ultimoDia = 30;
+            }
             String mesStr = String.format("%02d", mesIndex);
             fechaInicio = anioFijo + "-" + mesStr + "-01 00:00:00";
             fechaFin = anioFijo + "-" + mesStr + "-" + ultimoDia + " 23:59:59";
         }
 
-        // --- B. CONSULTA SQL ---
-        DefaultTableModel modelo = new DefaultTableModel(null, 
-            new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "MARGEN"});
+        System.out.println("📅 Rentabilidad Fechas: " + fechaInicio + " al " + fechaFin);
 
-        String sql = "SELECT s.nombre_sucursal AS LOCALES, " +
-                     "COALESCE(SUM(dv.cantidad * dv.precio_unitario), 0) AS INGRESOS, " +
-                     "COALESCE(SUM(dv.cantidad * p.precio_compra), 0) AS COSTOS " + 
-                     "FROM venta v " +
-                     "INNER JOIN sucursal s ON v.id_sucursal = s.id_sucursal " +
-                     "INNER JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
-                     "INNER JOIN producto p ON dv.id_producto = p.id_producto " +
-                     "WHERE v.fecha_hora BETWEEN ? AND ? " +
-                     "GROUP BY s.id_sucursal, s.nombre_sucursal";
+        // --- B. CONSULTA SQL (TU LÓGICA DEFINIDA) ---
+        DefaultTableModel modelo = new DefaultTableModel(null, 
+            new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "RENTABILIDAD"});
+
+        String sql = 
+            "SELECT s.nombre_sucursal AS LOCALES, " +
+            "   COALESCE(v_stats.ingresos, 0) AS INGRESOS, " +
+            "   COALESCE(c_stats.costos, 0) AS COSTOS " +
+            "FROM sucursal s " +
+            // JOIN 1: INGRESOS (Lógica Ranking)
+            "LEFT JOIN ( " +
+            "   SELECT id_sucursal, SUM(total) as ingresos " +
+            "   FROM venta " +
+            "   WHERE fecha_hora BETWEEN ? AND ? " +
+            "   GROUP BY id_sucursal " +
+            ") v_stats ON s.id_sucursal = v_stats.id_sucursal " +
+            // JOIN 2: COSTOS (Lógica Stock Min * Precio Compra)
+            "LEFT JOIN ( " +
+            "   SELECT v.id_sucursal, SUM(p.stock_minimo * p.precio_compra) as costos " +
+            "   FROM venta v " +
+            "   JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
+            "   JOIN producto p ON dv.id_producto = p.id_producto " +
+            "   WHERE v.fecha_hora BETWEEN ? AND ? " +
+            "   GROUP BY v.id_sucursal " +
+            ") c_stats ON s.id_sucursal = c_stats.id_sucursal";
 
         try (Connection cnRent = new Conexion().establecerConexion(); 
              PreparedStatement ps = cnRent.prepareStatement(sql)) {
             
             ps.setString(1, fechaInicio);
             ps.setString(2, fechaFin);
+            ps.setString(3, fechaInicio);
+            ps.setString(4, fechaFin);
             
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -1265,36 +1286,36 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                     double ganancia = ingresos - costos;
                     double rentabilidad = (ingresos > 0) ? (ganancia / ingresos) * 100 : 0;
 
-                    // Formato seguro con Locale.US
+                    // --- AQUÍ ESTÁ EL CAMBIO DE FORMATO (%,.2f) ---
                     modelo.addRow(new Object[]{
                         local, 
-                        String.format(Locale.US, "%.2f", ingresos), 
-                        String.format(Locale.US, "%.2f", costos), 
-                        String.format(Locale.US, "%.2f", ganancia), 
+                        "S/ " + String.format(Locale.US, "%,.2f", ingresos), // Ej: S/ 1,500.00
+                        "S/ " + String.format(Locale.US, "%,.2f", costos), 
+                        "S/ " + String.format(Locale.US, "%,.2f", ganancia), 
                         String.format(Locale.US, "%.2f", rentabilidad) + "%"
                     });
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error SQL: " + e.getMessage());
+            System.err.println("❌ Error SQL Rentabilidad: " + e.getMessage());
         }
 
         TablaRentabilidad.setModel(modelo);
 
-        // --- C. ACTUALIZAR KPIs Y GRÁFICO ---
+        // --- C. ACTUALIZAR INTERFAZ ---
         actualizarKPIsYGraficoRentabilidad(modelo);
     }
 
-    private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
+private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
         double tIngresos = 0, tCostos = 0, tGanancia = 0;
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         for (int i = 0; i < modelo.getRowCount(); i++) {
             try {
-                // Parseo numérico reemplazando coma por punto si es necesario
-                String ingStr = modelo.getValueAt(i, 1).toString().replace(",", ".");
-                String cosStr = modelo.getValueAt(i, 2).toString().replace(",", ".");
-                String ganStr = modelo.getValueAt(i, 3).toString().replace(",", ".");
+                // Parseo limpio
+                String ingStr = modelo.getValueAt(i, 1).toString().replace("S/ ", "").replace(",", "");
+                String cosStr = modelo.getValueAt(i, 2).toString().replace("S/ ", "").replace(",", "");
+                String ganStr = modelo.getValueAt(i, 3).toString().replace("S/ ", "").replace(",", "");
                 
                 tIngresos += Double.parseDouble(ingStr);
                 tCostos   += Double.parseDouble(cosStr);
@@ -1302,18 +1323,25 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
                 // Datos Gráfico
                 String local = modelo.getValueAt(i, 0).toString();
-                String rentStr = modelo.getValueAt(i, 4).toString().replace("%", "").replace(",", ".");
+                String rentStr = modelo.getValueAt(i, 4).toString().replace("%", "").replace(",", "");
                 dataset.addValue(Double.parseDouble(rentStr), "Rentabilidad %", local);
-            } catch (Exception e) { }
+            } catch (Exception e) { 
+                System.err.println("⚠️ Error fila " + i);
+            }
         }
 
-        // 1. ETIQUETAS (Usando Locale.US y tu variable correcta)
-        if(lbl_totalIngresos != null) lbl_totalIngresos.setText("S/ " + String.format(Locale.US, "%.2f", tIngresos));
-        if(lbl_costos != null) lbl_costos.setText("S/ " + String.format(Locale.US, "%.2f", tCostos));
+        // 1. ETIQUETAS KPI (FORMATO: S/ 18,142.25)
+        if(lbl_totalIngresos != null) 
+            lbl_totalIngresos.setText("S/ " + String.format(Locale.US, "%,.2f", tIngresos));
+            
+        if(lbl_costos != null) 
+            lbl_costos.setText("S/ " + String.format(Locale.US, "%,.2f", tCostos));
         
-        if (lbl_gananciastotales != null)lbl_gananciastotales.setText("S/ " + String.format(Locale.US, "%.2f", tGanancia));
+        // --- AQUÍ ESTÁ LA CORRECCIÓN VISUAL ---
+        if (lbl_gananciastotales != null)
+            lbl_gananciastotales.setText("S/ " + String.format(Locale.US, "%,.2f", tGanancia));
 
-        // 2. GRÁFICO (Guardado en variable global)
+        // 2. GRÁFICO
         chartRentabilidad = ChartFactory.createBarChart("", "LOCALES", "Margen Rentabilidad (%)", 
                 dataset, PlotOrientation.VERTICAL, false, true, false);
 
@@ -1321,22 +1349,19 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         plot.setBackgroundPaint(Color.WHITE);
         plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
         BarRenderer renderer = (BarRenderer) plot.getRenderer();
-        renderer.setSeriesPaint(0, new Color(46, 139, 87)); // Verde Mar
+        renderer.setSeriesPaint(0, new Color(46, 139, 87));
 
         ChartPanel chartPanel = new ChartPanel(chartRentabilidad);
-        // TAMAÑO EXACTO SOLICITADO
         chartPanel.setPreferredSize(new java.awt.Dimension(479, 320)); 
         
         if(GraficoBarrasRentabilidad != null) {
             GraficoBarrasRentabilidad.removeAll();
-            // Layout centrado que respeta el tamaño
             GraficoBarrasRentabilidad.setLayout(new FlowLayout(FlowLayout.CENTER)); 
             GraficoBarrasRentabilidad.add(chartPanel);
             GraficoBarrasRentabilidad.revalidate();
             GraficoBarrasRentabilidad.repaint();
         }
     }
-
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -1429,8 +1454,8 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         lbl_Ingresos = new javax.swing.JLabel();
         jLabel2 = new javax.swing.JLabel();
         ganancia_neta = new javax.swing.JPanel();
-        lbl_gananciastotales = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
+        lbl_gananciastotales = new javax.swing.JLabel();
         GraficoBarrasRentabilidad = new javax.swing.JPanel();
         RangoFechas = new javax.swing.JComboBox<>();
         Exportar1 = new javax.swing.JLabel();
@@ -2010,6 +2035,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         lbl_costos.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel1.setForeground(new java.awt.Color(255, 255, 255));
         jLabel1.setText("COSTOS TOTALES");
 
         javax.swing.GroupLayout costos_totalesLayout = new javax.swing.GroupLayout(costos_totales);
@@ -2017,13 +2043,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         costos_totalesLayout.setHorizontalGroup(
             costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(costos_totalesLayout.createSequentialGroup()
-                .addGap(30, 30, 30)
-                .addComponent(lbl_costos, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(37, Short.MAX_VALUE))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, costos_totalesLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(49, 49, 49))
+                .addContainerGap(41, Short.MAX_VALUE)
+                .addGroup(costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, costos_totalesLayout.createSequentialGroup()
+                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(49, 49, 49))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, costos_totalesLayout.createSequentialGroup()
+                        .addComponent(lbl_costos, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(26, 26, 26))))
         );
         costos_totalesLayout.setVerticalGroup(
             costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2044,6 +2071,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         lbl_totalIngresos.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
         lbl_Ingresos.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        lbl_Ingresos.setForeground(new java.awt.Color(255, 255, 255));
         lbl_Ingresos.setText("INGRESOS TOTALES");
 
         javax.swing.GroupLayout Ingresos_totalesLayout = new javax.swing.GroupLayout(Ingresos_totales);
@@ -2075,23 +2103,25 @@ public class panel_Tesoreria extends javax.swing.JPanel {
 
         ganancia_neta.setBackground(new java.awt.Color(0, 204, 0));
 
+        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        jLabel3.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel3.setText("GANANCIAS TOTALES");
+
         lbl_gananciastotales.setFont(new java.awt.Font("Dialog", 0, 24)); // NOI18N
+        lbl_gananciastotales.setForeground(new java.awt.Color(255, 255, 255));
         lbl_gananciastotales.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         lbl_gananciastotales.setText("0.00");
         lbl_gananciastotales.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
-
-        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel3.setText("GANANCIAS TOTALES");
 
         javax.swing.GroupLayout ganancia_netaLayout = new javax.swing.GroupLayout(ganancia_neta);
         ganancia_neta.setLayout(ganancia_netaLayout);
         ganancia_netaLayout.setHorizontalGroup(
             ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ganancia_netaLayout.createSequentialGroup()
-                .addContainerGap(45, Short.MAX_VALUE)
-                .addGroup(ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, 131, Short.MAX_VALUE)
-                    .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(24, Short.MAX_VALUE)
+                .addGroup(ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(35, 35, 35))
         );
         ganancia_netaLayout.setVerticalGroup(
@@ -2111,7 +2141,7 @@ public class panel_Tesoreria extends javax.swing.JPanel {
         GraficoBarrasRentabilidad.setLayout(GraficoBarrasRentabilidadLayout);
         GraficoBarrasRentabilidadLayout.setHorizontalGroup(
             GraficoBarrasRentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 539, Short.MAX_VALUE)
+            .addGap(0, 462, Short.MAX_VALUE)
         );
         GraficoBarrasRentabilidadLayout.setVerticalGroup(
             GraficoBarrasRentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2166,14 +2196,14 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                             .addGroup(jPanel9Layout.createSequentialGroup()
                                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 518, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(GraficoBarrasRentabilidad, javax.swing.GroupLayout.PREFERRED_SIZE, 539, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(GraficoBarrasRentabilidad, javax.swing.GroupLayout.PREFERRED_SIZE, 462, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel9Layout.createSequentialGroup()
                                 .addComponent(Ingresos_totales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18)
                                 .addComponent(costos_totales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18)
                                 .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addContainerGap(84, Short.MAX_VALUE))))
+                        .addContainerGap(161, Short.MAX_VALUE))))
         );
         jPanel9Layout.setVerticalGroup(
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2192,10 +2222,10 @@ public class panel_Tesoreria extends javax.swing.JPanel {
                     .addComponent(Ingresos_totales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 459, Short.MAX_VALUE)
-                    .addComponent(GraficoBarrasRentabilidad, javax.swing.GroupLayout.DEFAULT_SIZE, 459, Short.MAX_VALUE))
-                .addContainerGap())
+                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(GraficoBarrasRentabilidad, javax.swing.GroupLayout.DEFAULT_SIZE, 335, Short.MAX_VALUE)
+                    .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 335, Short.MAX_VALUE))
+                .addContainerGap(130, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout panel_RentabilidadLayout = new javax.swing.GroupLayout(panel_Rentabilidad);
