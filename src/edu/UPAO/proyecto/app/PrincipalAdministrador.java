@@ -48,51 +48,45 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }
 
     private void estilizarBoton(javax.swing.JButton boton) {
-        // 1. FORZAR COLOR SÓLIDO (Esto quita lo translúcido)
-        boton.setContentAreaFilled(true);
-        boton.setOpaque(true);
-
-        // 2. Colores y fuente
+        // 1. Estilo Visual Sólido y Elegante
         boton.setBackground(COLOR_NORMAL);
         boton.setForeground(java.awt.Color.WHITE);
         boton.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
 
-        // 3. Quitar bordes feos
+        // Quita bordes y efectos antiguos
         boton.setFocusPainted(false);
         boton.setBorderPainted(false);
+        boton.setContentAreaFilled(true); // <--- ESTO QUITA LA TRANSLUCIDEZ (Lo hace sólido)
+        boton.setOpaque(true);
         boton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
 
-        // 4. Limpiar listeners viejos para que no se mezclen
-        for (java.awt.event.MouseListener ml : boton.getMouseListeners()) {
-            if (ml.getClass().getName().contains("PrincipalAdministrador")) {
-                // (Opcional: lógica avanzada para limpiar, pero con el siguiente paso basta)
-            }
-        }
-
-        // 5. Agregar EFECTOS DE MOUSE
+        // 2. Efecto Hover (Pasar el mouse)
         boton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
+                // Solo ilumina si NO es el botón que ya está marcado
                 if (boton != botonSeleccionado) {
-                    boton.setBackground(COLOR_HOVER); // Brillo al pasar
+                    boton.setBackground(COLOR_HOVER);
                 }
             }
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
+                // Si te vas del botón y NO está marcado, vuelve a su color normal
                 if (boton != botonSeleccionado) {
-                    boton.setBackground(COLOR_NORMAL); // Vuelve a normal
+                    boton.setBackground(COLOR_NORMAL);
                 }
             }
         });
 
-        // 6. Lógica de "SELECCIONADO"
+        // 3. Lógica para "Quedarse Marcado" al hacer click
         boton.addActionListener(e -> {
-            // Despintar el anterior
+            // Si había un botón marcado antes, lo "apagamos" (volvemos a normal)
             if (botonSeleccionado != null && botonSeleccionado != boton) {
                 botonSeleccionado.setBackground(COLOR_NORMAL);
             }
-            // Pintar el nuevo
+
+            // "Encendemos" el nuevo botón clickeado
             botonSeleccionado = boton;
             boton.setBackground(COLOR_ACTIVO);
         });

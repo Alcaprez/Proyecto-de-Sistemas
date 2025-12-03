@@ -1,5 +1,6 @@
-package edu.UPAO.proyecto.dao;
+package edu.UPAO.proyecto.DAO;
 
+import BaseDatos.Conexion;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,32 +15,34 @@ public class AsistenciaDAOADM {
 
     public List<Object[]> listarAsistenciaDiaria(String nombreSucursal) {
         List<Object[]> lista = new ArrayList<>();
-        
-        // Lógica: Si seleccionan "Todas...", no filtramos por sucursal
         boolean filtrarPorSucursal = !nombreSucursal.equals("Todas las Sucursales");
 
+        // --- CONSULTA CORREGIDA ---
+        // 1. Quitamos el filtro de ROL para que veas todos los datos de prueba (Gerentes, Admins, etc.)
+        // 2. Usamos TRIM en el JOIN para evitar fallos por espacios
         String sql = "SELECT " +
-                     "  e.dni, " +
+                     "  CONCAT(p.nombres, ' ', p.apellidos) AS nombre_empleado, " + 
                      "  e.rol, " +
                      "  a.fecha_hora_entrada, " +
                      "  a.fecha_hora_salida, " +
-                     "  a.estado " +
+                     "  a.estado " + // Traemos el estado tal cual
                      "FROM empleado e " +
+                     "INNER JOIN persona p ON e.dni = p.dni " + 
                      "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                     "LEFT JOIN asistencia a ON e.id_empleado = a.id_empleado " +
-                     "     AND DATE(a.fecha_hora_entrada) = CURDATE() "; // Solo hoy
-        
-        // Agregamos el WHERE solo si es una sucursal específica
+                     "LEFT JOIN asistencia a ON TRIM(e.id_empleado) = TRIM(a.id_empleado) ";
+                     // "WHERE e.rol = 'CAJERO' " <-- ELIMINADO para ver todo el historial
+
         if (filtrarPorSucursal) {
-            sql += "WHERE s.nombre_sucursal = ? ";
+            sql += " WHERE s.nombre_sucursal = ? ";
         }
+        
+        sql += " ORDER BY a.fecha_hora_entrada DESC"; 
 
-        SimpleDateFormat sdfHora = new SimpleDateFormat("HH:mm");
+        SimpleDateFormat sdfHora = new SimpleDateFormat("dd/MM HH:mm"); 
 
-        try (Connection con = Conexion.getConexion();
+        try (Connection con = new Conexion().establecerConexion();
              PreparedStatement ps = con.prepareStatement(sql)) {
             
-            // Solo seteamos el parámetro si hay filtro
             if (filtrarPorSucursal) {
                 ps.setString(1, nombreSucursal);
             }
@@ -47,7 +50,7 @@ public class AsistenciaDAOADM {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                String nombre = "DNI: " + rs.getString("dni"); // O p.nombre_persona si lo arreglaste
+                String nombre = rs.getString("nombre_empleado"); 
                 String rol = rs.getString("rol");
                 
                 Timestamp entrada = rs.getTimestamp("fecha_hora_entrada");
@@ -57,7 +60,8 @@ public class AsistenciaDAOADM {
                 String horaEntrada = (entrada != null) ? sdfHora.format(entrada) : "--:--";
                 String horaSalida = (salida != null) ? sdfHora.format(salida) : "--:--";
                 
-                String estadoFinal = (estadoBD != null) ? estadoBD : "PENDIENTE";
+                // Limpieza básica del string
+                String estadoFinal = (estadoBD != null) ? estadoBD.trim() : "FALTA"; 
 
                 lista.add(new Object[]{ nombre, rol, "Turno Mañana", horaEntrada, horaSalida, estadoFinal });
             }
@@ -66,64 +70,21 @@ public class AsistenciaDAOADM {
         }
         return lista;
     }
-
-    public Map<String, Integer> obtenerKPIsDiarios(String nombreSucursal) {
-        Map<String, Integer> kpis = new HashMap<>();
-        kpis.put("Programados", 0);
-        kpis.put("Presentes", 0);
-        kpis.put("Tardanzas", 0);
-        kpis.put("Ausencias", 0);
-        
-        boolean filtrarPorSucursal = !nombreSucursal.equals("Todas las Sucursales");
-
-        String sql = "SELECT " +
-                     "  COUNT(*) as total, " +
-                     "  SUM(CASE WHEN a.estado LIKE '%ASISTIO%' OR a.estado = '1' OR a.estado LIKE '%PRESENTE%' THEN 1 ELSE 0 END) as presentes, " +
-                     "  SUM(CASE WHEN a.estado LIKE '%TARDANZA%' OR a.estado = '2' OR a.estado LIKE '%TARDE%' THEN 1 ELSE 0 END) as tardanzas, " +
-                     "  SUM(CASE WHEN a.estado LIKE '%FALTA%' OR a.estado = '3' OR a.estado LIKE '%AUSENTE%' THEN 1 ELSE 0 END) as faltas " +
-                     "FROM empleado e " +
-                     "INNER JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                     "LEFT JOIN asistencia a ON e.id_empleado = a.id_empleado AND DATE(a.fecha_hora_entrada) = CURDATE() ";
-
-        if (filtrarPorSucursal) {
-            sql += "WHERE s.nombre_sucursal = ?";
-        }
-
-        try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            
-            if (filtrarPorSucursal) {
-                ps.setString(1, nombreSucursal);
-            }
-            
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                kpis.put("Programados", rs.getInt("total"));
-                kpis.put("Presentes", rs.getInt("presentes"));
-                kpis.put("Tardanzas", rs.getInt("tardanzas"));
-                kpis.put("Ausencias", rs.getInt("faltas"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return kpis;
-    }
     
+    // Método auxiliar para los nombres de sucursales
     public List<String> listarNombresSucursales() {
         List<String> lista = new ArrayList<>();
-        try (Connection con = Conexion.getConexion()) {
-            // Backup por si falla 'nombre_sucursal'
-            try (PreparedStatement ps = con.prepareStatement("SELECT nombre_sucursal FROM sucursal");
-                 ResultSet rs = ps.executeQuery()) {
-                while(rs.next()) lista.add(rs.getString(1));
-            } catch (Exception ex) {
-                 try (PreparedStatement ps2 = con.prepareStatement("SELECT direccion FROM sucursal");
-                     ResultSet rs2 = ps2.executeQuery()) {
-                    while(rs2.next()) lista.add(rs2.getString(1));
-                }
-            }
+        String sql = "SELECT nombre_sucursal FROM sucursal";
+        try (Connection con = new Conexion().establecerConexion();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while(rs.next()) lista.add(rs.getString(1));
         } catch (Exception e) {}
         return lista;
+    }
+
+    // Método legacy (ya no se usa para los contadores del panel, pero se mantiene por compatibilidad)
+    public Map<String, Integer> obtenerKPIsDiarios(String nombreSucursal) {
+        return new HashMap<>();
     }
 }
