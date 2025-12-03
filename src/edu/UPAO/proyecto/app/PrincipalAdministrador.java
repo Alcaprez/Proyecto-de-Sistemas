@@ -26,7 +26,40 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         this.idEmpleado = idEmpleado;
         this.nombreUsuario = nombreUsuario;
         this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
+        cargarNombreSucursal();
         verificarStockSucursal();
+        
+    }
+    
+    private void cargarNombreSucursal() {
+        new Thread(() -> {
+            try {
+                // 1. Obtener ID Sucursal
+                edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+                int idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
+                
+                // 2. Obtener Nombre Sucursal (Necesitas este método en tu DAO, si no lo tienes usa la Opción B)
+                // String nombreSucursal = sucursalDAO.obtenerNombre(idSucursal); 
+                
+                // Opción B (Rápida sin crear más métodos en DAO si solo quieres mostrarlo):
+                String nombreSucursal = "";
+                if (idSucursal == 1) nombreSucursal = "Tienda Central";
+                else if (idSucursal == 2) nombreSucursal = "Sucursal Norte";
+                else if (idSucursal == 3) nombreSucursal = "Sucursal Sur";
+                else nombreSucursal = "Sucursal " + idSucursal;
+
+                // 3. Actualizar Label en el hilo de Swing
+                String finalNombre = nombreSucursal;
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    lbl_Sucursal.setText("Sucursal: "+finalNombre);
+                    lbl_Sucursal.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                });
+                                    lbl_Sucursal.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+
+            } catch (Exception e) {
+                System.err.println("Error cargando sucursal: " + e.getMessage());
+            }
+        }).start();
     }
 
     // --- PEGAR AL FINAL DE LA CLASE ---
@@ -165,6 +198,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
         lblFrase = new javax.swing.JLabel();
+        lbl_Sucursal = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setExtendedState(6);
@@ -332,12 +366,16 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/miniLogo.png"))); // NOI18N
 
         jLabel1.setFont(new java.awt.Font("Tw Cen MT", 1, 48)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
+        jLabel1.setForeground(new java.awt.Color(51, 51, 51));
         jLabel1.setText("ADMINISTRADOR ");
 
-        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 36)); // NOI18N
+        lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 24)); // NOI18N
         lblFrase.setForeground(new java.awt.Color(193, 28, 28));
         lblFrase.setText("Todo lo que necesitas al alcance");
+
+        lbl_Sucursal.setFont(new java.awt.Font("Dialog", 0, 14)); // NOI18N
+        lbl_Sucursal.setForeground(new java.awt.Color(255, 255, 255));
+        lbl_Sucursal.setText("Sucursal:");
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -346,20 +384,29 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(27, 27, 27)
                 .addComponent(jLabel3)
-                .addGap(72, 72, 72)
+                .addGap(41, 41, 41)
                 .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel1)
-                .addGap(14, 14, 14))
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                        .addComponent(jLabel1)
+                        .addContainerGap())
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                        .addComponent(lbl_Sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 152, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(30, 30, 30))))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+            .addGroup(jPanel4Layout.createSequentialGroup()
                 .addContainerGap(16, Short.MAX_VALUE)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel1)
-                    .addComponent(jLabel3))
+                    .addComponent(jLabel3)
+                    .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                        .addComponent(lbl_Sucursal)
+                        .addGap(14, 14, 14)))
                 .addContainerGap())
         );
 
@@ -527,5 +574,6 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JLabel lblFrase;
+    private javax.swing.JLabel lbl_Sucursal;
     // End of variables declaration//GEN-END:variables
 }

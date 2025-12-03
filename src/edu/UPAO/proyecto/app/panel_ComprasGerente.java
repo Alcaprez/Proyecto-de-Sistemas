@@ -22,6 +22,7 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 import edu.UPAO.proyecto.DAO.DevolucionCompraDAO; // Tu nuevo DAO
+import java.awt.Font;
 import org.jfree.data.general.DefaultPieDataset;
 
 public class panel_ComprasGerente extends javax.swing.JPanel {
@@ -37,6 +38,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     public panel_ComprasGerente(int idSucursal) {
         this.idSucursalActual = idSucursal;
         initComponents();
+        cargarGraficoRankingProveedores();
 
         // Inicializar DAOs
         proveedorDAO = new ProveedorDAO();
@@ -55,7 +57,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
 
         // --- CONFIGURACIONES PESTAÑA 2 (DEVOLUCIONES) ---
         configurarPestanaDevoluciones(); // <--- Método nuevo que agrupa todo
-        
+
         jTabbedPane1.addChangeListener(e -> {
             if (jTabbedPane1.getSelectedIndex() == 1) { // 1 es el índice de la pestaña DEVOLUCIONES
                 System.out.println("🔄 Recargando pestaña de Devoluciones...");
@@ -65,13 +67,15 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         });
     }
     
+    
+
     private void configurarPestanaDevoluciones() {
         // 1. Configurar Combo Proveedores
         cargarComboProveedoresDevolucion();
-        
+
         // 2. Cargar Tabla Inicial
         cargarTablaDevoluciones();
-        
+
         // 3. Cargar Gráficos
         cargarGraficosDevoluciones();
     }
@@ -81,12 +85,14 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         cb_Proveedor.addItem("TODOS");
         try {
             // Reutilizamos tu proveedorDAO existente
-            List<Proveedor> lista = proveedorDAO.listar(""); 
+            List<Proveedor> lista = proveedorDAO.listar("");
             for (Proveedor p : lista) {
                 cb_Proveedor.addItem(p.getRazonSocial());
             }
-        } catch (Exception e) { e.printStackTrace(); }
-        
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // Evento (Lambda simplificada)
         cb_Proveedor.addActionListener(e -> cargarTablaDevoluciones());
     }
@@ -94,15 +100,15 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private void cargarTablaDevoluciones() {
         DefaultTableModel modelo = (DefaultTableModel) tb_devoluciones.getModel();
         modelo.setRowCount(0);
-        
+
         // Configurar columnas si no están bien en diseño
         if (modelo.getColumnCount() == 0) {
-             modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Tienda", "Proveedor", "Items", "Unidades", "Total", "Estado"});
+            modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Tienda", "Proveedor", "Items", "Unidades", "Total", "Estado"});
         }
 
-        String proveedorSel = (cb_Proveedor.getSelectedItem() != null) 
-                              ? cb_Proveedor.getSelectedItem().toString() 
-                              : "TODOS";
+        String proveedorSel = (cb_Proveedor.getSelectedItem() != null)
+                ? cb_Proveedor.getSelectedItem().toString()
+                : "TODOS";
 
         List<Object[]> datos = devolucionDAO.listarDevoluciones(proveedorSel);
         for (Object[] fila : datos) {
@@ -114,11 +120,11 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         // A. GRÁFICO CIRCULAR (Por Sucursal)
         Map<String, Integer> datosPie = devolucionDAO.obtenerDistribucionPorSucursal();
         DefaultPieDataset datasetPie = new DefaultPieDataset();
-        
+
         for (Map.Entry<String, Integer> entry : datosPie.entrySet()) {
             datasetPie.setValue(entry.getKey(), entry.getValue());
         }
-        
+
         // --- AGREGAR ESTA LÍNEA PARA ACHICAR EL GRÁFICO CIRCULAR ---
         GraficoCircular.setPreferredSize(new java.awt.Dimension(350, 250)); // (Ancho, Alto)
         // -----------------------------------------------------------
@@ -130,7 +136,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         // B. GRÁFICO DE BARRAS (Monto por Proveedor)
         Map<String, Double> datosBar = devolucionDAO.obtenerMontoPorProveedor();
         DefaultCategoryDataset datasetBar = new DefaultCategoryDataset();
-        
+
         for (Map.Entry<String, Double> entry : datosBar.entrySet()) {
             datasetBar.addValue(entry.getValue(), "Monto S/", entry.getKey());
         }
@@ -140,24 +146,23 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         // -----------------------------------------------------------
 
         JFreeChart chartBar = ChartFactory.createBarChart(
-                "Top Devoluciones (S/)", "Proveedor", "Monto", 
+                "Top Devoluciones (S/)", "Proveedor", "Monto",
                 datasetBar, PlotOrientation.HORIZONTAL, false, true, false);
         renderizarGrafico(GraficoBarras, chartBar);
     }
-    
+
     private void renderizarGrafico(javax.swing.JPanel panel, JFreeChart chart) {
         chart.setBackgroundPaint(Color.WHITE);
         ChartPanel chartPanel = new ChartPanel(chart);
         chartPanel.setMouseWheelEnabled(true);
-        
+
         panel.setLayout(new BorderLayout());
         panel.removeAll();
         panel.add(chartPanel, BorderLayout.CENTER);
         panel.validate();
         panel.repaint(); // Forzar repintado
     }
-    
-    
+
     private void configurarBusquedaEnTiempoReal() {
         tf_buscar.addKeyListener(new KeyAdapter() {
             @Override
@@ -356,12 +361,12 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         String razonSocial = tf_razonSocial.getText().trim();
         String ruc = tf_RUC.getText().trim();
         String dni = tf_dniAsosiado.getText().trim();
-        
+
         // Datos de PERSONA (que irán a los campos auxiliares)
         String nombres = tf_nombres.getText().trim();
         String apellidos = tf_apellidos.getText().trim();
         String correo = tf_correo.getText().trim(); // <--- Capturamos el correo
-        
+
         String direccion = tf_Direccion.getText().trim();
         String telefono = tf_Telefono.getText().trim();
         String estado = jCheckBox1.isSelected() ? "ACTIVO" : "INACTIVO";
@@ -373,8 +378,8 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         }
         // Si es nuevo, exigimos nombre y apellido para poder crear la Persona
         if (idProveedorSeleccionado == null && (nombres.isEmpty() || apellidos.isEmpty())) {
-             JOptionPane.showMessageDialog(this, "Para un nuevo registro, Nombres y Apellidos son obligatorios.");
-             return;
+            JOptionPane.showMessageDialog(this, "Para un nuevo registro, Nombres y Apellidos son obligatorios.");
+            return;
         }
 
         if (!ruc.matches("\\d{11}")) {
@@ -395,7 +400,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         p.setDireccion(direccion);
         p.setEstado(estado);
         p.setIdSucursal(this.idSucursalActual);
-        
+
         // --> AQUÍ USAMOS TUS CAMPOS AUXILIARES <--
         // Guardamos la info de persona dentro del objeto Proveedor temporalmente
         p.setNombresContacto(nombres);
@@ -426,6 +431,74 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 JOptionPane.showMessageDialog(this, "Error al actualizar.");
             }
         }
+    }
+
+  private void cargarGraficoRankingProveedores() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        
+        // 1. Obtener datos (SQL igual que antes)
+        String sql = "SELECT p.razon_social, SUM(c.total) as total_comprado " +
+                     "FROM compra c " +
+                     "INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor " +
+                     "GROUP BY p.razon_social " + 
+                     "ORDER BY total_comprado DESC LIMIT 5";
+
+        try (java.sql.Connection con = new BaseDatos.Conexion().establecerConexion();
+             java.sql.PreparedStatement ps = con.prepareStatement(sql);
+             java.sql.ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                String proveedor = rs.getString("razon_social"); 
+                double monto = rs.getDouble("total_comprado");
+                
+                // Acortar nombre si es muy largo (vital para gráficos pequeños)
+                if (proveedor.length() > 12) {
+                    proveedor = proveedor.substring(0, 12) + "..";
+                }
+                dataset.addValue(monto, "Compras", proveedor);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 2. Crear el Gráfico
+        JFreeChart chart = ChartFactory.createBarChart(
+                "Top 5 Proveedores", // Título corto
+                "", 
+                "", 
+                dataset,
+                PlotOrientation.HORIZONTAL, 
+                false, true, false 
+        );
+
+        // --- AJUSTES VISUALES PARA TAMAÑO MINI ---
+        
+        // Fondo blanco limpio
+        chart.setBackgroundPaint(Color.WHITE);
+        
+        // Ajustar fuentes para que no se vean gigantes
+        chart.getTitle().setFont(new Font("Segoe UI", Font.BOLD, 12)); 
+        org.jfree.chart.plot.CategoryPlot plot = chart.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(245, 245, 245));
+        plot.setRangeGridlinePaint(Color.LIGHT_GRAY);
+        
+        // Ajustar fuente de los ejes
+        plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10)); // Nombres proveedores
+        plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));  // Números
+        
+        // 3. Asignar al panel con TAMAÑO CONTROLADO
+        ChartPanel cp = new ChartPanel(chart);
+        
+        // CLAVE DEL ARREGLO: Forzar un tamaño preferido pequeño.
+        // El BorderLayout luego lo estirará lo necesario, pero no "explotará" el diseño.
+        cp.setPreferredSize(new java.awt.Dimension(300, 150)); 
+        
+        minipanel_rankingProveedores.removeAll();
+        minipanel_rankingProveedores.setLayout(new java.awt.BorderLayout());
+        minipanel_rankingProveedores.add(cp, java.awt.BorderLayout.CENTER);
+        
+        minipanel_rankingProveedores.revalidate();
+        minipanel_rankingProveedores.repaint();
     }
 
     @SuppressWarnings("unchecked")
@@ -480,6 +553,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         tf_buscar = new javax.swing.JTextField();
         btn_buscar = new javax.swing.JButton();
         jSeparator6 = new javax.swing.JSeparator();
+        minipanel_rankingProveedores = new javax.swing.JPanel();
 
         setBackground(new java.awt.Color(255, 102, 0));
 
@@ -550,7 +624,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 447, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(btn_exportarCompras, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(80, Short.MAX_VALUE))))
+                        .addContainerGap(12, Short.MAX_VALUE))))
         );
 
         jTabbedPane1.addTab("COMPRAS GLOBALES", ComprasGlobales);
@@ -658,7 +732,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 .addComponent(DetalleDevolucionesRecientes)
                 .addGap(12, 12, 12)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(94, Short.MAX_VALUE))
+                .addContainerGap(20, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", Devoluciones);
@@ -671,7 +745,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 668, Short.MAX_VALUE)
+            .addGap(0, 594, Short.MAX_VALUE)
         );
 
         jTabbedPane1.addTab("RECEPCION", jPanel4);
@@ -779,41 +853,43 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                 .addContainerGap(15, Short.MAX_VALUE)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGap(18, 18, 18)
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                .addComponent(tf_nombres)
-                                .addComponent(tf_dniAsosiado)
-                                .addComponent(tf_razonSocial, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                            .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(18, 18, 18)
-                            .addComponent(tf_apellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(jCheckBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGroup(jPanel3Layout.createSequentialGroup()
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jLabel9, javax.swing.GroupLayout.Alignment.TRAILING))
-                            .addGap(18, 18, 18)
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                .addComponent(tf_Telefono)
-                                .addComponent(tf_Direccion)
-                                .addComponent(tf_RUC)
-                                .addComponent(tf_correo, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addGroup(jPanel3Layout.createSequentialGroup()
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(tf_nombres)
+                                    .addComponent(tf_dniAsosiado)
+                                    .addComponent(tf_razonSocial, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 55, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(tf_apellidos, javax.swing.GroupLayout.PREFERRED_SIZE, 236, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jCheckBox1, javax.swing.GroupLayout.PREFERRED_SIZE, 124, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel3Layout.createSequentialGroup()
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel9, javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.TRAILING))
+                                .addGap(18, 18, 18)
+                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(tf_Telefono)
+                                    .addComponent(tf_Direccion)
+                                    .addComponent(tf_correo, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 236, Short.MAX_VALUE)
+                                    .addComponent(tf_RUC, javax.swing.GroupLayout.Alignment.TRAILING))))
+                        .addGap(70, 70, 70))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
                         .addComponent(btn_AbrirHistorial, javax.swing.GroupLayout.PREFERRED_SIZE, 125, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(btn_GuardarActualizar)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(btn_Cancerlarlimpiar, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(14, 14, 14))
+                        .addComponent(btn_Cancerlarlimpiar, javax.swing.GroupLayout.PREFERRED_SIZE, 110, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap())))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -824,48 +900,53 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tf_razonSocial, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel2))
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tf_dniAsosiado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel3))
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tf_nombres, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel7))
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(tf_apellidos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8))
-                .addGap(18, 18, 18)
+                .addGap(14, 14, 14)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(tf_RUC, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4))
+                .addGap(11, 11, 11)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(tf_Direccion, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel6))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(tf_Telefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel5))
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(tf_RUC, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel4))
-                        .addGap(18, 18, 18)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(tf_Direccion, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel6))
-                        .addGap(21, 21, 21)
-                        .addComponent(tf_Telefono, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(24, 24, 24)
+                        .addComponent(jLabel9))
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(95, 95, 95)
-                        .addComponent(jLabel5)))
-                .addGap(16, 16, 16)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(tf_correo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel9))
-                .addGap(18, 18, 18)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(tf_correo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 29, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btn_GuardarActualizar, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_AbrirHistorial, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_Cancerlarlimpiar, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(15, 15, 15))
+                .addContainerGap(28, Short.MAX_VALUE))
         );
 
         btn_Exportar.setText("Exportar");
+        btn_Exportar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_ExportarActionPerformed(evt);
+            }
+        });
 
         btn_buscar.setText("Buscar");
         btn_buscar.addActionListener(new java.awt.event.ActionListener() {
@@ -877,6 +958,17 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         jSeparator6.setBackground(new java.awt.Color(255, 255, 255));
         jSeparator6.setForeground(new java.awt.Color(255, 255, 255));
 
+        javax.swing.GroupLayout minipanel_rankingProveedoresLayout = new javax.swing.GroupLayout(minipanel_rankingProveedores);
+        minipanel_rankingProveedores.setLayout(minipanel_rankingProveedoresLayout);
+        minipanel_rankingProveedoresLayout.setHorizontalGroup(
+            minipanel_rankingProveedoresLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 645, Short.MAX_VALUE)
+        );
+        minipanel_rankingProveedoresLayout.setVerticalGroup(
+            minipanel_rankingProveedoresLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGap(0, 175, Short.MAX_VALUE)
+        );
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -885,15 +977,17 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
                 .addGap(29, 29, 29)
                 .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(34, 34, 34)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addGroup(jPanel1Layout.createSequentialGroup()
-                            .addComponent(tf_buscar)
-                            .addGap(18, 18, 18)
-                            .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 645, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(btn_Exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 145, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                                .addComponent(tf_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 511, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 645, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(btn_Exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(minipanel_rankingProveedores, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(15, Short.MAX_VALUE))
             .addComponent(jSeparator6)
         );
         jPanel1Layout.setVerticalGroup(
@@ -901,19 +995,21 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addComponent(jSeparator6, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
                         .addGap(14, 14, 14)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(tf_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(btn_buscar, javax.swing.GroupLayout.PREFERRED_SIZE, 32, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(7, 7, 7)
+                        .addComponent(btn_Exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 181, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(btn_Exportar, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(minipanel_rankingProveedores, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(96, Short.MAX_VALUE))
+                .addContainerGap(101, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("PROVEEDORES", jPanel1);
@@ -926,7 +1022,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1)
+            .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 620, Short.MAX_VALUE)
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -961,6 +1057,85 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
         // TODO add your handling code here:
     }//GEN-LAST:event_tf_DireccionActionPerformed
 
+    private void btn_ExportarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_ExportarActionPerformed
+// Opción para elegir formato
+        String[] opciones = {"Excel (Solo Tabla)", "PDF (Tabla + Gráfico)", "Cancelar"};
+        int seleccion = JOptionPane.showOptionDialog(this,
+                "¿Cómo desea exportar la lista de proveedores?",
+                "Exportar Proveedores",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+
+        if (seleccion == 0) {
+            // Excel: Solo exportamos la jTable2
+            GeneradorExcel.exportarExcel(jTable2, "Listado_Proveedores");
+        } else if (seleccion == 1) {
+            // PDF: Exportamos Tabla + Imagen del Mini Panel
+            try {
+                // 1. Capturar imagen del gráfico
+                java.awt.image.BufferedImage imagenGrafico = new java.awt.image.BufferedImage(
+                        minipanel_rankingProveedores.getWidth(),
+                        minipanel_rankingProveedores.getHeight(),
+                        java.awt.image.BufferedImage.TYPE_INT_RGB);
+                minipanel_rankingProveedores.paint(imagenGrafico.getGraphics());
+
+                // 2. Generar PDF (Usando tu utilidad existente o lógica iText)
+                // Si tu GeneradorPDF no soporta imágenes directas, puedes guardarla temporalmente
+                String rutaTemp = "temp_chart_prov.png";
+                javax.imageio.ImageIO.write(imagenGrafico, "png", new java.io.File(rutaTemp));
+
+                // Llamamos a tu generador (Asumiendo que tienes un método flexible, si no, aquí tienes la lógica rápida con iText)
+                crearReportePDFConGrafico(rutaTemp);
+
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error al generar PDF: " + e.getMessage());
+            }
+        }    }//GEN-LAST:event_btn_ExportarActionPerformed
+
+    private void crearReportePDFConGrafico(String rutaImagen) {
+        try {
+            String nombreArchivo = "Reporte_Proveedores_" + System.currentTimeMillis() + ".pdf";
+            com.itextpdf.text.Document doc = new com.itextpdf.text.Document();
+            com.itextpdf.text.pdf.PdfWriter.getInstance(doc, new java.io.FileOutputStream(nombreArchivo));
+            doc.open();
+
+            // Título
+            doc.add(new com.itextpdf.text.Paragraph("REPORTE DE PROVEEDORES Y RANKING", 
+                    com.itextpdf.text.FontFactory.getFont(com.itextpdf.text.FontFactory.HELVETICA_BOLD, 18)));
+            doc.add(new com.itextpdf.text.Paragraph(" ")); // Espacio
+
+            // Agregar Imagen del Gráfico
+            com.itextpdf.text.Image img = com.itextpdf.text.Image.getInstance(rutaImagen);
+            img.scaleToFit(500, 300); // Ajustar tamaño
+            img.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            doc.add(img);
+            doc.add(new com.itextpdf.text.Paragraph(" ")); // Espacio
+
+            // Agregar Tabla (Convirtiendo jTable a PdfPTable)
+            com.itextpdf.text.pdf.PdfPTable pdfTable = new com.itextpdf.text.pdf.PdfPTable(jTable2.getColumnCount());
+            // Headers
+            for (int i = 0; i < jTable2.getColumnCount(); i++) {
+                pdfTable.addCell(new com.itextpdf.text.Phrase(jTable2.getColumnName(i)));
+            }
+            // Data
+            for (int rows = 0; rows < jTable2.getRowCount(); rows++) {
+                for (int cols = 0; cols < jTable2.getColumnCount(); cols++) {
+                    Object val = jTable2.getModel().getValueAt(rows, cols);
+                    pdfTable.addCell(val != null ? val.toString() : "");
+                }
+            }
+            doc.add(pdfTable);
+
+            doc.close();
+            JOptionPane.showMessageDialog(this, "Reporte generado: " + nombreArchivo);
+            
+            // Abrir archivo automáticamente
+            java.awt.Desktop.getDesktop().open(new java.io.File(nombreArchivo));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel ComprasGlobales;
@@ -1000,6 +1175,7 @@ public class panel_ComprasGerente extends javax.swing.JPanel {
     private javax.swing.JSeparator jSeparator6;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable jTable2;
+    private javax.swing.JPanel minipanel_rankingProveedores;
     private javax.swing.JTable tb_ComprasGlobales;
     private javax.swing.JTable tb_devoluciones;
     private javax.swing.JTextField tf_Direccion;

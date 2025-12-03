@@ -9,7 +9,6 @@ import java.util.List;
 public class CajaDAO {
 
     // Eliminamos la variable de instancia 'conexion' para usar try-with-resources en cada método
-
     public CajaDAO() {
         // Constructor vacío
     }
@@ -17,8 +16,7 @@ public class CajaDAO {
     // ✅ MÉTODO SOLUCIÓN: Suma ABSOLUTA de todas las ventas de la sucursal (Histórico Total)
     public double obtenerVentasTotalesHistoricas(int idSucursal) {
         String sql = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_sucursal = ?";
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -30,13 +28,115 @@ public class CajaDAO {
         return 0.0;
     }
 
+    public boolean registrarTransferencia(int idSucursalOrigen, int idSucursalDestino, double monto, String motivo) {
+        Connection con = null;
+        try {
+            con = new Conexion().establecerConexion();
+            con.setAutoCommit(false); // Iniciar Transacción
+
+            // 1. Obtener ID de la última caja de cada sucursal
+            int idCajaOrigen = obtenerUltimaCaja(con, idSucursalOrigen);
+            int idCajaDestino = obtenerUltimaCaja(con, idSucursalDestino);
+
+            // Validar que existan cajas (si es una tienda nueva sin cajas, no se puede transferir)
+            if (idCajaOrigen == -1 || idCajaDestino == -1) {
+                System.err.println("No se encontraron cajas registradas para realizar la vinculación.");
+                return false;
+            }
+
+            // 2. Registrar SALIDA en origen
+            String sqlSalida = "INSERT INTO movimiento_caja (id_caja, tipo, monto, fecha_hora, descripcion, id_sucursal) "
+                    + "VALUES (?, 'SALIDA', ?, NOW(), ?, ?)";
+
+            try (PreparedStatement ps1 = con.prepareStatement(sqlSalida)) {
+                ps1.setInt(1, idCajaOrigen); // <-- Aquí usamos el ID real, no NULL
+                ps1.setDouble(2, monto);
+                ps1.setString(3, "Transferencia enviada a Sucursal ID " + idSucursalDestino + ": " + motivo);
+                ps1.setInt(4, idSucursalOrigen);
+                ps1.executeUpdate();
+            }
+
+            // 3. Registrar ENTRADA en destino
+            String sqlEntrada = "INSERT INTO movimiento_caja (id_caja, tipo, monto, fecha_hora, descripcion, id_sucursal) "
+                    + "VALUES (?, 'INGRESO', ?, NOW(), ?, ?)";
+
+            try (PreparedStatement ps2 = con.prepareStatement(sqlEntrada)) {
+                ps2.setInt(1, idCajaDestino); // <-- Aquí usamos el ID real, no NULL
+                ps2.setDouble(2, monto);
+                ps2.setString(3, "Transferencia recibida de Sucursal ID " + idSucursalOrigen + ": " + motivo);
+                ps2.setInt(4, idSucursalDestino);
+                ps2.executeUpdate();
+            }
+
+            con.commit(); // Confirmar cambios
+            return true;
+
+        } catch (SQLException e) {
+            if (con != null) {
+                try {
+                    con.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                if (con != null) {
+                    con.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+    }
+
+    private int obtenerUltimaCaja(Connection con, int idSucursal) {
+        // Busca la última caja creada en esa sucursal (sea abierta o cerrada)
+        String sql = "SELECT id_caja FROM caja WHERE id_sucursal = ? ORDER BY id_caja DESC LIMIT 1";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idSucursal);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id_caja");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1; // Retorna -1 si no hay cajas
+    }
+
+    // --- NUEVO: LISTAR MOVIMIENTOS DE TRANSFERENCIA ---
+    public List<Object[]> listarTransferencias() {
+        List<Object[]> lista = new ArrayList<>();
+        String sql = "SELECT fecha_hora, tipo, monto, descripcion, s.nombre_sucursal "
+                + "FROM movimiento_caja mc "
+                + "JOIN sucursal s ON mc.id_sucursal = s.id_sucursal "
+                + "WHERE descripcion LIKE 'Transferencia%' "
+                + "ORDER BY fecha_hora DESC LIMIT 50";
+
+        try (Connection con = new Conexion().establecerConexion(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                lista.add(new Object[]{
+                    rs.getTimestamp("fecha_hora"),
+                    rs.getString("nombre_sucursal"),
+                    rs.getString("tipo"),
+                    rs.getDouble("monto"),
+                    rs.getString("descripcion")
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lista;
+    }
+
     public double obtenerSaldoUltimoCierre(int idSucursal, String idEmpleado) {
         String sql = "SELECT saldo_final FROM caja "
                 + "WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'CERRADA' "
                 + "ORDER BY fecha_hora_cierre DESC LIMIT 1";
 
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             stmt.setString(2, idEmpleado);
 
@@ -50,16 +150,25 @@ public class CajaDAO {
         return 0.0;
     }
 
+    // ✅ MÉTODO CORREGIDO: Ahora suma también las transferencias recibidas (INGRESO)
     public double obtenerSaldoAcumuladoHistorico(int idSucursal) {
+        // 1. Sumar todas las VENTAS históricas
         String sqlVentas = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_sucursal = ?";
-        String sqlRetiros = "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja "
+
+        // 2. Sumar SALIDAS (Dinero que sale: Transferencias enviadas, gastos, retiros)
+        String sqlSalidas = "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja "
                 + "WHERE id_sucursal = ? AND tipo IN ('SALIDA', 'RETIRO', 'GASTO')";
 
+        // 3. Sumar ENTRADAS (Dinero que entra: Transferencias recibidas, depósitos) <--- ESTO FALTABA
+        String sqlEntradas = "SELECT COALESCE(SUM(monto), 0) FROM movimiento_caja "
+                + "WHERE id_sucursal = ? AND tipo IN ('INGRESO', 'DEPOSITO')";
+
         double totalVentas = 0;
-        double totalRetiros = 0;
+        double totalSalidas = 0;
+        double totalEntradas = 0;
 
         try (Connection conexion = new Conexion().establecerConexion()) {
-            // Calcular Ventas
+            // A. Calcular Ventas
             try (PreparedStatement ps1 = conexion.prepareStatement(sqlVentas)) {
                 ps1.setInt(1, idSucursal);
                 ResultSet rs1 = ps1.executeQuery();
@@ -68,12 +177,21 @@ public class CajaDAO {
                 }
             }
 
-            // Calcular Retiros
-            try (PreparedStatement ps2 = conexion.prepareStatement(sqlRetiros)) {
+            // B. Calcular Salidas
+            try (PreparedStatement ps2 = conexion.prepareStatement(sqlSalidas)) {
                 ps2.setInt(1, idSucursal);
                 ResultSet rs2 = ps2.executeQuery();
                 if (rs2.next()) {
-                    totalRetiros = rs2.getDouble(1);
+                    totalSalidas = rs2.getDouble(1);
+                }
+            }
+
+            // C. Calcular Entradas (NUEVO)
+            try (PreparedStatement ps3 = conexion.prepareStatement(sqlEntradas)) {
+                ps3.setInt(1, idSucursal);
+                ResultSet rs3 = ps3.executeQuery();
+                if (rs3.next()) {
+                    totalEntradas = rs3.getDouble(1);
                 }
             }
 
@@ -81,14 +199,14 @@ public class CajaDAO {
             System.err.println("Error calculando saldo histórico: " + e.getMessage());
         }
 
-        return totalVentas - totalRetiros;
+        // FÓRMULA FINAL: (Lo que vendí + Lo que me transfirieron) - (Lo que saqué)
+        return (totalVentas + totalEntradas) - totalSalidas;
     }
 
     // --- MÉTODOS ESTÁNDAR NECESARIOS ---
     public Caja obtenerCajaAbierta(int idSucursal) {
         String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -108,13 +226,12 @@ public class CajaDAO {
     public boolean abrirCaja(int idSucursal, double saldoInicial) {
         // Este método es una versión simplificada, podría asumir un empleado por defecto o ser obsoleto
         // Se recomienda usar la versión completa abajo
-        return abrirCaja(idSucursal, saldoInicial, "DEFAULT", "MAÑANA"); 
+        return abrirCaja(idSucursal, saldoInicial, "DEFAULT", "MAÑANA");
     }
 
     public boolean cerrarCaja(int idCaja, double saldoFinal) {
         String sql = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setDouble(1, saldoFinal);
             stmt.setInt(2, idCaja);
             return stmt.executeUpdate() > 0;
@@ -126,8 +243,7 @@ public class CajaDAO {
 
     public double obtenerTotalVentasSesion(int idCaja) {
         String sql = "SELECT COALESCE(SUM(total), 0) FROM venta WHERE id_caja = ?"; // Corregido: tabla venta, no movimiento_caja
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idCaja);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
@@ -143,8 +259,7 @@ public class CajaDAO {
         String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal, id_empleado, turno) "
                 + "VALUES (NOW(), ?, 0, 'ABIERTA', ?, ?, ?)";
 
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setDouble(1, saldoInicial);
             stmt.setInt(2, idSucursal);
             stmt.setString(3, idEmpleado);
@@ -160,8 +275,7 @@ public class CajaDAO {
     public Caja obtenerCajaAbiertaPorUsuario(int idSucursal, String idEmpleado) {
         String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
 
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             stmt.setString(2, idEmpleado);
 
@@ -223,8 +337,7 @@ public class CajaDAO {
                     }
                 }
             }
-            */
-
+             */
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -247,8 +360,7 @@ public class CajaDAO {
                 + "estado = 'CERRADA' "
                 + "WHERE id_caja = ?";
 
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement stmt = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setDouble(1, saldoReal);
             stmt.setDouble(2, saldoSistema);
             stmt.setDouble(3, diferencia);
@@ -275,8 +387,7 @@ public class CajaDAO {
                 + "AND c.diferencia != 0 "
                 + "ORDER BY c.fecha_hora_cierre DESC";
 
-        try (Connection conexion = new Conexion().establecerConexion();
-             PreparedStatement ps = conexion.prepareStatement(sql)) {
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, idSucursal);
             ResultSet rs = ps.executeQuery();
 
