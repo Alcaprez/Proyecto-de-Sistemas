@@ -79,26 +79,28 @@ public class ProveedorDAO {
     }
 
     public boolean guardar(Proveedor p) {
-        // Aseguramos que la persona exista o se actualice
-        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, telefono, estado) "
-                + "VALUES (?, ?, '(Contacto Prov.)', ?, 'ACTIVO') "
-                + "ON DUPLICATE KEY UPDATE telefono=VALUES(telefono)";
+        // SQL: Insertamos o actualizamos la Persona con los datos auxiliares
+        String sqlPersona = "INSERT INTO persona (dni, nombres, apellidos, correo, telefono, estado) "
+                + "VALUES (?, ?, ?, ?, ?, 'ACTIVO') "
+                + "ON DUPLICATE KEY UPDATE nombres=VALUES(nombres), apellidos=VALUES(apellidos), correo=VALUES(correo), telefono=VALUES(telefono)";
 
         String sqlProveedor = "INSERT INTO proveedor (id_proveedor, Razon_Social, dni, ruc, direccion, id_sucursal, estado) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection cn = new Conexion().establecerConexion()) {
-            cn.setAutoCommit(false);
+            cn.setAutoCommit(false); // Transacción
             try {
-                // a) Insertar Persona
+                // 1. Gestionar Persona (Usamos los campos 'Contacto' del objeto)
                 try (PreparedStatement psPe = cn.prepareStatement(sqlPersona)) {
                     psPe.setString(1, p.getDniAsociado());
-                    psPe.setString(2, p.getRazonSocial());
-                    psPe.setString(3, p.getTelefonoContacto());
+                    psPe.setString(2, p.getNombresContacto());   // Viene del form
+                    psPe.setString(3, p.getApellidosContacto()); // Viene del form
+                    psPe.setString(4, p.getCorreoContacto());    // Viene del form
+                    psPe.setString(5, p.getTelefonoContacto());  // Viene del form
                     psPe.executeUpdate();
                 }
 
-                // b) Insertar Proveedor
+                // 2. Insertar Proveedor
                 String nuevoId = generarNuevoIdProveedor(cn);
                 try (PreparedStatement psPr = cn.prepareStatement(sqlProveedor)) {
                     psPr.setString(1, nuevoId);
@@ -106,6 +108,7 @@ public class ProveedorDAO {
                     psPr.setString(3, p.getDniAsociado());
                     psPr.setString(4, p.getRuc());
                     psPr.setString(5, p.getDireccion());
+
                     if (p.getIdSucursal() == 0) {
                         psPr.setNull(6, java.sql.Types.INTEGER);
                     } else {
@@ -118,13 +121,14 @@ public class ProveedorDAO {
 
                 cn.commit();
                 return true;
+
             } catch (SQLException ex) {
                 cn.rollback();
-                ex.printStackTrace();
+                System.err.println("Error transacción guardar: " + ex.getMessage());
                 return false;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Error conexión: " + e.getMessage());
             return false;
         }
     }

@@ -9,16 +9,20 @@ public class Proveedor {
     private String direccion;
     private int idSucursal; // int
     private String estado;
+    
 
     // --- Campos auxiliares (vienen del JOIN con tabla 'persona') ---
     // Usaremos estos para mostrar el contacto en la tabla
     private String nombresContacto; 
     private String apellidosContacto;
     private String telefonoContacto;
-    // private String correoContacto; // El formulario no pide correo, lo omitimos por ahora
+    private String correoContacto; // El formulario no pide correo, lo omitimos por ahora
 
     public Proveedor() {
     }
+    
+    public String getCorreoContacto() { return correoContacto; }
+    public void setCorreoContacto(String correoContacto) { this.correoContacto = correoContacto; }
 
     // --- Getters y Setters ---
     public String getIdProveedor() { return idProveedor; }
