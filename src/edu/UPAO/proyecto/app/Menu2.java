@@ -990,48 +990,28 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-// -----------------------------------------------------------------------------------------
-        // 1. ✅ SEGURIDAD: REGISTRAR SALIDA DE ASISTENCIA AUTOMÁTICAMENTE
-        // -----------------------------------------------------------------------------------------
-        // Esto garantiza que si el empleado se olvida de marcar, el sistema lo hace al cerrar el menú.
-        try {
-            edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
-            // Registramos la marca tipo "SALIDA" para este empleado en esta sucursal
-            asisDao.registrarMarca(this.idEmpleado, this.idSucursal, "SALIDA");
-            System.out.println("🕒 Salida registrada automáticamente al presionar botón Salir.");
-        } catch (Exception e) {
-            // Solo imprimimos el error, no detenemos el proceso de salida
-            System.err.println("Nota: No se pudo registrar la salida automática o ya estaba marcada. " + e.getMessage());
-        }
-
-        // -----------------------------------------------------------------------------------------
-        // 2. LÓGICA DE CAJA (ARQUEO VS SALIDA SIMPLE)
-        // -----------------------------------------------------------------------------------------
-        
-        // A. Obtener turno actual (Noche o Día)
+        // 1. Obtener turno (Noche o Día)
         String turnoActual = obtenerTurnoActual();
 
-        // B. Verificar Rol y Turno
-        // Si es NOCHE o es GERENTE, obligamos a hacer el arqueo (Conteo de dinero) pero NO cerramos la caja (Estado 'ENCUADRADA')
-        if (turnoActual.equalsIgnoreCase("NOCHE") || edu.UPAO.proyecto.LoginController.getTipoUsuario(idEmpleado).equalsIgnoreCase("GERENTE")) {
+        // 2. Verificar Rol y Turno
+        // Si es NOCHE o es GERENTE, obligamos a hacer el arqueo (Cierre de caja diario)
+        if (turnoActual.equalsIgnoreCase("NOCHE") || LoginController.getTipoUsuario(idEmpleado).equalsIgnoreCase("GERENTE")) {
 
-            edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+            CajaDAO cajaDAO = new CajaDAO();
             edu.UPAO.proyecto.Modelo.Caja caja = cajaDAO.obtenerCajaAbierta(idSucursal);
 
             if (caja != null) {
-                // Abrir ventana de conteo de dinero (Arqueo) en modo MODAL (detiene la ejecución hasta cerrar)
+                // Abrir ventana de conteo de dinero (Arqueo)
                 DialogoArqueoCaja arqueo = new DialogoArqueoCaja(this, true, caja.getIdCaja());
                 arqueo.setVisible(true);
 
-                // Si el arqueo terminó bien (El cajero contó y guardó), cerramos la ventana del menú
+                // Si el arqueo terminó bien, cerramos la ventana del menú y volvemos al login
                 if (arqueo.cajaCerradaExito) {
                     this.dispose();
                     new LoginjFrame().setVisible(true);
                 }
-                // Si canceló el arqueo, no hacemos nada (se queda en el menú)
             } else {
-                // Si por error no había caja abierta (raro), permitimos salir normal
-                JOptionPane.showMessageDialog(this, "No se encontró caja abierta para arquear. Saliendo del sistema...");
+                // Si por error no había caja abierta, salimos normal
                 this.dispose();
                 new LoginjFrame().setVisible(true);
             }

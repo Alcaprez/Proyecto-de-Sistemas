@@ -32,7 +32,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
         aplicarEstiloModerno();
-        cb_sucursales.setVisible(false);
+        cb_sucursales.setVisible(rootPaneCheckingEnabled);
     }
 
     private void cargarSucursales() {
@@ -377,8 +377,8 @@ public class LoginjFrame extends javax.swing.JFrame {
                     menuPrincipal.setVisible(true);
 
                     // Abrir ventana de asistencia para cajero
-                    jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
-                    asistencia.setVisible(true);
+                    //jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                    //asistencia.setVisible(true);
                     break;
 
                 default:

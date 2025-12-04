@@ -43,20 +43,28 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         initComponents();
         setDefaultCloseOperation(javax.swing.JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null); // Centrar ventana
+        setTitle("Control de Asistencia - " + usuarioNombre);
 
-        // --- CONFIGURACIÓN DE TABLA Y DATOS ---
+        // --- CONFIGURACIÓN DE TABLA ---
         modelo = new DefaultTableModel(new Object[]{"Usuario", "Tipo", "Fecha", "Hora", "Estado"}, 0);
         jTable3.setModel(modelo);
+        
+        // Estilo visual básico de tabla
+        if (jTable3.getColumnModel().getColumnCount() > 0) {
+            jTable3.getColumnModel().getColumn(0).setPreferredWidth(150); // Usuario
+            jTable3.getColumnModel().getColumn(1).setPreferredWidth(80);  // Tipo
+            jTable3.getColumnModel().getColumn(4).setPreferredWidth(100); // Estado
+        }
 
         jLabel7.setText("Registro - " + usuarioNombre);
 
-        // 1. Cargamos lo que haya en la base de datos (si ya marcó, aparecerá aquí)
+        // 1. CARGA DE DATOS (Filtrado por ID)
         cargarRegistros();
 
-        // 2. Actualizamos los botones (si ya marcó, se bloquearán automáticamente)
+        // 2. ESTADO DE BOTONES (Según si ya marcó)
         actualizarEstadoBotones();
 
-        // 3. Iniciamos el reloj
+        // 3. RELOJ EN VIVO
         actualizarHoraActual();
     }
 
@@ -64,67 +72,44 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
 
     }
 
-    private void actualizarEstadoBotones() {
-        System.out.println("🔄 [DEBUG] Iniciando actualización de botones...");
-
+   private void actualizarEstadoBotones() {
         try {
-            // 1. Verificar servicio
-            if (asistenciaService == null) {
-                System.out.println("❌ [ERROR] asistenciaService es NULL");
-                return;
-            }
-
-            // 2. Obtener estado
-            String estado = asistenciaService.obtenerEstadoActual(idEmpleado);
-            System.out.println("📊 [DEBUG] Estado devuelto por servicio: " + estado);
-
-            // 3. Verificar componentes de UI
-            if (btn_entrada == null || btn_salida == null) {
-                System.out.println("❌ [ERROR] Los botones no están inicializados (son null)");
-                return;
-            }
+            // Consultar estado actual al servicio
+            String estado = asistenciaService.obtenerEstadoActual(this.idEmpleado);
+            System.out.println("Estado actual para " + idEmpleado + ": " + estado);
 
             switch (estado) {
                 case "PENDIENTE_ENTRADA":
-                    System.out.println("🔓 [ACCION] Habilitando botón ENTRADA");
                     btn_entrada.setEnabled(true);
                     btn_entrada.setText("MARCAR ENTRADA");
-                    btn_entrada.setBackground(new java.awt.Color(76, 175, 80)); // Verde
+                    btn_entrada.setBackground(new Color(0, 153, 102)); // Verde
 
                     btn_salida.setEnabled(false);
-                    btn_salida.setText("SALIDA (Espere entrada)");
-                    btn_salida.setBackground(new java.awt.Color(200, 200, 200));
+                    btn_salida.setText("SALIDA");
+                    btn_salida.setBackground(Color.GRAY);
                     break;
 
                 case "ENTRADA_REGISTRADA":
-                    System.out.println("🔓 [ACCION] Habilitando botón SALIDA");
                     btn_entrada.setEnabled(false);
-                    btn_entrada.setText("✓ ENTRADA REGISTRADA");
+                    btn_entrada.setText("✔ ENTRADA LISTA");
+                    btn_entrada.setBackground(Color.GRAY);
 
                     btn_salida.setEnabled(true);
                     btn_salida.setText("MARCAR SALIDA");
-                    btn_salida.setBackground(new java.awt.Color(244, 67, 54)); // Rojo
+                    btn_salida.setBackground(new Color(204, 102, 0)); // Naranja/Rojo
                     break;
 
                 case "SALIDA_REGISTRADA":
-                    System.out.println("🔒 [ACCION] Bloqueando todo (Jornada terminada)");
                     btn_entrada.setEnabled(false);
-                    btn_entrada.setText("✓ ENTRADA REGISTRADA");
+                    btn_entrada.setText("✔ JORNADA");
                     btn_salida.setEnabled(false);
-                    btn_salida.setText("✓ SALIDA REGISTRADA");
+                    btn_salida.setText("✔ FINALIZADA");
+                    btn_entrada.setBackground(Color.GRAY);
+                    btn_salida.setBackground(Color.GRAY);
                     break;
-
-                default:
-                    System.out.println("⚠️ [ALERTA] Estado desconocido recibido: " + estado);
             }
-
-            // Forzar repintado por si acaso
-            btn_entrada.repaint();
-            btn_salida.repaint();
-
         } catch (Exception e) {
-            System.out.println("❌ [EXCEPCION] Error fatal en actualizarEstadoBotones:");
-            e.printStackTrace();
+            System.err.println("Error actualizando botones: " + e.getMessage());
         }
     }
 
@@ -181,62 +166,38 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         try {
             RegistroAsistencia registro = null;
 
+            // Llamamos al servicio pasando EL ID CORRECTO (this.idEmpleado)
             if (tipo.equals("ENTRADA")) {
-                registro = asistenciaService.registrarEntrada(idEmpleado, usuarioNombre);
+                registro = asistenciaService.registrarEntrada(this.idEmpleado, this.usuarioNombre);
             } else if (tipo.equals("SALIDA")) {
-                registro = asistenciaService.registrarSalida(idEmpleado, usuarioNombre);
+                registro = asistenciaService.registrarSalida(this.idEmpleado, this.usuarioNombre);
             }
 
             if (registro != null) {
-                // Agregar a la tabla
-                String fecha = registro.getFechaHora().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                String hora = registro.getFechaHora().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                modelo.addRow(new Object[]{
-                    usuarioNombre,
-                    tipo,
-                    fecha,
-                    hora,
-                    registro.getEstado()
-                });
-
-                // Mostrar mensaje de confirmación
-                String mensaje = String.format(
-                        "✅ %s registrada exitosamente\n🕒 Hora: %s\n📊 Estado: %s",
-                        tipo, hora, registro.getEstado()
-                );
-
+                String hora = registro.getFechaHora().format(timeFormatter);
+                
+                // Mensaje de éxito
                 JOptionPane.showMessageDialog(this,
-                        mensaje,
-                        tipo + " Registrada",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "✅ " + tipo + " registrada correctamente a las " + hora,
+                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
-                // Actualizar estado de los botones
-                actualizarEstadoBotones();
-
-                // Scroll to the last row
-                if (modelo.getRowCount() > 0) {
-                    jTable3.scrollRectToVisible(jTable3.getCellRect(modelo.getRowCount() - 1, 0, true));
-                }
+                // 🔄 REFRESCAR PANTALLA
+                cargarRegistros();          // Recarga la tabla desde BD
+                actualizarEstadoBotones();  // Actualiza los botones
             }
 
         } catch (IllegalStateException ex) {
-            JOptionPane.showMessageDialog(this,
-                    ex.getMessage(),
-                    "Advertencia",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Aviso", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this,
-                    "❌ Error al registrar " + tipo + ": " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void actualizarHoraActual() {
+private void actualizarHoraActual() {
         Timer timer = new Timer(1000, e -> {
             LocalDateTime ahora = LocalDateTime.now();
-            lblHoraActual.setText(ahora.format(timeFormatter));
-            lblFechaActual.setText(ahora.format(dateFormatter));
+            if(lblHoraActual != null) lblHoraActual.setText(ahora.format(timeFormatter));
+            if(lblFechaActual != null) lblFechaActual.setText(ahora.format(dateFormatter));
         });
         timer.start();
     }
@@ -513,27 +474,26 @@ public class jFrame_Asistncias extends javax.swing.JFrame {
         });
     }
 
-    private void cargarRegistros() {
-        // 1. Limpiar la tabla actual
+   private void cargarRegistros() {
+        // 1. Limpiar la tabla visual
         modelo.setRowCount(0);
-        System.out.println("Cargando registros para: " + usuarioNombre);
+        System.out.println("Cargando registros para ID: " + idEmpleado);
 
-        // 2. Obtener la asistencia desde la Base de Datos usando el Servicio
-        java.util.Optional<edu.UPAO.proyecto.Modelo.Asistencia> asistenciaOpt = asistenciaService.obtenerAsistenciaHoy(idEmpleado);
+        // 2. Obtener datos desde BD usando el servicio y el ID específico
+        java.util.Optional<edu.UPAO.proyecto.Modelo.Asistencia> asistenciaOpt = 
+                asistenciaService.obtenerAsistenciaHoy(this.idEmpleado);
 
-        // 3. Si existe un registro para hoy, lo procesamos
+        // 3. Si hay registro hoy, llenamos la tabla
         if (asistenciaOpt.isPresent()) {
             edu.UPAO.proyecto.Modelo.Asistencia asistencia = asistenciaOpt.get();
 
-            // Formateadores de fecha y hora
+            // Formatos para tabla
             DateTimeFormatter fmtFecha = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             DateTimeFormatter fmtHora = DateTimeFormatter.ofPattern("HH:mm:ss");
 
             // --- FILA DE ENTRADA ---
             if (asistencia.getHoraEntrada() != null) {
-                // Calculamos el estado visualmente (puedes ajustar la lógica si lo deseas)
-                String estado = "REGISTRADO";
-
+                String estado = asistencia.getEstado(); // "RESPONSABLE" o "TARDE"
                 modelo.addRow(new Object[]{
                     usuarioNombre,
                     "ENTRADA",
