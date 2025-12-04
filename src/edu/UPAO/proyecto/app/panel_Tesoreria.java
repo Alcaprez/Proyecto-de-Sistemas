@@ -1421,7 +1421,7 @@ private void cargarDatosRentabilidad() {
         }
 
         // --- A. DEFINIR FECHAS ---
-        int mesIndex = RangoFechas.getSelectedIndex(); 
+        int mesIndex = RangoFechas.getSelectedIndex();
         String fechaInicio, fechaFin;
         int anioFijo = 2025;
         
@@ -1442,59 +1442,82 @@ private void cargarDatosRentabilidad() {
             fechaFin = anioFijo + "-" + mesStr + "-" + ultimoDia + " 23:59:59";
         }
 
-        System.out.println("📅 Rentabilidad (Venta Bruta vs Costo Producto): " + fechaInicio + " al " + fechaFin);
+        System.out.println("📅 Rentabilidad: " + fechaInicio + " al " + fechaFin);
 
-        // --- B. CONSULTA SQL (SIN IGV, SIN SUELDOS) ---
+        // --- B. CONSULTA SQL AVANZADA CON SUBCONSULTAS ---
         DefaultTableModel modelo = new DefaultTableModel(null,
                 new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "RENTABILIDAD"});
 
-        // LÓGICA FINAL:
-        // 1. INGRESOS: Suma directa de v.total (Incluye IGV, tal como entra a caja).
-        // 2. COSTOS:   Suma de (cantidad * precio_compra). Solo mercadería.
+        // LÓGICA DE NEGOCIO APLICADA:
+        // 1. INGRESOS: Venta Total Bruta (v.total).
+        // 2. COSTOS: Suma de (Costo Mercadería Vendida) + (Total Compras a Proveedores).
+        //    * Usamos subconsultas (v_stats y c_stats) para evitar que los datos se dupliquen al unir tablas.
+        //    * En Compras filtramos que el estado no sea 'ANULADA'.
         
         String sql = "SELECT " +
             "    s.nombre_sucursal AS LOCALES, " +
-            "    COALESCE(SUM(v.total), 0) AS INGRESOS, " +
-            "    COALESCE(SUM(dv.cantidad * p.precio_compra), 0) AS COSTOS " +
+            "    COALESCE(v_stats.ingresos, 0) AS INGRESOS, " +
+            "    (COALESCE(v_stats.costo_ventas, 0) + COALESCE(c_stats.total_compras, 0)) AS COSTOS " +
             "FROM sucursal s " +
-            "LEFT JOIN venta v ON s.id_sucursal = v.id_sucursal " +
-            "    AND v.fecha_hora BETWEEN ? AND ? " + 
-            "LEFT JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
-            "LEFT JOIN producto p ON dv.id_producto = p.id_producto " +
-            "GROUP BY s.id_sucursal, s.nombre_sucursal";
+            // Subconsulta 1: Estadísticas de VENTAS
+            "LEFT JOIN ( " +
+            "    SELECT " +
+            "        v.id_sucursal, " +
+            "        SUM(v.total) as ingresos, " +
+            "        SUM(dv.cantidad * p.precio_compra) as costo_ventas " +
+            "    FROM venta v " +
+            "    JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
+            "    JOIN producto p ON dv.id_producto = p.id_producto " +
+            "    WHERE v.fecha_hora BETWEEN ? AND ? " +
+            "    GROUP BY v.id_sucursal " +
+            ") v_stats ON s.id_sucursal = v_stats.id_sucursal " +
+            // Subconsulta 2: Estadísticas de COMPRAS
+            "LEFT JOIN ( " +
+            "    SELECT " +
+            "        id_sucursal, " +
+            "        SUM(total) as total_compras " +
+            "    FROM compra " +
+            "    WHERE fecha_hora BETWEEN ? AND ? " +
+            "    AND estado != 'ANULADA' " +
+            "    GROUP BY id_sucursal " +
+            ") c_stats ON s.id_sucursal = c_stats.id_sucursal";
 
         try (Connection cnRent = new Conexion().getConexion(); 
              PreparedStatement ps = cnRent.prepareStatement(sql)) {
 
+            // Asignación de parámetros (OJO: Se repiten las fechas para ambas subconsultas)
+            // Para la subconsulta de Ventas
             ps.setString(1, fechaInicio);
             ps.setString(2, fechaFin);
+            
+            // Para la subconsulta de Compras
+            ps.setString(3, fechaInicio);
+            ps.setString(4, fechaFin);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String local = rs.getString("LOCALES");
                     
-                    // Recuperamos datos crudos
                     double ingresosBrutos = rs.getDouble("INGRESOS");
-                    double costosProductos = rs.getDouble("COSTOS");
+                    double costosTotales = rs.getDouble("COSTOS"); // Incluye Costo Venta + Compras Proveedor
                     
-                    // Cálculo Java
-                    double gananciaBruta = ingresosBrutos - costosProductos;
+                    double ganancia = ingresosBrutos - costosTotales;
                     
                     double rentabilidad = (ingresosBrutos > 0) 
-                            ? (gananciaBruta / ingresosBrutos) * 100 
+                            ? (ganancia / ingresosBrutos) * 100 
                             : 0.0;
 
                     modelo.addRow(new Object[]{
                         local,
                         "S/ " + String.format(Locale.US, "%,.2f", ingresosBrutos),
-                        "S/ " + String.format(Locale.US, "%,.2f", costosProductos),
-                        "S/ " + String.format(Locale.US, "%,.2f", gananciaBruta),
+                        "S/ " + String.format(Locale.US, "%,.2f", costosTotales),
+                        "S/ " + String.format(Locale.US, "%,.2f", ganancia),
                         String.format(Locale.US, "%.2f", rentabilidad) + "%"
                     });
                 }
             }
         } catch (Exception e) {
-            System.err.println("❌ Error SQL Rentabilidad: " + e.getMessage());
+            System.err.println("❌ Error SQL Rentabilidad Avanzada: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -2331,9 +2354,9 @@ private void cargarDatosRentabilidad() {
                 .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(80, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ganancia_netaLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(43, 43, 43))
+                .addContainerGap()
+                .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         ganancia_netaLayout.setVerticalGroup(
             ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
