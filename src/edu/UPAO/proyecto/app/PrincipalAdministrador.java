@@ -16,10 +16,10 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     private String idEmpleado;
     private String nombreUsuario;
     private int idSucursal;
-
+    private DashboradBienvenida dashboradBienvenida;
     public PrincipalAdministrador() {
         initComponents();
-        MostrarPanel(new DashboardBienvenida());
+        MostrarPanel(new DashboradBienvenida());
         
         // --- AGREGA ESTO AQUÍ ---
         try {
@@ -36,7 +36,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
         // Inicializar componentes visuales primero
         initComponents();
-        MostrarPanel(new DashboardBienvenida());
+        MostrarPanel(new DashboradBienvenida());
         aplicarDisenoModerno();
         // Guardar los datos recibidos
         this.idEmpleado = idEmpleado;
@@ -459,7 +459,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
             this.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
 
             // 1. Instanciamos el panel (ahora capturamos si falla aquí)
-            COMPRAS_Admin panelCompras = new COMPRAS_Admin();
+            COMPRAS_Admin panelCompras = new COMPRAS_Admin(idSucursal);
 
             // IMPORTANTE: Pasar el ID del empleado o sucursal si es necesario
             // panelCompras.setIdSucursal(this.idSucursalAdministrador); // (Opcional si implementas el setter)

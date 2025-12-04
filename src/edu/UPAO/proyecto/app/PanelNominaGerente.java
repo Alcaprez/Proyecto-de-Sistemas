@@ -174,9 +174,9 @@ public class PanelNominaGerente extends JPanel {
         add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    // ==================== LÓGICA ====================
     private void cargarSucursales() {
         cbSucursal.removeAllItems();
+        cbSucursal.addItem("TODAS LAS TIENDAS"); // <--- NUEVA OPCIÓN
         try {
             List<String> sucursales = sucursalDAO.obtenerSucursalesActivas();
             for (String s : sucursales) {
@@ -242,6 +242,7 @@ public class PanelNominaGerente extends JPanel {
             return;
         }
 
+        // ... (validaciones de estado PAGADO existentes) ...
         String estado = modeloTabla.getValueAt(fila, 4).toString();
         if ("PAGADO".equalsIgnoreCase(estado)) {
             JOptionPane.showMessageDialog(this, "Este empleado ya está pagado.");
@@ -250,35 +251,48 @@ public class PanelNominaGerente extends JPanel {
 
         String idEmp = modeloTabla.getValueAt(fila, 0).toString();
         String nombre = modeloTabla.getValueAt(fila, 1).toString();
-        // Limpiamos "S/ " para obtener el double
         double sueldo = Double.parseDouble(modeloTabla.getValueAt(fila, 3).toString().replace("S/ ", "").replace(",", "."));
-
         String mes = (String) cbMes.getSelectedItem();
-        String nombreSucursal = (String) cbSucursal.getSelectedItem();
-        int idSucursal = obtenerIdSucursal(nombreSucursal);
+
+        // --- CORRECCIÓN PARA PAGOS GLOBALES ---
+        // No usamos el combo box porque podría estar en "TODAS LAS TIENDAS" (ID 0).
+        // Buscamos la sucursal real del empleado para descontar de SU caja.
+        edu.UPAO.proyecto.DAO.EmpleadoDAO empDao = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+        int idSucursalReal = empDao.obtenerSucursalEmpleado(idEmp); 
+        // --------------------------------------
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "¿Pagar S/ " + sueldo + " a " + nombre + "?\nSe descontará de caja.",
+                "¿Pagar S/ " + sueldo + " a " + nombre + "?\nSe descontará de la caja de su sucursal.",
                 "Confirmar Pago", JOptionPane.YES_NO_OPTION);
 
         if (confirm == JOptionPane.YES_OPTION) {
-            boolean exito = nominaDAO.pagarEmpleado(idEmp, sueldo, mes, LocalDate.now().getYear(), idSucursal);
+            // Usamos idSucursalReal en lugar del combo
+            boolean exito = nominaDAO.pagarEmpleado(idEmp, sueldo, mes, LocalDate.now().getYear(), idSucursalReal);
+            
             if (exito) {
                 JOptionPane.showMessageDialog(this, "Pago realizado con éxito.");
-                cargarDatos(); // Recargar tabla
+                cargarDatos(); 
             } else {
-                JOptionPane.showMessageDialog(this, "Error al registrar el pago.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error al registrar el pago o caja cerrada.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    private int obtenerIdSucursal(String nombre) {
-        // Método auxiliar rápido, idealmente debería estar en SucursalDAO
-        if (nombre.equals("Tienda Principal") || nombre.equals("Central")) {
-            return 1;
+    private int obtenerIdSucursal(String nombreSucursal) {
+        // Si elige "TODAS", devolvemos 0 para que el DAO traiga todo
+        if ("TODAS LAS TIENDAS".equals(nombreSucursal)) {
+            return 0;
         }
-        // Aquí deberías consultar a la BD si tienes muchas sucursales
-        return 1; // Default
+        // Si elige una tienda específica, buscamos su ID real
+        try {
+            if (sucursalDAO == null) {
+                sucursalDAO = new SucursalDAO();
+            }
+            return sucursalDAO.obtenerIdPorNombre(nombreSucursal);
+        } catch (Exception e) {
+            System.err.println("Error buscando ID de sucursal: " + e.getMessage());
+            return -1;
+        }
     }
 
     // ==================== ESTILOS ====================

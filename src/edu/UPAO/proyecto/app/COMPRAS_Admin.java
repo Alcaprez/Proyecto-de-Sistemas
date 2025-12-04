@@ -14,20 +14,15 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
     private int idSucursalUsuario;
 
-    public COMPRAS_Admin() {
+    public COMPRAS_Admin(int idSucursalUsuario) {
+        this.idSucursalUsuario = idSucursalUsuario;
 
         initComponents();
         aplicarEstiloModerno();
-        // 1. Cargamos los datos iniciales (Combos y Tabla)
-        // Lo hacemos directo para evitar condiciones de carrera con los eventos
-        llenarFiltros(); 
+        llenarFiltros();
         mostrarDatos();
-
-        // 2. AGREGAMOS LOS LISTENERS AL FINAL
-        // Esto evita que al llenar los combos se disparen eventos locos al inicio
         agregarEventos();
-        
-        // Configuración de pestañas
+
         try {
             jTabbedPane1.setSelectedIndex(0);
             jTabbedPane1.addChangeListener(evt -> {
@@ -39,13 +34,18 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             System.err.println("Error pestañas: " + e.getMessage());
         }
     }
+    
+    public void setIdSucursalUsuario(int idSucursalUsuario) {
+    this.idSucursalUsuario = idSucursalUsuario;
+}
+
 
     // --- NUEVO MÉTODO AUXILIAR PARA ORDENAR EL CÓDIGO ---
     private void agregarEventos() {
         // Ahora sí es seguro escuchar cambios, porque los combos ya están llenos
         cboProveedor.addActionListener(evt -> mostrarDatos());
         cboEstado.addActionListener(evt -> mostrarDatos());
-        
+
         txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
@@ -59,25 +59,25 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"ID", "Fecha", "Proveedor", "Total", "Estado"});
 
-        // Ajuste de anchos para que se vea profesional
-        tblCompras.getColumnModel().getColumn(0).setPreferredWidth(40);  // ID pequeño
-        tblCompras.getColumnModel().getColumn(1).setPreferredWidth(120); // Fecha
-        tblCompras.getColumnModel().getColumn(2).setPreferredWidth(250); // Proveedor grande
+        tblCompras.getColumnModel().getColumn(0).setPreferredWidth(40);
+        tblCompras.getColumnModel().getColumn(1).setPreferredWidth(120);
+        tblCompras.getColumnModel().getColumn(2).setPreferredWidth(250);
 
-        // Ocultamos la columna ID visualmente si quieres, pero la necesitamos
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
         String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
-        // Traemos las compras que NO estén ya anuladas
+        // 🔴 IMPORTANTE: solo compras de la sucursal del usuario
         String sql = "SELECT c.id_compra, c.fecha_hora, p.Razon_Social, c.total, c.estado "
                 + "FROM compra c "
                 + "INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor "
+                + "WHERE c.id_sucursal = ? " // <--- filtro por sucursal
                 + "ORDER BY c.fecha_hora DESC";
 
         try {
             Connection con = DriverManager.getConnection(url, usuario, password);
             PreparedStatement ps = con.prepareStatement(sql);
+            ps.setInt(1, this.idSucursalUsuario);   // <--- acá metes la sucursal del admin
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -158,15 +158,15 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                
+
                 label.setHorizontalAlignment(CENTER);
                 label.setOpaque(true);
-                
+
                 // Configuración de fuente pequeña y negrita para parecer una etiqueta
-                label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11)); 
-                
+                label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11));
+
                 String estado = (String) value;
-                
+
                 // Si la fila está seleccionada, mantenemos el azul de selección, si no, aplicamos color pastel
                 if (isSelected) {
                     label.setBackground(table.getSelectionBackground());
@@ -176,22 +176,22 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                         switch (estado) {
                             case "Pendiente":
                                 // Amarillo Pastel suave
-                                label.setBackground(new Color(255, 248, 225)); 
+                                label.setBackground(new Color(255, 248, 225));
                                 label.setForeground(new Color(180, 100, 0));
                                 break;
                             case "Enviado":
                                 // Azul Pastel suave
-                                label.setBackground(new Color(225, 245, 254)); 
+                                label.setBackground(new Color(225, 245, 254));
                                 label.setForeground(new Color(2, 119, 189));
                                 break;
                             case "Recibido":
                                 // Verde Pastel suave
-                                label.setBackground(new Color(232, 245, 233)); 
+                                label.setBackground(new Color(232, 245, 233));
                                 label.setForeground(new Color(46, 125, 50));
                                 break;
                             case "Atrasado":
                                 // Rojo Pastel suave
-                                label.setBackground(new Color(255, 235, 238)); 
+                                label.setBackground(new Color(255, 235, 238));
                                 label.setForeground(new Color(198, 40, 40));
                                 break;
                             default:
@@ -262,16 +262,16 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             }
         });
     }
-    
+
     private void aplicarEstiloModerno() {
         // 1. Colores Generales
         Color colorFondo = new Color(245, 247, 251); // Gris azulado muy suave
         this.setBackground(colorFondo);
-        
+
         // Pestañas
         jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
         jTabbedPane1.setBackground(Color.WHITE);
-        
+
         // 2. Estilizar los Paneles contenedores
         // Hacemos que los paneles de fondo se fusionen con el color general
         jPanel3.setBackground(colorFondo); // Panel "COMPRAR"
@@ -309,14 +309,14 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
         header.setBackground(Color.WHITE);
         header.setForeground(new Color(100, 100, 100));
-        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200,200,200)));
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
 
         // Diseño del ScrollPane (Efecto Tarjeta)
         scroll.getViewport().setBackground(Color.WHITE); // Fondo blanco detrás de filas vacías
         scroll.setBackground(Color.WHITE);
         scroll.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0), // Margen externo
-            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)) // Borde gris suave
+                javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0), // Margen externo
+                javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)) // Borde gris suave
         ));
     }
 
@@ -324,8 +324,8 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     private void estilizarInput(javax.swing.JTextField txt) {
         txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
-            javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+                javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
         ));
     }
 
@@ -613,6 +613,9 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             return;
         }
 
+        int idSucursal = this.idSucursalUsuario;
+        System.out.println("Sucursal usada en recepción: " + idSucursal);
+
         // 2. FECHA DE VENCIMIENTO (Dato simple para recepción rápida)
         String fechaVencimiento = JOptionPane.showInputDialog(this, "Fecha de vencimiento del lote (YYYY-MM-DD):", "2026-12-31");
         if (fechaVencimiento == null || fechaVencimiento.trim().isEmpty()) {
@@ -636,7 +639,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
             con.setAutoCommit(false); // Transacción iniciada
 
             // ✅ CORRECCIÓN CLAVE: Usamos la variable global de la sucursal
-            int idSucursal = this.idSucursalUsuario; // <--- AQUÍ ESTÁ EL CAMBIO
+            idSucursal = this.idSucursalUsuario; // <--- AQUÍ ESTÁ EL CAMBIO
             String idEmpleado = "11000001"; // ID REAL DEL ADMIN
 
             // A. OBTENER ID PEDIDO

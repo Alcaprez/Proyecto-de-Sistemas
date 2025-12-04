@@ -233,63 +233,72 @@ public class AsistenciaDAO {
         }
     }
 
-    public void registrarMarca(String idEmpleado, int idSucursal, String tipoMarca) {
-        // tipoMarca puede ser: "ENTRADA" o "SALIDA"
+// En edu.UPAO.proyecto.DAO.AsistenciaDAO
 
-        String sqlBuscarHoy = "SELECT id_asistencia FROM asistencia WHERE id_empleado = ? AND DATE(fecha_hora_entrada) = CURDATE()";
+public void registrarMarca(String idEmpleado, int idSucursal, String tipoMarca) {
+    // 1. Capturar la hora correcta de Perú (Gracias a la configuración del Login)
+    long tiempoActual = System.currentTimeMillis();
+    java.sql.Timestamp horaExactaPeru = new java.sql.Timestamp(tiempoActual);
+    java.sql.Date fechaExactaPeru = new java.sql.Date(tiempoActual);
 
-        try (Connection cn = new Conexion().establecerConexion(); PreparedStatement psBus = cn.prepareStatement(sqlBuscarHoy)) {
+    // CAMBIO 1: Usamos '?' en lugar de CURDATE() para comparar con la fecha de TU PC, no del servidor
+    String sqlBuscarHoy = "SELECT id_asistencia FROM asistencia WHERE id_empleado = ? AND DATE(fecha_hora_entrada) = ?";
 
-            psBus.setString(1, idEmpleado);
-            ResultSet rs = psBus.executeQuery();
+    try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); 
+         java.sql.PreparedStatement psBus = cn.prepareStatement(sqlBuscarHoy)) {
+
+        psBus.setString(1, idEmpleado);
+        psBus.setDate(2, fechaExactaPeru); // Pasamos la fecha de hoy según Perú
+        
+        java.sql.ResultSet rs = psBus.executeQuery();
+
+        if (tipoMarca.equals("ENTRADA")) {
+            cerrarSesionesOlvidadas(idEmpleado);
+        }
+
+        if (rs.next()) {
+            // --- YA EXISTE UN REGISTRO DE HOY ---
+            int idAsistencia = rs.getInt("id_asistencia");
 
             if (tipoMarca.equals("ENTRADA")) {
-                cerrarSesionesOlvidadas(idEmpleado);
-            }
-
-            if (rs.next()) {
-                // --- YA EXISTE UN REGISTRO DE HOY ---
-                int idAsistencia = rs.getInt("id_asistencia");
-
-                if (tipoMarca.equals("ENTRADA")) {
-                    // RE-INGRESO: Si vuelve del baño/almuerzo, borramos la salida anterior
-                    // para indicar que "sigue aquí".
-                    String sqlReingreso = "UPDATE asistencia SET fecha_hora_salida = NULL WHERE id_asistencia = ?";
-                    try (PreparedStatement psUpd = cn.prepareStatement(sqlReingreso)) {
-                        psUpd.setInt(1, idAsistencia);
-                        psUpd.executeUpdate();
-                        System.out.println("🕒 Re-ingreso marcado. Salida borrada temporalmente.");
-                    }
-
-                } else if (tipoMarca.equals("SALIDA")) {
-                    // PAUSA O FIN: Marcamos la hora actual. 
-                    // Si no vuelve, esta quedará como su hora final.
-                    String sqlSalida = "UPDATE asistencia SET fecha_hora_salida = NOW() WHERE id_asistencia = ?";
-                    try (PreparedStatement psUpd = cn.prepareStatement(sqlSalida)) {
-                        psUpd.setInt(1, idAsistencia);
-                        psUpd.executeUpdate();
-                        System.out.println("🕒 Salida marcada (Pausa o Fin) a las: " + java.time.LocalTime.now());
-                    }
+                // RE-INGRESO: Borramos la salida anterior para indicar que "sigue aquí".
+                String sqlReingreso = "UPDATE asistencia SET fecha_hora_salida = NULL WHERE id_asistencia = ?";
+                try (java.sql.PreparedStatement psUpd = cn.prepareStatement(sqlReingreso)) {
+                    psUpd.setInt(1, idAsistencia);
+                    psUpd.executeUpdate();
+                    System.out.println("🕒 Re-ingreso marcado a las: " + horaExactaPeru);
                 }
 
-            } else {
-                // --- PRIMERA VEZ EN EL DÍA (Solo aplica para ENTRADA) ---
-                if (tipoMarca.equals("ENTRADA")) {
-                    String sqlInsert = "INSERT INTO asistencia (fecha_hora_entrada, id_empleado, id_sucursal, estado) VALUES (NOW(), ?, ?, 'RESPONSABLE')";
-                    // Nota: Podrías calcular si es TARDE comparando con HorarioDAO aquí mismo.
-
-                    try (PreparedStatement psIns = cn.prepareStatement(sqlInsert)) {
-                        psIns.setString(1, idEmpleado);
-                        psIns.setInt(2, idSucursal);
-                        psIns.executeUpdate();
-                        System.out.println("✅ Asistencia creada para el día.");
-                    }
+            } else if (tipoMarca.equals("SALIDA")) {
+                // PAUSA O FIN: CAMBIO 2 -> Usamos '?' en vez de NOW()
+                String sqlSalida = "UPDATE asistencia SET fecha_hora_salida = ? WHERE id_asistencia = ?";
+                try (java.sql.PreparedStatement psUpd = cn.prepareStatement(sqlSalida)) {
+                    psUpd.setTimestamp(1, horaExactaPeru); // Inyectamos hora peruana
+                    psUpd.setInt(2, idAsistencia);
+                    psUpd.executeUpdate();
+                    System.out.println("🕒 Salida marcada a las: " + horaExactaPeru);
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("Error marcando asistencia: " + e.getMessage());
+
+        } else {
+            // --- PRIMERA VEZ EN EL DÍA (Solo aplica para ENTRADA) ---
+            if (tipoMarca.equals("ENTRADA")) {
+                // CAMBIO 3: Usamos '?' en vez de NOW() en el INSERT
+                String sqlInsert = "INSERT INTO asistencia (fecha_hora_entrada, id_empleado, id_sucursal, estado) VALUES (?, ?, ?, 'RESPONSABLE')";
+                
+                try (java.sql.PreparedStatement psIns = cn.prepareStatement(sqlInsert)) {
+                    psIns.setTimestamp(1, horaExactaPeru); // Inyectamos hora peruana
+                    psIns.setString(2, idEmpleado);
+                    psIns.setInt(3, idSucursal);
+                    psIns.executeUpdate();
+                    System.out.println("✅ Asistencia creada correctamente: " + horaExactaPeru);
+                }
+            }
         }
+    } catch (java.sql.SQLException e) {
+        System.err.println("Error marcando asistencia: " + e.getMessage());
     }
+}
 
     public List<Object[]> listarAsistenciasDetalladas(String nombreSucursalFiltro) {
         List<Object[]> lista = new ArrayList<>();

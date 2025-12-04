@@ -32,6 +32,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
         aplicarEstiloModerno();
+        cb_sucursales.setVisible(rootPaneCheckingEnabled);
     }
 
     private void cargarSucursales() {
@@ -62,44 +63,45 @@ public class LoginjFrame extends javax.swing.JFrame {
 
     private void aplicarEstiloModerno() {
         // 1. COLORES
-        Color colorNaranja = new Color(255, 153, 0); 
+        Color colorNaranja = new Color(255, 153, 0);
         Color colorBlanco = Color.WHITE;
-        
+
         // 2. CONFIGURACIÓN DE PANELES
         Right.setBackground(colorBlanco); // Logo en fondo blanco
         Left.setBackground(colorNaranja); // Formulario en fondo naranja
         jPanel1.setBackground(colorNaranja);
-        
+
         // 3. ESTILIZAR LABELS
         jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 28));
         jLabel1.setForeground(colorBlanco);
-        jLabel1.setText("INICIO DE SESIÓN"); 
-        
-        estilizarLabel(jLabel2, colorBlanco); 
-        estilizarLabel(jLabel3, colorBlanco); 
-        
+        jLabel1.setText("INICIO DE SESIÓN");
+
+        estilizarLabel(jLabel2, colorBlanco);
+        estilizarLabel(jLabel3, colorBlanco);
+
         // 4. ESTILIZAR INPUTS (Corrección: Texto a la izquierda)
         estilizarInput(tf_identificacion);
         estilizarInput(tf_contraseña);
-        
+
         // 5. BOTÓN INGRESAR (Corrección: Sin borde feo)
         btn_login.setBackground(colorBlanco);
         btn_login.setForeground(colorNaranja);
         btn_login.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
+
         // AQUÍ QUITAMOS EL BORDE BLANCO FINO
         btn_login.setBorder(null); // Sin borde
         btn_login.setBorderPainted(false);
-        
+
         btn_login.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn_login.setFocusPainted(false);
-        
+
         // Efecto Hover suave
         btn_login.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 btn_login.setBackground(new Color(245, 245, 245)); // Gris muy claro
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 btn_login.setBackground(colorBlanco);
@@ -111,13 +113,13 @@ public class LoginjFrame extends javax.swing.JFrame {
         btn_olivdeContraseña.setBackground(new Color(204, 102, 0)); // Un naranja más oscuro (Sombra)
         btn_olivdeContraseña.setForeground(Color.WHITE);
         btn_olivdeContraseña.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        
+
         // Hacemos que tenga fondo para que parezca botón
-        btn_olivdeContraseña.setContentAreaFilled(true); 
+        btn_olivdeContraseña.setContentAreaFilled(true);
         btn_olivdeContraseña.setBorderPainted(false); // Sin borde linea, solo color de fondo
         btn_olivdeContraseña.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn_olivdeContraseña.setFocusPainted(false);
-        
+
         // 7. COMBOBOX
         cb_sucursales.setBackground(colorBlanco);
         cb_sucursales.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -132,20 +134,21 @@ public class LoginjFrame extends javax.swing.JFrame {
     // Método auxiliar para Inputs (Text Fields) CORREGIDO
     private void estilizarInput(JTextField tf) {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tf.setForeground(Color.WHITE); 
-        tf.setCaretColor(Color.WHITE); 
-        tf.setBackground(new Color(255, 153, 0)); 
-        
+        tf.setForeground(Color.WHITE);
+        tf.setCaretColor(Color.WHITE);
+        tf.setBackground(new Color(255, 153, 0));
+
         // CORRECCIÓN 1: TEXTO A LA IZQUIERDA
         tf.setHorizontalAlignment(JTextField.LEFT);
-        
+
         // CORRECCIÓN 2: BORDE INFERIOR + PADDING (Sangría)
         // Creamos un borde compuesto: Línea abajo + Espacio vacío a la izquierda
         javax.swing.border.Border lineaInferior = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.WHITE);
         javax.swing.border.Border espacioIzquierda = BorderFactory.createEmptyBorder(0, 5, 0, 0); // 5 pixeles de margen
-        
+
         tf.setBorder(BorderFactory.createCompoundBorder(lineaInferior, espacioIzquierda));
     }
+
     //----------------------------------------
     /**
      * This method is called from within the constructor to initialize the form.
@@ -244,6 +247,11 @@ public class LoginjFrame extends javax.swing.JFrame {
         });
 
         cb_sucursales.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cb_sucursales.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cb_sucursalesActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout LeftLayout = new javax.swing.GroupLayout(Left);
         Left.setLayout(LeftLayout);
@@ -292,7 +300,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         );
 
         jPanel1.add(Left);
-        Left.setBounds(400, 0, 400, 505);
+        Left.setBounds(400, 0, 400, 502);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -330,6 +338,10 @@ public class LoginjFrame extends javax.swing.JFrame {
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
 
+    private void cb_sucursalesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_sucursalesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cb_sucursalesActionPerformed
+
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
@@ -365,8 +377,8 @@ public class LoginjFrame extends javax.swing.JFrame {
                     menuPrincipal.setVisible(true);
 
                     // Abrir ventana de asistencia para cajero
-                    jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
-                    asistencia.setVisible(true);
+                    //jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                    //asistencia.setVisible(true);
                     break;
 
                 default:
@@ -484,7 +496,7 @@ public class LoginjFrame extends javax.swing.JFrame {
 
                 edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
                 asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
-                
+
             }
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
@@ -534,35 +546,68 @@ public class LoginjFrame extends javax.swing.JFrame {
         });
     }
 
+    // =========================================================================
+    //  👇 REEMPLAZA TU MÉTODO ANTIGUO POR ESTE NUEVO BLOQUE 👇
+    // =========================================================================
+    // En edu.UPAO.proyecto.app.LoginjFrame
+// En LoginjFrame.java
     private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
         edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+        edu.UPAO.proyecto.DAO.SucursalDAO sucursalDAO = new edu.UPAO.proyecto.DAO.SucursalDAO();
 
-        // 1. Verificar si YA tiene caja abierta
-        edu.UPAO.proyecto.Modelo.Caja cajaActual = cajaDAO.obtenerCajaAbiertaPorUsuario(idSucursal, idEmpleado);
+        // ---------------------------------------------------------
+        // 1. DETECTAR Y CORREGIR OLVIDOS DEL DÍA ANTERIOR
+        // ---------------------------------------------------------
+        edu.UPAO.proyecto.Modelo.Caja cajaVieja = cajaDAO.obtenerCajaPendienteAnterior(idSucursal);
 
-        if (cajaActual == null) {
-            System.out.println("🔄 No tienes caja abierta. Iniciando apertura automática para " + idEmpleado + "...");
+        if (cajaVieja != null) {
+            System.out.println("⚠️ ALERTA: Se detectó una caja del día anterior sin cerrar (Estado: " + cajaVieja.getEstado() + ")");
 
-            // --- CAMBIO AQUÍ -----------------------------------------------------
-            // ANTES: double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
-            // AHORA: Usamos el saldo con el que TÚ cerraste la última vez
-            double saldoHistorico = cajaDAO.obtenerSaldoUltimoCierre(idSucursal, idEmpleado);
-            // ---------------------------------------------------------------------
+            double montoRecuperar = 0.0;
 
-            // 3. Determinar turno
-            java.time.LocalTime hora = java.time.LocalTime.now();
-            String turno = (hora.getHour() < 14) ? "MAÑANA" : "TARDE";
+            // Caso A: El cajero SÍ hizo el encuadre, pero el Admin olvidó cerrar
+            if ("ENCUADRADA".equals(cajaVieja.getEstado())) {
+                montoRecuperar = cajaVieja.getSaldoFinal(); // Recuperamos lo que contó el cajero
+            } // Caso B: Nadie cerró nada (Ni cajero ni Admin) - CRÍTICO
+            else {
+                // Asumimos el saldo del sistema para no perder el rastro, o 0 si queremos ser estrictos.
+                // Lo ideal es recuperar el saldo teórico calculado.
+                montoRecuperar = cajaDAO.calcularSaldoTeorico(cajaVieja.getIdCaja());
+            }
 
-            // 4. Abrir la caja en BD asignándola a TI
-            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoHistorico, idEmpleado, turno);
+            // AUTO-CIERRE: Mover dinero al presupuesto y cerrar caja vieja
+            boolean devolucion = sucursalDAO.actualizarPresupuesto(idSucursal, montoRecuperar, true); // true = Ingreso
+            boolean cierre = cajaDAO.cerrarCajaDefinitivaAdmin(cajaVieja.getIdCaja()); // Usamos el método que creamos para el Admin
 
-            if (exito) {
-                System.out.println("✅ CAJA CREADA. Saldo Inicial (Continuidad): S/ " + saldoHistorico);
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al abrir caja.", "Error BD", JOptionPane.ERROR_MESSAGE);
+            if (devolucion && cierre) {
+                JOptionPane.showMessageDialog(this,
+                        "⚠️ AVISO DE SEGURIDAD:\n"
+                        + "La caja del día anterior no fue cerrada correctamente por el Administrador.\n"
+                        + "El sistema ha realizado el CIERRE AUTOMÁTICO recuperando S/ " + montoRecuperar + "\n"
+                        + "al presupuesto de la tienda para permitir la operación de hoy.");
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2. FLUJO NORMAL: ABRIR CAJA DE HOY (O unirse a ella)
+        // ---------------------------------------------------------
+        edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
+
+        if (cajaDia == null) {
+            // ... (Aquí va el código que ya tenías para pedir el 5% y abrir) ...
+            // COPIA PEGA LA LÓGICA DE APERTURA QUE TE DI EN LA RESPUESTA ANTERIOR
+            // (Calcular 5%, restar presupuesto, abrir caja nueva)
+
+            double presupuestoActual = sucursalDAO.obtenerPresupuesto(idSucursal);
+            double saldoInicial = presupuestoActual * 0.05; // 5%
+
+            if (sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, false)) {
+                if (cajaDAO.abrirCaja(idSucursal, saldoInicial, idEmpleado, "DIA_COMPLETO")) {
+                    JOptionPane.showMessageDialog(this, "☀️ Caja del día aperturada (Saldo inicial 5%: S/ " + String.format("%.2f", saldoInicial) + ")");
+                }
             }
         } else {
-            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + ").");
+            System.out.println("ℹ️ Uniéndose a la caja del día existente.");
         }
     }
 

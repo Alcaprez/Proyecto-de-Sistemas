@@ -146,45 +146,60 @@ public class GestionCajaFrame extends JFrame {
     }
 
     private void cargarDatos() {
-        // 1. Verificar si hay caja abierta
+        // 1. Verificar si hay caja abierta para esta sucursal (Lógica Diaria)
+        // Usamos la búsqueda genérica de caja abierta hoy
         cajaActual = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-        // 2. CALCULAR EL GRAN TOTAL HISTÓRICO (ESTA ES LA CLAVE)
-        // Suma todas las ventas de la historia de la sucursal, ignorando cierres.
-        granTotalHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
-        // Mostrar siempre el total histórico como referencia
-        txtSaldoAcumulado.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
-
         if (cajaActual == null) {
-            // --- APERTURA ---
+            // --- ESTADO: CAJA CERRADA ---
             lblEstado.setText("CAJA CERRADA");
             lblEstado.setForeground(Color.RED);
             panelDetalles.setVisible(false);
 
-            btnAccion.setText("INICIAR TURNO");
-            btnAccion.setBackground(new Color(0, 153, 51));
-            lblInstruccion.setText("Saldo acumulado actual:");
+            // Si está cerrada, sugerimos abrirla con el 5% del presupuesto (Solo informativo aquí)
+            edu.UPAO.proyecto.DAO.SucursalDAO sucDao = new edu.UPAO.proyecto.DAO.SucursalDAO();
+            double presupuesto = sucDao.obtenerPresupuesto(idSucursal);
+            double sugerido = presupuesto * 0.05; 
+            
+            txtSaldoAcumulado.setText(String.format("%.2f", sugerido).replace(",", "."));
+            btnAccion.setText("INICIAR TURNO (Automático en Login)");
+            btnAccion.setEnabled(false); // Ahora se abre en el Login, no aquí.
+            lblInstruccion.setText("La caja se abre automáticamente al entrar el primer usuario.");
 
         } else {
-            // --- CIERRE / GESTIÓN ---
-            lblEstado.setText("TURNO ABIERTO");
+            // --- ESTADO: CAJA ABIERTA (TURNO EN CURSO) ---
+            lblEstado.setText("TURNO ABIERTO (ID: " + cajaActual.getIdCaja() + ")");
             lblEstado.setForeground(new Color(0, 153, 51));
             panelDetalles.setVisible(true);
 
-            // Mostrar ventas de ESTA sesión solo como informativo
-            double ventasSesion = cajaDAO.obtenerTotalVentasSesion(cajaActual.getIdCaja());
-            lblVentas.setText("S/ " + String.format("%.2f", ventasSesion));
+            // A. Mostrar con cuánto dinero EMPEZÓ el día (El 5% que se trajo del presupuesto)
+            double saldoInicialDia = cajaActual.getSaldoInicial();
+            txtSaldoAcumulado.setText(String.format("%.2f", saldoInicialDia).replace(",", "."));
 
-            // EL TOTAL ESPERADO ES EL GRAN TOTAL HISTÓRICO
-            lblTotalEsperado.setText("S/ " + String.format("%.2f", granTotalHistorico));
+            // B. Mostrar ventas de HOY (Sesión actual de la caja)
+            // Nota: calcularSaldoTeorico ya suma (SaldoInicial + Ventas - Egresos)
+            double totalTeorico = cajaDAO.calcularSaldoTeorico(cajaActual.getIdCaja());
+            
+            // Calculamos solo las ventas puras para mostrar en el label pequeño
+            double soloVentas = totalTeorico - saldoInicialDia; 
+            
+            lblVentas.setText("S/ " + String.format("%.2f", soloVentas));
 
-            // Pre-llenar con el total histórico para facilitar el cierre
-            txtSaldoReal.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
-            calcularDiferencia();
+            // C. EL TOTAL ESPERADO (Lo que debe haber en el cajón Físicamente)
+            // Aquí es donde corregimos el error. Ya no es el histórico, es el teórico de HOY.
+            lblTotalEsperado.setText("S/ " + String.format("%.2f", totalTeorico));
+            
+            // Variable global para usar en el cálculo de diferencia
+            this.granTotalHistorico = totalTeorico; 
 
-            btnAccion.setText("CERRAR TURNO");
+            // Pre-llenar el campo de conteo para facilitar (opcional)
+            txtSaldoReal.setText(""); 
+            lblDiferencia.setText("Ingrese monto...");
+
+            btnAccion.setText("REALIZAR ARQUEO / CERRAR");
             btnAccion.setBackground(new Color(204, 0, 0));
-            lblInstruccion.setText("Dinero total que debe haber:");
+            btnAccion.setEnabled(true);
+            lblInstruccion.setText("Dinero total que debe haber HOY:");
         }
     }
 
@@ -193,32 +208,56 @@ public class GestionCajaFrame extends JFrame {
         JOptionPane.showMessageDialog(this, "Saldos actualizados desde la base de datos.");
     }
 
-    private void procesarAccion() {
+private void procesarAccion() {
         if (cajaActual == null) {
-            // ABRIR CON EL ACUMULADO HISTÓRICO
-            if (cajaDAO.abrirCaja(idSucursal, granTotalHistorico)) {
-                JOptionPane.showMessageDialog(this, "Turno iniciado con saldo acumulado: S/ " + granTotalHistorico);
-                cargarDatos();
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al abrir caja.");
-            }
+            // LÓGICA NUEVA: Bloquear apertura manual
+            // Como la apertura es automática en el Login, aquí solo avisamos.
+            JOptionPane.showMessageDialog(this, 
+                "⚠️ La caja se encuentra CERRADA.\n" +
+                "El sistema abre la caja automáticamente con el primer inicio de sesión del día.\n" +
+                "Si necesita abrirla, por favor ingrese nuevamente al sistema.", 
+                "Acción no permitida", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            // CERRAR
+            // LÓGICA DE CIERRE / ARQUEO
             try {
-                double saldoReal = Double.parseDouble(txtSaldoReal.getText().replace(",", "."));
+                // Verificar que el campo no esté vacío
+                if (txtSaldoReal.getText().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Por favor ingrese el monto contado en 'Dinero Físico'.");
+                    return;
+                }
 
+                double saldoReal = Double.parseDouble(txtSaldoReal.getText().replace(",", "."));
+                
+                // Calculamos diferencias para mostrar en el mensaje
+                // Usamos el total esperado calculado en cargarDatos()
+                double diferencia = saldoReal - this.granTotalHistorico; 
+                
                 int confirm = JOptionPane.showConfirmDialog(this,
-                        "¿Cerrar turno con S/ " + saldoReal + "?",
-                        "Confirmar Cierre", JOptionPane.YES_NO_OPTION);
+                        "¿Confirmar arqueo con S/ " + String.format("%.2f", saldoReal) + "?\n" +
+                        "Diferencia calculada: S/ " + String.format("%.2f", diferencia),
+                        "Confirmar Arqueo", JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (cajaDAO.cerrarCaja(cajaActual.getIdCaja(), saldoReal)) {
-                        JOptionPane.showMessageDialog(this, "Turno cerrado.");
+                    // Usamos la nueva lógica de ENCUADRE (No cierre definitivo) para que el Admin revise luego
+                    // O si prefieres cierre directo, usa cerrarCajaConArqueo.
+                    // Aquí usaremos cerrarCajaConArqueo del DAO para mantener coherencia con tu código anterior
+                    // pero asegurándonos de pasar los 4 parámetros que pide el DAO actualizado.
+                    
+                    String observacion = "Cierre desde Gestión de Caja";
+                    if (Math.abs(diferencia) > 5) {
+                        observacion = JOptionPane.showInputDialog("Existe una diferencia mayor a S/ 5.00.\nIngrese una justificación:");
+                        if (observacion == null || observacion.trim().isEmpty()) observacion = "Sin justificación";
+                    }
+
+                    if (cajaDAO.cerrarCajaConArqueo(cajaActual.getIdCaja(), saldoReal, diferencia, observacion)) {
+                        JOptionPane.showMessageDialog(this, "✅ Turno/Caja cerrada correctamente.");
                         this.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al guardar el cierre en la base de datos.");
                     }
                 }
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Monto inválido.");
+                JOptionPane.showMessageDialog(this, "Monto inválido. Ingrese solo números (ej. 150.50).");
             }
         }
     }
