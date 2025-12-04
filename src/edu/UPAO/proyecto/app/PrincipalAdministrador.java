@@ -16,10 +16,10 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     private String idEmpleado;
     private String nombreUsuario;
     private int idSucursal;
-
+    private DashboradBienvenida dashboradBienvenida;
     public PrincipalAdministrador() {
         initComponents();
-        MostrarPanel(new DashboardBienvenida());
+        MostrarPanel(new DashboradBienvenida());
         
         // --- AGREGA ESTO AQUÍ ---
         try {
@@ -36,7 +36,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
         // Inicializar componentes visuales primero
         initComponents();
-        MostrarPanel(new DashboardBienvenida());
+        MostrarPanel(new DashboradBienvenida());
         aplicarDisenoModerno();
         // Guardar los datos recibidos
         this.idEmpleado = idEmpleado;
