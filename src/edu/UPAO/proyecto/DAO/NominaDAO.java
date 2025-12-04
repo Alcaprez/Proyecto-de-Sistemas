@@ -8,28 +8,32 @@ import javax.swing.JOptionPane;
 
 public class NominaDAO {
 
+    // En edu.UPAO.proyecto.DAO.NominaDAO
     public List<Object[]> listarNominaMes(int idSucursal, String mes, int anio, String textoBusqueda) {
         List<Object[]> lista = new ArrayList<>();
 
-// REEMPLAZAR LA CONSULTA SQL EN NominaDAO.java -> listarNominaMes
+        // MODIFICACIÓN CLAVE:
+        // 1. "(? = 0 OR e.id_sucursal = ?)" -> Si idSucursal es 0, trae todo. Si no, filtra.
+        // 2. "AND e.rol <> 'GERENTE'" -> Oculta al gerente de la lista de pagos.
         String sql = "SELECT e.id_empleado, p.nombres, p.apellidos, e.rol, e.sueldo, "
                 + "CASE WHEN pn.id_pago IS NOT NULL THEN 'PAGADO' ELSE 'PENDIENTE' END as estado_pago, "
                 + "pn.fecha_pago "
                 + "FROM empleado e "
                 + "INNER JOIN persona p ON e.dni = p.dni "
                 + "LEFT JOIN pago_nomina pn ON e.id_empleado = pn.id_empleado AND pn.mes = ? AND pn.anio = ? "
-                + "WHERE e.id_sucursal = ? AND e.estado = 'ACTIVO' "
+                + "WHERE (? = 0 OR e.id_sucursal = ?) "
+                + "AND e.estado = 'ACTIVO' "
                 + "AND e.rol <> 'GERENTE' "
-                + // <--- ESTA LÍNEA ES LA CLAVE PARA QUE NO SALGA EL JEFE
-                "AND (p.nombres LIKE ? OR p.apellidos LIKE ?)";
+                + "AND (p.nombres LIKE ? OR p.apellidos LIKE ?)";
 
         try (Connection cn = new Conexion().establecerConexion(); PreparedStatement ps = cn.prepareStatement(sql)) {
 
             ps.setString(1, mes);
             ps.setInt(2, anio);
-            ps.setInt(3, idSucursal);
-            ps.setString(4, "%" + textoBusqueda + "%");
+            ps.setInt(3, idSucursal); // Para la condición (? = 0)
+            ps.setInt(4, idSucursal); // Para el filtro (id_sucursal = ?)
             ps.setString(5, "%" + textoBusqueda + "%");
+            ps.setString(6, "%" + textoBusqueda + "%");
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
