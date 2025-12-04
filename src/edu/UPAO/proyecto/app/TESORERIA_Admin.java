@@ -225,57 +225,51 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         }
     }
 
-   private void cargarListadoFacturas() {
+    private void cargarListadoFacturas() {
         DefaultTableModel modelo = (DefaultTableModel) tblListadoFacturas.getModel();
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"FECHA", "HORA", "CONCEPTO", "ENTRADA", "SALIDA", "SALDO (BÓVEDA)"});
-        
+
         // Ajustes visuales
         tblListadoFacturas.getColumnModel().getColumn(0).setPreferredWidth(80);
         tblListadoFacturas.getColumnModel().getColumn(1).setPreferredWidth(60);
         tblListadoFacturas.getColumnModel().getColumn(2).setPreferredWidth(350);
 
         // 1. REGLA DE NEGOCIO: Capital Social / Saldo Inicial del Gerente
-        double saldoAcumulado = 10000.00; 
+        double saldoAcumulado = 10000.00;
 
         String url = "jdbc:mysql://crossover.proxy.rlwy.net:17752/railway";
         String usuario = "root";
-        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU"; 
+        String password = "wASzoGLiXaNsbdZbBQKwzjvJFcdoMTaU";
 
         // 2. CONSULTA UNIFICADA
-        String sql = "SELECT * FROM (" +
-                     
-                     // A. CAJA CHICA (Ventas, Gastos, Aperturas, Cierres...)
-                     "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal " +
-                     "   FROM movimiento_caja " +
-                     "   WHERE tipo NOT IN ('COMPRA') " + 
-                     
-                     "   UNION ALL " +
-                     
-                     // B. INVENTARIO: ENTRADAS (Son SALIDAS de Dinero - Compras)
-                     "   SELECT mi.fecha_hora, " +
-                     "          CONCAT('COMPRA STOCK: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
-                     "          'GASTO_INVENTARIO' as tipo, " +
-                     "          (mi.cantidad * p.precio_compra) as monto, " +
-                     "          mi.id_sucursal " +
-                     "   FROM movimiento_inventario mi " +
-                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
-                     "   WHERE mi.tipo = 'ENTRADA COMPRA' " +
-                     
-                     "   UNION ALL " +
-                     
-                     // C. INVENTARIO: DEVOLUCIONES (Son ENTRADAS de Dinero - Reembolsos)
-                     "   SELECT mi.fecha_hora, " +
-                     "          CONCAT('DEVOLUCION PROV: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, " +
-                     "          'INGRESO_INVENTARIO' as tipo, " +
-                     "          (mi.cantidad * p.precio_compra) as monto, " +
-                     "          mi.id_sucursal " +
-                     "   FROM movimiento_inventario mi " +
-                     "   INNER JOIN producto p ON mi.id_producto = p.id_producto " +
-                     "   WHERE mi.tipo = 'SALIDA POR ANULACION' " +
-                     
-                     ") AS libro_mayor " +
-                     "WHERE id_sucursal = 1 ";
+        String sql = "SELECT * FROM ("
+                + // A. CAJA CHICA (Ventas, Gastos, Aperturas, Cierres...)
+                "   SELECT fecha_hora, descripcion, tipo, monto, id_sucursal "
+                + "   FROM movimiento_caja "
+                + "   WHERE tipo NOT IN ('COMPRA') "
+                + "   UNION ALL "
+                + // B. INVENTARIO: ENTRADAS (Son SALIDAS de Dinero - Compras)
+                "   SELECT mi.fecha_hora, "
+                + "          CONCAT('COMPRA STOCK: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, "
+                + "          'GASTO_INVENTARIO' as tipo, "
+                + "          (mi.cantidad * p.precio_compra) as monto, "
+                + "          mi.id_sucursal "
+                + "   FROM movimiento_inventario mi "
+                + "   INNER JOIN producto p ON mi.id_producto = p.id_producto "
+                + "   WHERE mi.tipo = 'ENTRADA COMPRA' "
+                + "   UNION ALL "
+                + // C. INVENTARIO: DEVOLUCIONES (Son ENTRADAS de Dinero - Reembolsos)
+                "   SELECT mi.fecha_hora, "
+                + "          CONCAT('DEVOLUCION PROV: ', p.nombre, ' (', mi.cantidad, ' unds)') as descripcion, "
+                + "          'INGRESO_INVENTARIO' as tipo, "
+                + "          (mi.cantidad * p.precio_compra) as monto, "
+                + "          mi.id_sucursal "
+                + "   FROM movimiento_inventario mi "
+                + "   INNER JOIN producto p ON mi.id_producto = p.id_producto "
+                + "   WHERE mi.tipo = 'SALIDA POR ANULACION' "
+                + ") AS libro_mayor "
+                + "WHERE id_sucursal = 1 ";
 
         // Filtros (Opcional)
         try {
@@ -285,9 +279,10 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             } else if (filtro.equalsIgnoreCase("EGRESOS")) {
                 sql += " AND (monto > 0 AND (tipo LIKE '%GASTO%' OR tipo LIKE '%APERTURA%' OR tipo LIKE '%COMPRA%')) ";
             }
-        } catch (Exception e) {} 
+        } catch (Exception e) {
+        }
 
-        sql += " ORDER BY fecha_hora ASC"; 
+        sql += " ORDER BY fecha_hora ASC";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
@@ -305,32 +300,26 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 String textoSalida = "0.00";
 
                 // --- LÓGICA FINANCIERA CORREGIDA ---
-
                 // GRUPO A: SALIDAS DE BÓVEDA (Restan)
                 // 1. GASTO_INVENTARIO: Compras grandes de mercadería.
                 // 2. APERTURA: El sistema saca el 5% para dárselo al cajero.
                 // 3. REPOSICION: El admin saca más dinero manual para la caja chica.
                 if (tipo.equals("GASTO_INVENTARIO") || tipo.equals("APERTURA") || tipo.equals("REPOSICION")) {
                     textoSalida = String.format("%.2f", monto);
-                    saldoAcumulado -= monto; 
-                }
-                
-                // GRUPO B: ENTRADAS A BÓVEDA (Suman)
+                    saldoAcumulado -= monto;
+                } // GRUPO B: ENTRADAS A BÓVEDA (Suman)
                 // 1. INGRESO_INVENTARIO: Devoluciones al proveedor (recuperas plata).
                 // 2. CIERRE: El cajero entrega la ganancia del día.
                 // 3. RETIRO: Transferencia manual de caja chica a grande.
                 else if (tipo.equals("INGRESO_INVENTARIO") || tipo.equals("CIERRE") || tipo.equals("RETIRO")) {
                     textoEntrada = String.format("%.2f", monto);
                     saldoAcumulado += monto;
-                }
-                
-                // GRUPO C: MOVIMIENTOS INTERNOS DE CAJA CHICA (Neutros para Bóveda)
+                } // GRUPO C: MOVIMIENTOS INTERNOS DE CAJA CHICA (Neutros para Bóveda)
                 // Ventas, Gastos de luz, Pagos... ocurren "lejos" de la bóveda.
                 // Solo se anotan visualmente pero NO tocan el saldo acumulado aquí.
                 else if (tipo.contains("VENTA") || tipo.contains("INGRESO")) {
                     textoEntrada = String.format("%.2f", monto);
-                }
-                else if (tipo.contains("GASTO") || tipo.contains("PAGO") || tipo.contains("SALIDA") || tipo.contains("DEVOLUCION")) {
+                } else if (tipo.contains("GASTO") || tipo.contains("PAGO") || tipo.contains("SALIDA") || tipo.contains("DEVOLUCION")) {
                     textoSalida = String.format("%.2f", monto);
                 }
 
@@ -349,11 +338,11 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }
 
     private void verificarAperturaAutomatica() {
-        // A. BUSCAMOS LA CAJA ACTIVA USANDO TU DAO
+        // 1. BUSCAMOS LA CAJA ACTIVA (Necesitamos una caja abierta donde meter el dinero)
         Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1); // Sucursal 1
 
         if (cajaActual == null) {
-            // Si no hay caja abierta, avisamos visualmente
+            // Si no hay caja abierta, avisamos visualmente y no hacemos nada
             lblSaldoChica.setText("CERRADA");
             lblSaldoChica.setForeground(java.awt.Color.RED);
             return;
@@ -361,20 +350,29 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             lblSaldoChica.setForeground(new java.awt.Color(255, 255, 255)); // Color normal
         }
 
-        int idCaja = cajaActual.getIdCaja();
+        int idCajaDestino = cajaActual.getIdCaja();
 
-        // B. VERIFICAR SI YA SE HIZO LA APERTURA HOY EN ESA CAJA
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            String sqlCheck = "SELECT COUNT(*) FROM movimiento_caja WHERE tipo = 'APERTURA' AND id_caja = ?";
+
+            // ---------------------------------------------------------------
+            // CAMBIO CLAVE: VERIFICAR SI YA HUBO APERTURA EN LA FECHA DE HOY
+            // ---------------------------------------------------------------
+            // En lugar de filtrar por id_caja, filtramos por CURDATE() (Fecha actual del servidor)
+            String sqlCheck = "SELECT COUNT(*) FROM movimiento_caja "
+                    + "WHERE tipo = 'APERTURA' "
+                    + "AND DATE(fecha_hora) = CURDATE() "
+                    + "AND id_sucursal = 1";
+
             PreparedStatement psCheck = con.prepareStatement(sqlCheck);
-            psCheck.setInt(1, idCaja);
             ResultSet rsCheck = psCheck.executeQuery();
 
             if (rsCheck.next() && rsCheck.getInt(1) > 0) {
-                return; // Ya se inyectó el dinero a esta caja
+                // YA EXISTE una apertura con fecha de HOY. No inyectamos más dinero.
+                System.out.println("Ya se realizó la inyección de capital del día de hoy.");
+                return;
             }
 
-            // C. PROCEDEMOS CON EL 5% (Si es nueva)
+            // 3. SI NO SE HA HECHO HOY, PROCEDEMOS CON EL 5%
             String sqlPresu = "SELECT presupuesto FROM sucursal WHERE id_sucursal = 1";
             ResultSet rsPresu = con.prepareStatement(sqlPresu).executeQuery();
 
@@ -386,33 +384,38 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             if (presupuestoActual > 0) {
                 double montoApertura = presupuestoActual * 0.05;
 
-                // 1. Restar de Bóveda
+                // A. Restar de Bóveda (Sucursal)
                 String sqlResta = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = 1";
                 PreparedStatement psResta = con.prepareStatement(sqlResta);
                 psResta.setDouble(1, montoApertura);
                 psResta.executeUpdate();
 
-                // 2. Sumar a Caja Chica (USANDO EL ID REAL)
-                String sqlSuma = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('APERTURA', ?, NOW(), 'Apertura Automática (5% Bóveda)', 1, 'ACTIVO', ?)";
+                // B. Sumar a la Caja Chica que esté abierta en este momento
+                String sqlSuma = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) "
+                        + "VALUES ('APERTURA', ?, NOW(), 'Capital Inicial Diario (5% Bóveda)', 1, 'ACTIVO', ?)";
                 PreparedStatement psSuma = con.prepareStatement(sqlSuma);
                 psSuma.setDouble(1, montoApertura);
-                psSuma.setInt(2, idCaja); // <--- AQUÍ ESTÁ LA SOLUCIÓN
+                psSuma.setInt(2, idCajaDestino);
                 psSuma.executeUpdate();
 
-                JOptionPane.showMessageDialog(this, "<html><b>¡CAJA #" + idCaja + " DETECTADA!</b><br>"
+                // Mensaje informativo actualizado
+                JOptionPane.showMessageDialog(this, "<html><b>¡PRIMERA APERTURA DEL DÍA DETECTADA!</b><br>"
+                        + "Fecha: " + new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date()) + "<br>"
                         + "Se ha transferido el 5% del presupuesto (S/ " + String.format("%.2f", montoApertura) + ")<br>"
-                        + "para iniciar el turno.</html>");
+                        + "a la Caja #" + idCajaDestino + " para iniciar operaciones del día.</html>");
 
                 actualizarSaldos();
+                cargarTablaMovimientos(); // Recargar tabla para ver el movimiento
             }
         } catch (SQLException e) {
             System.out.println("Error apertura auto: " + e);
+            e.printStackTrace();
         }
     }
 
-   private void actualizarSaldos() {
+    private void actualizarSaldos() {
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            
+
             // 1. CAJA GRANDE (Bóveda) - Lee directo de la tabla sucursal
             String sqlGrande = "SELECT presupuesto FROM sucursal WHERE id_sucursal = 1";
             ResultSet rsG = con.prepareStatement(sqlGrande).executeQuery();
@@ -423,22 +426,24 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             // 2. CAJA CHICA (El dinero del cajón)
             // CORRECCIÓN: Excluimos el tipo 'COMPRA' porque ese dinero sale de Bóveda, no del cajón.
             // Solo restamos: GASTOS (Luz, Agua...), PAGOS, RETIROS (Cierres)
-            
             Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
-            
+
             if (cajaActual != null) {
-                String sqlChica = "SELECT " +
-                                  "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - " +
-                                  "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) " + // <--- OJO: Aquí quitamos 'COMPRA'
-                                  "as saldo_caja FROM movimiento_caja WHERE id_caja = ?";
-                
+                String sqlChica = "SELECT "
+                        + "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - "
+                        + "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) "
+                        + // <--- OJO: Aquí quitamos 'COMPRA'
+                        "as saldo_caja FROM movimiento_caja WHERE id_caja = ?";
+
                 PreparedStatement psC = con.prepareStatement(sqlChica);
                 psC.setInt(1, cajaActual.getIdCaja());
                 ResultSet rsC = psC.executeQuery();
-                
+
                 double saldo = 0.0;
-                if (rsC.next()) saldo = rsC.getDouble("saldo_caja");
-                
+                if (rsC.next()) {
+                    saldo = rsC.getDouble("saldo_caja");
+                }
+
                 lblSaldoChica.setText("S/ " + String.format("%.2f", saldo));
             } else {
                 lblSaldoChica.setText("CERRADA");
@@ -461,7 +466,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         modelo.setRowCount(0);
         modelo.setColumnIdentifiers(new Object[]{"HORA", "TIPO", "DESCRIPCIÓN", "MONTO"});
 
-       Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
+        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
         if (cajaActual == null) {
             return; // Si está cerrada no mostramos nada reciente
         }
@@ -479,13 +484,14 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         } catch (SQLException e) {
         }
     }
-        private void exportarPDF(JTable tabla, String tituloReporte) {
+
+    private void exportarPDF(JTable tabla, String tituloReporte) {
         // 1. Configurar el selector de archivos
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Guardar Reporte PDF");
         // Filtro para que solo muestre PDFs
         fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
-        
+
         // Sugerir un nombre por defecto (Ej: Reporte_Ventas.pdf)
         fileChooser.setSelectedFile(new java.io.File("Reporte_" + System.currentTimeMillis() + ".pdf"));
 
@@ -494,7 +500,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         if (userSelection == JFileChooser.APPROVE_OPTION) {
             // Obtener la ruta elegida por el usuario
             String rutaArchivo = fileChooser.getSelectedFile().getAbsolutePath();
-            
+
             // Asegurar que termine en .pdf
             if (!rutaArchivo.toLowerCase().endsWith(".pdf")) {
                 rutaArchivo += ".pdf";
@@ -531,7 +537,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                     for (int j = 0; j < tabla.getColumnCount(); j++) {
                         Object valor = tabla.getValueAt(i, j);
                         String texto = (valor == null) ? "" : valor.toString();
-                        
+
                         PdfPCell cell = new PdfPCell(new Phrase(texto, FontFactory.getFont(FontFactory.HELVETICA, 10)));
                         cell.setPadding(5);
                         // Alinear a la derecha si es dinero
@@ -546,10 +552,10 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 document.close();
 
                 // 5. MENSAJE DE ÉXITO CON LA RUTA
-                JOptionPane.showMessageDialog(this, 
-                    "¡Reporte generado exitosamente!\n\nGuardado en:\n" + rutaArchivo, 
-                    "Éxito", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this,
+                        "¡Reporte generado exitosamente!\n\nGuardado en:\n" + rutaArchivo,
+                        "Éxito",
+                        JOptionPane.INFORMATION_MESSAGE);
 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Error al generar PDF: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -557,18 +563,18 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             }
         }
     }
-        //-------------------------------------------------------------------------
-        // --- MÉTODOS DE DISEÑO (COPIAR AL FINAL DE LA CLASE) ---
+    //-------------------------------------------------------------------------
+    // --- MÉTODOS DE DISEÑO (COPIAR AL FINAL DE LA CLASE) ---
 
     private void aplicarEstiloModerno() {
         // 1. Colores Generales del Tema
         Color colorFondo = new Color(245, 247, 251); // Gris azulado muy suave
         this.setBackground(colorFondo);
-        
+
         // Estilo del TabbedPane (Pestañas)
         jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
         jTabbedPane1.setBackground(Color.WHITE);
-        
+
         // 2. Unificar Fondos de las Pestañas
         jPanel1.setBackground(colorFondo); // Ventas
         jPanel2.setBackground(colorFondo); // Gastos
@@ -580,20 +586,20 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         estilizarKPI(jPanel5, new Color(46, 125, 50), new Color(232, 245, 233)); // Ingresos (Verde)
         estilizarKPI(jPanel6, new Color(239, 108, 0), new Color(255, 243, 224)); // Ticket (Naranja)
         estilizarDateChooser(dcFecha);
-        
+
         // Pestaña Gastos
         estilizarKPI(jPanel7, new Color(198, 40, 40), new Color(255, 235, 238)); // Gastos Totales (Rojo)
-        estilizarKPI(jPanel8, new Color(230, 81, 0),  new Color(255, 248, 225)); // Compras (Naranja suave)
+        estilizarKPI(jPanel8, new Color(230, 81, 0), new Color(255, 248, 225)); // Compras (Naranja suave)
         estilizarKPI(jPanel9, new Color(0, 121, 107), new Color(224, 242, 241)); // Salarios (Teal)
 
         // 4. Estilizar Panel de Gestión de Caja (El cuadro verde grande)
         // Lo convertimos en una "Tarjeta de Control" blanca y limpia
         jPanel10.setBackground(Color.WHITE);
         jPanel10.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)),
-            javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20)
+                javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20)
         ));
-        
+
         // Corregir colores de etiquetas dentro del Panel de Caja (porque antes eran blancas sobre fondo verde)
         fixLabelsCaja(jPanel10);
 
@@ -612,7 +618,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         // 7. Estilizar Inputs y Combos
         estilizarInput(txtMontoTransferencia);
         estilizarCombo(cboFiltroFacturas);
-        
+
         // 8. Títulos
         estilizarTitulo(jLabel1); // "Detalle ingresos"
         estilizarTitulo(jLabel4); // "Registro Gastos"
@@ -623,18 +629,18 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     // Transforma los paneles sólidos en tarjetas modernas con borde inferior de color
     private void estilizarKPI(JPanel panel, Color colorBorde, Color colorFondo) {
         panel.setBackground(colorFondo);
-        panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 4, 0, colorBorde)); 
-        
+        panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 4, 0, colorBorde));
+
         for (java.awt.Component comp : panel.getComponents()) {
             if (comp instanceof javax.swing.JLabel) {
                 javax.swing.JLabel lbl = (javax.swing.JLabel) comp;
                 // Títulos en el color del tema, números en gris oscuro
                 if (lbl.getFont().getSize() < 15) { // Asumimos que fuente pequeña es título
-                     lbl.setForeground(colorBorde);
-                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+                    lbl.setForeground(colorBorde);
+                    lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
                 } else {
-                     lbl.setForeground(Color.DARK_GRAY);
-                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22));
+                    lbl.setForeground(Color.DARK_GRAY);
+                    lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22));
                 }
             }
         }
@@ -653,13 +659,13 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
         header.setBackground(Color.WHITE);
         header.setForeground(new Color(100, 100, 100));
-        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200,200,200)));
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200, 200, 200)));
 
         scroll.getViewport().setBackground(Color.WHITE);
         scroll.setBackground(Color.WHITE);
         scroll.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0),
-            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220))
+                javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0),
+                javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220))
         ));
     }
 
@@ -668,9 +674,9 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             if (comp instanceof javax.swing.JLabel) {
                 javax.swing.JLabel lbl = (javax.swing.JLabel) comp;
                 lbl.setForeground(new Color(50, 50, 50)); // Gris oscuro en vez de blanco
-                if(lbl.getText().contains("s/")) {
-                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
-                     lbl.setForeground(new Color(0, 100, 0)); // Verde oscuro para dinero
+                if (lbl.getText().contains("s/")) {
+                    lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+                    lbl.setForeground(new Color(0, 100, 0)); // Verde oscuro para dinero
                 }
             }
         }
@@ -689,11 +695,11 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
         txt.setBackground(Color.WHITE);
         txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
-            javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+                javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
         ));
     }
-    
+
     private void estilizarCombo(javax.swing.JComboBox cbo) {
         cbo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
         cbo.setBackground(Color.WHITE);
@@ -703,29 +709,32 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 20));
         lbl.setForeground(new Color(60, 60, 60)); // Gris oscuro profesional
     }
+
     //--------------------- SI EL CALENDARIO NO FUNCIO SOLO BORRA ESTO--------------------------
     // 
     private void estilizarDateChooser(com.toedter.calendar.JDateChooser dc) {
-        if (dc == null) return;
+        if (dc == null) {
+            return;
+        }
 
         // 1. Estilo del Contenedor Principal
         dc.setBackground(Color.WHITE);
         dc.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
-        
+
         // 2. Estilo de la Caja de Texto Interna (Donde sale la fecha)
         // JDateChooser tiene un método getDateEditor() que nos da acceso al input
         javax.swing.JComponent editor = (javax.swing.JComponent) dc.getDateEditor().getUiComponent();
-        
+
         if (editor instanceof javax.swing.JTextField) {
             javax.swing.JTextField txt = (javax.swing.JTextField) editor;
             txt.setBackground(Color.WHITE);
             txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
             txt.setForeground(Color.DARK_GRAY);
-            
+
             // Borde moderno (Gris suave con padding)
             txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
-                javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+                    javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                    javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
             ));
         }
 
@@ -734,9 +743,9 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         for (java.awt.Component comp : dc.getComponents()) {
             if (comp instanceof javax.swing.JButton) {
                 javax.swing.JButton btn = (javax.swing.JButton) comp;
-                
+
                 // Le damos un fondo sutil o lo hacemos plano
-                btn.setBackground(new Color(245, 247, 251)); 
+                btn.setBackground(new Color(245, 247, 251));
                 btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
                 btn.setContentAreaFilled(false); // Quita el relieve 3D feo
                 btn.setFocusPainted(false);
@@ -746,7 +755,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }
     //----------------------------------------------------------------------------------------------------------------------------
     //----------------- SU WEBADA DE DETALLES DE INGRESO POR VENTAS DE POR NO HACIA CUANDO HICE CLONE NANDA NOMAS DIGO------------
-     //---------------------------------------------------------------------------------------------------------------------------
+    //---------------------------------------------------------------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -1345,7 +1354,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     private void btnPasarGrandeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnPasarGrandeActionPerformed
         // 1. BUSCAR LA CAJA ACTUAL (Usando la instancia correcta)
         Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
-        
+
         if (cajaActual == null) {
             JOptionPane.showMessageDialog(this, "No hay caja abierta para cerrar.");
             return;
@@ -1356,34 +1365,35 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
 
         // 2. CALCULAR CUÁNTO DINERO HAY REALMENTE
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            String sqlSaldo = "SELECT " +
-                              "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - " +
-                              "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'COMPRA', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) " +
-                              "as saldo_actual FROM movimiento_caja WHERE id_caja = ?";
-            
+            String sqlSaldo = "SELECT "
+                    + "SUM(CASE WHEN tipo IN ('APERTURA', 'VENTA', 'INGRESO', 'REPOSICION') THEN monto ELSE 0 END) - "
+                    + "SUM(CASE WHEN tipo IN ('GASTO', 'PAGO', 'COMPRA', 'CIERRE', 'RETIRO') THEN monto ELSE 0 END) "
+                    + "as saldo_actual FROM movimiento_caja WHERE id_caja = ?";
+
             PreparedStatement ps = con.prepareStatement(sqlSaldo);
             ps.setInt(1, idCaja);
             ResultSet rs = ps.executeQuery();
-            
+
             if (rs.next()) {
                 saldoDelDia = rs.getDouble("saldo_actual");
             }
-            
+
             if (saldoDelDia <= 0) {
                 JOptionPane.showMessageDialog(this, "No hay dinero en caja para transferir.");
                 return;
             }
 
             // 3. LA ALERTA (Lo que pediste)
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                    "<html>El saldo acumulado del día es: <font color='blue' size='5'><b>S/ " + String.format("%.2f", saldoDelDia) + "</b></font><br><br>" +
-                    "¿Desea mover este dinero a la <b>Bóveda (Caja Grande)</b> y cerrar el turno?</html>", 
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "<html>El saldo acumulado del día es: <font color='blue' size='5'><b>S/ " + String.format("%.2f", saldoDelDia) + "</b></font><br><br>"
+                    + "¿Desea mover este dinero a la <b>Bóveda (Caja Grande)</b> y cerrar el turno?</html>",
                     "Transferencia a Bóveda", JOptionPane.YES_NO_OPTION);
-            
-            if (confirm != JOptionPane.YES_OPTION) return;
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
 
             // 4. EJECUTAR EL MOVIMIENTO
-            
             // A. Sacar de Caja Chica (Registrar SALIDA)
             String sqlRetiro = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('CIERRE', ?, NOW(), 'Transferencia de Ganancia del Día a Bóveda', 1, 'ACTIVO', ?)";
             PreparedStatement psRet = con.prepareStatement(sqlRetiro);
@@ -1396,7 +1406,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             PreparedStatement psUp = con.prepareStatement(sqlBoveda);
             psUp.setDouble(1, saldoDelDia);
             psUp.executeUpdate();
-            
+
             // C. Cerrar la Caja en la BD (Para que mañana se cree una nueva)
             String sqlCerrar = "UPDATE caja SET fecha_hora_cierre = NOW(), saldo_final = ?, estado = 'CERRADA' WHERE id_caja = ?";
             PreparedStatement psClose = con.prepareStatement(sqlCerrar);
@@ -1405,7 +1415,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             psClose.executeUpdate();
 
             JOptionPane.showMessageDialog(this, "¡Transferencia Exitosa!\nEl dinero está seguro en la Bóveda.");
-            
+
             // Actualizar pantalla
             lblSaldoChica.setText("CERRADA");
             lblSaldoChica.setForeground(java.awt.Color.RED);
@@ -1493,7 +1503,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }//GEN-LAST:event_btnGenerarPagoActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-       exportarPDF(tblListadoFacturas, "Reporte de Movimientos de Caja");        // TODO add your handling code here:
+        exportarPDF(tblListadoFacturas, "Reporte de Movimientos de Caja");        // TODO add your handling code here:
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void cboFiltroFacturasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cboFiltroFacturasActionPerformed
