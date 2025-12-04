@@ -342,7 +342,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_cb_sucursalesActionPerformed
 
-    private void abrirPanelSegunRol(Usuario usuario) {
+    private void abrirPanelSegunRol(Usuario usuario, int idSucursal) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
         String idEmpleado = usuario.getUsuario();
@@ -353,48 +353,45 @@ public class LoginjFrame extends javax.swing.JFrame {
             switch (rol) {
                 case "GERENTE":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
-
-                    // ✅ CAMBIO AQUÍ: Pasamos los datos al constructor nuevo
+                    
+                    // El Gerente entra con ID 0 (Global) o sin filtro
+                    // No cambiamos su constructor porque él ve todo
                     PrincipalGerente principalGerente = new PrincipalGerente(idEmpleado, nombreUsuario);
-
                     principalGerente.setVisible(true);
                     break;
 
                 case "ADMINISTRADOR":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
 
-                    // --- CAMBIO AQUÍ: Pasamos idEmpleado y nombreUsuario al constructor ---
-                    PrincipalAdministrador principalAdministrador = new PrincipalAdministrador(idEmpleado, nombreUsuario);
-                    // -----------------------------------------------------------------------
-
-                    principalAdministrador.setLocationRelativeTo(null);
-                    principalAdministrador.setVisible(true);
+                    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+                    // Pasamos el ID de la sucursal al Administrador para que él se lo pase a Tesorería
+                    PrincipalAdministrador principalAdmin = new PrincipalAdministrador(idEmpleado, nombreUsuario, idSucursal);
+                    
+                    principalAdmin.setLocationRelativeTo(null);
+                    principalAdmin.setVisible(true);
                     break;
 
                 case "CAJERO":
-                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);                    // Abrir menú principal de cajero
+                    JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // El cajero usa su ID de empleado, la sucursal ya se validó en el paso anterior
                     Menu2 menuPrincipal = new Menu2(idEmpleado);
                     menuPrincipal.setVisible(true);
 
-                    // Abrir ventana de asistencia para cajero
-                    //jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
-                    //asistencia.setVisible(true);
+                    jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                    asistencia.setVisible(true);
                     break;
 
                 default:
-                    JOptionPane.showMessageDialog(this,
-                            "Rol no reconocido: " + rol,
-                            "Error de Sistema", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Rol no reconocido", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
             }
 
-            // Cerrar ventana de login después de abrir el panel correspondiente
+            // Cerrar la ventana de login
             this.dispose();
 
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al abrir el panel: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error al abrir el panel: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
@@ -404,107 +401,86 @@ public class LoginjFrame extends javax.swing.JFrame {
         String contrasena = new String(tf_contraseña.getPassword());
         String sucursalSeleccionada = (String) cb_sucursales.getSelectedItem();
 
-        System.out.println("=== DEBUG LOGIN ===");
-        System.out.println("Usuario ingresado: " + usuario);
-        System.out.println("Contraseña ingresada: " + contrasena);
-        System.out.println("Sucursal seleccionada: " + sucursalSeleccionada);
-
-        // Validar campos vacíos
+        // 1. Validar campos vacíos (Para todos)
         if (usuario.isEmpty() || contrasena.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, complete todos los campos",
-                    "Campos Incompletos",
-                    JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Por favor, complete todos los campos", "Campos Incompletos", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Validar que se haya seleccionado una sucursal válida
-        if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, seleccione una sucursal válida",
-                    "Sucursal Requerida",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // Validar formato (8 dígitos)
+        // 2. Validar formato numérico de 8 dígitos (Para todos)
         if (!usuario.matches("\\d{8}")) {
-            JOptionPane.showMessageDialog(this,
-                    "El usuario debe ser un número de 8 dígitos",
-                    "Error de Formato", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "El usuario debe ser un número de 8 dígitos", "Error de Formato", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // Validar que sea usuario interno (10, 11, 12)
+        // 3. DETECTAR TIPO DE USUARIO POR PREFIJO
+        // 10 = Gerente, 11 = Admin, 12 = Cajero
         int id = Integer.parseInt(usuario);
-        int primerosDosDigitos = id / 1000000;
+        int prefijo = id / 1000000; 
 
-        if (primerosDosDigitos < 10 || primerosDosDigitos > 12) {
-            JOptionPane.showMessageDialog(this,
-                    "❌ Acceso denegado.\nSolo personal autorizado puede ingresar al sistema.\n\n"
-                    + "Tipos de usuario permitidos:\n"
-                    + "• 10xxxxxx - Gerentes\n"
-                    + "• 11xxxxxx - Administradores\n"
-                    + "• 12xxxxxx - Cajeros",
-                    "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
-            return;
+        // 4. Validar que sea usuario interno permitido (10, 11 o 12)
+        if (prefijo < 10 || prefijo > 12) {
+             JOptionPane.showMessageDialog(this, "Acceso denegado. Prefijo de usuario no autorizado.", "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
+             return;
         }
 
-        // Intentar autenticación
+        // 5. VALIDACIÓN DE SUCURSAL (SOLO SI NO ES GERENTE)
+        // Si el prefijo NO es 10, obligamos a seleccionar sucursal
+        if (prefijo != 10) { 
+            if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
+                JOptionPane.showMessageDialog(this, "Por favor, seleccione una sucursal válida", "Sucursal Requerida", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
+        // 6. Intentar autenticación en Base de Datos
         UsuarioDAO usuarioDAO = new UsuarioDAO();
-
-        // Verificar conexión primero (opcional, para debug)
-        usuarioDAO.verificarDatosUsuario(usuario);
-
         Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
 
         if (usuarioAutenticado != null) {
-            String rol = usuarioAutenticado.getCargo().toUpperCase();
+            
+            // --- LÓGICA DE OBTENCIÓN DE ID SUCURSAL ---
+            int idSucursalReal = 0; // Valor por defecto (0 para Gerentes)
 
-            if (rol.equals("CAJERO")) {
-                // 1. Validación de Horario (Existente)
-                boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
-                if (!enTurno) {
-                    JOptionPane.showMessageDialog(this,
-                            "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.",
-                            "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                // 2. 👇 LÓGICA REAL PARA OBTENER EL ID DE LA SUCURSAL 👇
-                String nombreSucursal = cb_sucursales.getSelectedItem().toString();
-                int idSucursalReal = -1;
-
+            // Solo buscamos el ID de la sucursal si NO es Gerente (es decir, Admin o Cajero)
+            if (prefijo != 10) {
                 try {
                     SucursalDAO sucursalDAO = new SucursalDAO();
-                    // Aquí llamamos al método que acabamos de crear en el Paso 1
-                    idSucursalReal = sucursalDAO.obtenerIdPorNombre(nombreSucursal);
+                    idSucursalReal = sucursalDAO.obtenerIdPorNombre(sucursalSeleccionada);
                 } catch (Exception e) {
                     System.err.println("Error buscando sucursal: " + e.getMessage());
                 }
 
-                // Validamos que se haya encontrado la sucursal
                 if (idSucursalReal == -1) {
-                    JOptionPane.showMessageDialog(this, "Error crítico: No se pudo identificar la sucursal seleccionada en la BD.");
+                    JOptionPane.showMessageDialog(this, "Error crítico: No se encontró la sucursal en BD.");
                     return;
                 }
+            }
+            // ------------------------------------------
 
-                System.out.println("🏢 Sucursal detectada: " + nombreSucursal + " (ID: " + idSucursalReal + ")");
+            String rol = usuarioAutenticado.getCargo().toUpperCase();
 
-                // 3. 👇 ABRIR CAJA AUTOMÁTICAMENTE CON EL ID REAL 👇
+            // Lógica exclusiva de CAJERO (Turnos y Caja)
+            if (rol.equals("CAJERO")) {
+                boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
+                if (!enTurno) {
+                    JOptionPane.showMessageDialog(this, "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.", "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                // Aquí usamos el idSucursalReal que ya obtuvimos arriba
                 gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
-
+                
                 edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
                 asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
-
             }
 
-            System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
-            abrirPanelSegunRol(usuarioAutenticado);
+            System.out.println("🎉 Login exitoso (" + rol + ") - ID Sucursal: " + idSucursalReal);
+            
+            // Pasamos el ID (será 0 si es Gerente, o el ID real si es Admin/Cajero)
+            abrirPanelSegunRol(usuarioAutenticado, idSucursalReal);
+
         } else {
-            JOptionPane.showMessageDialog(this,
-                    "Usuario o contraseña incorrectos",
-                    "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos", "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
             tf_contraseña.setText("");
             tf_identificacion.requestFocus();
         }

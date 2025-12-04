@@ -12,10 +12,9 @@ import javax.swing.JButton;
 import javax.swing.border.EmptyBorder;
 
 public class PrincipalAdministrador extends javax.swing.JFrame {
-
+    private int idSucursal; // El dato más importante ahora
     private String idEmpleado;
     private String nombreUsuario;
-    private int idSucursal;
     private DashboradBienvenida dashboradBienvenida;
     public PrincipalAdministrador() {
         initComponents();
@@ -33,34 +32,35 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         verificarStockSucursal();
     }
 
-    public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
-        // Inicializar componentes visuales primero
+    public PrincipalAdministrador(String idEmpleado, String nombreUsuario, int idSucursal) {
         initComponents();
-        MostrarPanel(new DashboradBienvenida());
-        aplicarDisenoModerno();
-        // Guardar los datos recibidos
+        
+        // 1. Guardamos los datos que vienen del Login
         this.idEmpleado = idEmpleado;
         this.nombreUsuario = nombreUsuario;
+        this.idSucursal = idSucursal; // <--- AQUÍ RECIBIMOS EL ID CORRECTO
 
-        // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
-        this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
+        // 2. Configuración Visual
+        MostrarPanel(new DashboradBienvenida());
+        aplicarDisenoModerno();
+        
+        this.setTitle("Panel Administrador - " + nombreUsuario + " - SUCURSAL ID: " + idSucursal);
 
+        // 3. Tareas en segundo plano
         verificarStockSucursal();
     }
     
-    private void verificarStockSucursal() {
+   private void verificarStockSucursal() {
         new Thread(() -> {
             try {
-                // 1. Obtener la sucursal de ESTE administrador
-                edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
-                int idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
+                // YA NO consultamos el ID en la BD, usamos el que ya tenemos (this.idSucursal)
+                // Esto es más rápido y seguro.
                 
-                // 2. Buscar alertas SOLO de esa sucursal (pasamos el ID)
                 edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
-                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
+                java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(this.idSucursal);
                 
                 if (!alertas.isEmpty()) {
-                    StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK (Tu Sucursal)\n\n");
+                    StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK (Sucursal " + this.idSucursal + ")\n\n");
                     
                     int limite = Math.min(alertas.size(), 15);
                     for (int i = 0; i < limite; i++) {
@@ -71,12 +71,12 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
                         mensaje.append("\n... y ").append(alertas.size() - 15).append(" más.");
                     }
                     
-                    mensaje.append("\n\nSe requiere reposición urgente en esta sede.");
+                    mensaje.append("\n\nSe requiere reposición urgente.");
 
                     javax.swing.SwingUtilities.invokeLater(() -> {
                         javax.swing.JOptionPane.showMessageDialog(this, 
                             new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)), 
-                            "Gestión de Inventario - Local", 
+                            "Gestión de Inventario", 
                             javax.swing.JOptionPane.WARNING_MESSAGE);
                     });
                 }
@@ -444,7 +444,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_tesoreriaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_tesoreriaActionPerformed
-        TESORERIA_Admin paneltesoreria = new TESORERIA_Admin();
+        TESORERIA_Admin paneltesoreria = new TESORERIA_Admin(this.idSucursal);
         MostrarPanel(paneltesoreria);
     }//GEN-LAST:event_btn_tesoreriaActionPerformed
 
@@ -455,26 +455,20 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
 
     private void btn_comprasActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_comprasActionPerformed
         try {
-            // Cambiamos el cursor a "cargando" para dar feedback visual
             this.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
 
-            // 1. Instanciamos el panel (ahora capturamos si falla aquí)
-            COMPRAS_Admin panelCompras = new COMPRAS_Admin(idSucursal);
+            // ✅ Pasamos el ID a Compras (Tu código ya lo tenía, ahora funcionará bien)
+            COMPRAS_Admin panelCompras = new COMPRAS_Admin(this.idSucursal);
+            
+            // Si tu panel de compras tiene un método para guardar el usuario también:
+            // panelCompras.setIdEmpleado(this.idEmpleado);
 
-            // IMPORTANTE: Pasar el ID del empleado o sucursal si es necesario
-            // panelCompras.setIdSucursal(this.idSucursalAdministrador); // (Opcional si implementas el setter)
-            // 2. Mostramos el panel
             MostrarPanel(panelCompras);
 
         } catch (Exception e) {
-            // Si falla, mostramos el error real
             e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "No se pudo abrir el panel de Compras.\nError: " + e.getMessage(),
-                    "Error Crítico",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error abriendo Compras: " + e.getMessage());
         } finally {
-            // Restauramos el cursor
             this.setCursor(java.awt.Cursor.getDefaultCursor());
         }
     }//GEN-LAST:event_btn_comprasActionPerformed
