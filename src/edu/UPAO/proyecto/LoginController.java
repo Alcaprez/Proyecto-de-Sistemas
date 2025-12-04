@@ -69,41 +69,51 @@ public class LoginController {
         }
     }
 
-    // 2. Lógica de validación de turno
-    public static boolean esHorarioValido(String idEmpleado) {  // <--- AQUÍ FALTABA EL STATIC
+// En edu.UPAO.proyecto.LoginController
 
-        // A. Obtener fecha y hora actual
-        java.time.LocalDateTime ahora = java.time.LocalDateTime.now();
-        String diaActual = obtenerDiaSemana(ahora.getDayOfWeek());
-        java.time.LocalTime horaActual = ahora.toLocalTime();
+public static boolean esHorarioValido(String idEmpleado) {
+    // A. Obtener fecha y hora actual
+    java.time.LocalDateTime ahora = java.time.LocalDateTime.now();
+    String diaActual = obtenerDiaSemana(ahora.getDayOfWeek());
+    java.time.LocalTime horaActual = ahora.toLocalTime();
 
-        // B. Consultar el horario en la BD
-        edu.UPAO.proyecto.DAO.HorarioDAO horarioDAO = new edu.UPAO.proyecto.DAO.HorarioDAO();
-        edu.UPAO.proyecto.Modelo.HorarioEmpleado horario = horarioDAO.obtenerHorarioPorDia(idEmpleado, diaActual);
+    // B. Consultar el horario en la BD
+    edu.UPAO.proyecto.DAO.HorarioDAO horarioDAO = new edu.UPAO.proyecto.DAO.HorarioDAO();
+    edu.UPAO.proyecto.Modelo.HorarioEmpleado horario = horarioDAO.obtenerHorarioPorDia(idEmpleado, diaActual);
 
-        // C. Validar existencia
-        if (horario == null) {
-            System.out.println("⚠️ No se encontró horario para " + diaActual + ". (Política: Se permite acceso)");
+    // C. Validar existencia
+    if (horario == null) {
+        System.out.println("⚠️ No se encontró horario para " + diaActual + ". (Política: Se permite acceso)");
+        return true;
+    }
+
+    // D. Comprobar rango de horas (Con 15 min de tolerancia)
+    java.time.LocalTime entradaOriginal = horario.getHoraEntrada();
+    java.time.LocalTime salida = horario.getHoraSalida();
+    
+    // Calculamos la hora de entrada con tolerancia
+    java.time.LocalTime entradaConTolerancia = entradaOriginal.minusMinutes(15);
+
+    // ✅ CORRECCIÓN LÓGICA:
+    // El turno cruza la medianoche si:
+    // 1. La hora de salida es menor que la entrada original (Ej: 22:00 a 06:00)
+    // 2. O la tolerancia hizo que la entrada retrocediera al día anterior (Ej: 00:05 - 15min = 23:50)
+    boolean cruzaMedianoche = salida.isBefore(entradaOriginal) || entradaConTolerancia.isAfter(entradaOriginal);
+
+    if (cruzaMedianoche) {
+        // Caso especial: El rango válido "envuelve" la medianoche
+        // Es válido si es "tarde en la noche" (después de 23:xx) O "temprano en la mañana" (antes de salida)
+        if (horaActual.isAfter(entradaConTolerancia) || horaActual.isBefore(salida)) {
             return true;
         }
-
-        // D. Comprobar rango de horas (Con 15 min de tolerancia)
-        java.time.LocalTime entradaConTolerancia = horario.getHoraEntrada().minusMinutes(15);
-        java.time.LocalTime salida = horario.getHoraSalida();
-
-        // Caso especial: Turno que cruza la medianoche
-        if (salida.isBefore(horario.getHoraEntrada())) {
-            if (horaActual.isAfter(entradaConTolerancia) || horaActual.isBefore(salida)) {
-                return true;
-            }
-        } else {
-            // Turno normal
-            if (horaActual.isAfter(entradaConTolerancia) && horaActual.isBefore(salida)) {
-                return true; // ✅ ESTÁ EN SU TURNO
-            }
+    } else {
+        // Turno normal (todo en el mismo día)
+        if (horaActual.isAfter(entradaConTolerancia) && horaActual.isBefore(salida)) {
+            return true; 
         }
-
-        System.out.println("⛔ Fuera de horario. Hora actual: " + horaActual + " | Turno: " + horario.getHoraEntrada() + " - " + salida);
-        return false; // ❌ FUERA DE TURNO
     }
+
+    System.out.println("⛔ Fuera de horario. Hora actual: " + horaActual + " | Acceso válido desde: " + entradaConTolerancia + " hasta " + salida);
+    return false;
+}
 }

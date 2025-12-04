@@ -534,35 +534,37 @@ public class LoginjFrame extends javax.swing.JFrame {
         });
     }
 
+    // =========================================================================
+    //  👇 REEMPLAZA TU MÉTODO ANTIGUO POR ESTE NUEVO BLOQUE 👇
+    // =========================================================================
     private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
         edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
 
-        // 1. Verificar si YA tiene caja abierta
-        edu.UPAO.proyecto.Modelo.Caja cajaActual = cajaDAO.obtenerCajaAbiertaPorUsuario(idSucursal, idEmpleado);
+        // 1. CAMBIO PRINCIPAL: Verificar si existe UNA caja abierta para la SUCURSAL
+        // Ya no usamos 'obtenerCajaAbiertaPorUsuario', usamos la genérica de la sucursal.
+        edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-        if (cajaActual == null) {
-            System.out.println("🔄 No tienes caja abierta. Iniciando apertura automática para " + idEmpleado + "...");
+        if (cajaDia == null) {
+            // ==> NO hay caja abierta hoy: Significa que eres el primero del día.
+            System.out.println("☀️ Primer ingreso del día. Aperturando caja diaria...");
 
-            // --- CAMBIO AQUÍ -----------------------------------------------------
-            // ANTES: double saldoHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
-            // AHORA: Usamos el saldo con el que TÚ cerraste la última vez
-            double saldoHistorico = cajaDAO.obtenerSaldoUltimoCierre(idSucursal, idEmpleado);
-            // ---------------------------------------------------------------------
+            // 2. Calculamos el saldo histórico total de la tienda (acumulado real)
+            // Usamos obtenerSaldoAcumuladoHistorico para que el dinero fluya de ayer a hoy.
+            double saldoInicial = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
 
-            // 3. Determinar turno
-            java.time.LocalTime hora = java.time.LocalTime.now();
-            String turno = (hora.getHour() < 14) ? "MAÑANA" : "TARDE";
-
-            // 4. Abrir la caja en BD asignándola a TI
-            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoHistorico, idEmpleado, turno);
+            // 3. Abrimos la caja para todo el día (Turno "DIA_COMPLETO" o similar)
+            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoInicial, idEmpleado, "DIA_COMPLETO");
 
             if (exito) {
-                System.out.println("✅ CAJA CREADA. Saldo Inicial (Continuidad): S/ " + saldoHistorico);
+                System.out.println("✅ CAJA DIARIA CREADA. Saldo Acumulado Inicial: S/ " + saldoInicial);
+                JOptionPane.showMessageDialog(this, "☀️ Se ha aperturado la Caja del Día.\nSaldo inicial acumulado: S/ " + saldoInicial);
             } else {
-                JOptionPane.showMessageDialog(this, "Error al abrir caja.", "Error BD", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error crítico al abrir caja diaria.", "Error BD", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            System.out.println("ℹ️ Ya tienes tu caja abierta (ID: " + cajaActual.getIdCaja() + ").");
+            // ==> SI hay caja abierta: Significa que ya la abrió alguien más (mañana) y tú entras en la tarde/noche.
+            // Simplemente te unes a la sesión existente.
+            System.out.println("ℹ️ Uniéndose a la caja abierta del día existente (ID Caja: " + cajaDia.getIdCaja() + ")");
         }
     }
 

@@ -2,7 +2,9 @@ package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.ProductoDAO;
-
+// AGREGAR ESTOS IMPORTS DEBAJO DE LOS QUE YA TIENES
+import edu.UPAO.proyecto.DAO.CajaDAO;          // <--- FALTABA ESTE
+import edu.UPAO.proyecto.LoginController;      // <--- FALTABA ESTE
 import java.util.List;
 import java.util.Random;
 import javax.swing.JOptionPane;
@@ -988,45 +990,57 @@ public class Menu2 extends javax.swing.JFrame {
     }
 
     private void btn_salirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_salirActionPerformed
-        Object[] options = {"Solo Cerrar Sesión (Pausa)", "Finalizar Turno (Cerrar Caja)", "Cancelar"};
+        // 1. Obtener turno (Noche o Día)
+        String turnoActual = obtenerTurnoActual();
 
-        int seleccion = JOptionPane.showOptionDialog(this,
-                "¿Qué desea hacer?\n\n"
-                + "• Cerrar Sesión: La caja queda ABIERTA. Use esto para descansos.\n"
-                + "• Finalizar Turno: Se realizará el ARQUEO y se CERRARÁ la caja.",
-                "Control de Salida",
-                JOptionPane.YES_NO_CANCEL_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                options,
-                options[2]);
+        // 2. Verificar Rol y Turno
+        // Si es NOCHE o es GERENTE, obligamos a hacer el arqueo (Cierre de caja diario)
+        if (turnoActual.equalsIgnoreCase("NOCHE") || LoginController.getTipoUsuario(idEmpleado).equalsIgnoreCase("GERENTE")) {
 
-        if (seleccion == 0) {
-            // --- OPCIÓN 1: SOLO SALIR (Caja queda abierta) ---
-            System.out.println("Sesión pausada. Caja sigue abierta.");
-            irALogin();
+            CajaDAO cajaDAO = new CajaDAO();
+            edu.UPAO.proyecto.Modelo.Caja caja = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-        } else if (seleccion == 1) {
-            // --- OPCIÓN 2: FINALIZAR TURNO (Obliga Arqueo) ---
-            int idCaja = obtenerIdCajaAbierta();
+            if (caja != null) {
+                // Abrir ventana de conteo de dinero (Arqueo)
+                DialogoArqueoCaja arqueo = new DialogoArqueoCaja(this, true, caja.getIdCaja());
+                arqueo.setVisible(true);
 
-            if (idCaja == -1) {
-                // Si por alguna razón no tiene caja (ej. error sistema), lo dejamos salir
-                JOptionPane.showMessageDialog(this, "No se detectó caja abierta. Saliendo...");
-                irALogin();
-            } else {
-                // Abrir ventana OBLIGATORIA de Arqueo
-                DialogoArqueoCaja dialogo = new DialogoArqueoCaja(this, true, idCaja);
-                dialogo.setVisible(true);
-
-                // Solo salimos si el arqueo fue exitoso
-                if (dialogo.cajaCerradaExito) {
-                    irALogin();
-                } else {
-                    // Si canceló el arqueo, no hacemos nada (se queda en el menú)
+                // Si el arqueo terminó bien, cerramos la ventana del menú y volvemos al login
+                if (arqueo.cajaCerradaExito) {
+                    this.dispose();
+                    new LoginjFrame().setVisible(true);
                 }
+            } else {
+                // Si por error no había caja abierta, salimos normal
+                this.dispose();
+                new LoginjFrame().setVisible(true);
+            }
+
+        } else {
+            // ==> TURNOS MAÑANA / TARDE (O NOCHE ANTES DEL CIERRE)
+            // Solo cierran sesión, la caja sigue abierta para el siguiente compañero
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "¿Desea cerrar su sesión? (La caja permanecerá abierta para el siguiente turno)",
+                    "Salida de Turno",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                this.dispose();
+                new LoginjFrame().setVisible(true);
             }
         }
+    }
+
+// Método auxiliar sugerido para determinar si corresponde cerrar
+    private String obtenerTurnoActual() {
+        java.time.LocalTime horaActual = java.time.LocalTime.now();
+
+        // Si son más de las 19:00 (7 PM), lo consideramos turno NOCHE (cierre de día)
+        if (horaActual.isAfter(java.time.LocalTime.of(19, 0))) {
+            return "NOCHE";
+        }
+        return "DIA";
     }//GEN-LAST:event_btn_salirActionPerformed
 
     private void irALogin() {
