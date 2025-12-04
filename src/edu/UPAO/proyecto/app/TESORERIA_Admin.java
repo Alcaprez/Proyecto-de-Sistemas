@@ -809,6 +809,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jLabel12 = new javax.swing.JLabel();
         jScrollPane4 = new javax.swing.JScrollPane();
         tblMovimientosCaja = new javax.swing.JTable();
+        btn_cerrarCaja = new javax.swing.JButton();
 
         setBackground(new java.awt.Color(255, 102, 0));
 
@@ -1240,6 +1241,9 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             .addGroup(jPanel10Layout.createSequentialGroup()
                 .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel10Layout.createSequentialGroup()
+                        .addGap(63, 63, 63)
+                        .addComponent(jLabel10))
+                    .addGroup(jPanel10Layout.createSequentialGroup()
                         .addGap(39, 39, 39)
                         .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addGroup(jPanel10Layout.createSequentialGroup()
@@ -1260,13 +1264,10 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                                     .addComponent(lblSaldoChica, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(lblTotalHoy, javax.swing.GroupLayout.PREFERRED_SIZE, 122, javax.swing.GroupLayout.PREFERRED_SIZE)
                                     .addComponent(txtMontoTransferencia, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(jPanel10Layout.createSequentialGroup()
-                        .addGap(127, 127, 127)
-                        .addComponent(btnGenerarPago, javax.swing.GroupLayout.PREFERRED_SIZE, 158, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(jPanel10Layout.createSequentialGroup()
-                        .addGap(63, 63, 63)
-                        .addComponent(jLabel10)))
+                            .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 69, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(jPanel10Layout.createSequentialGroup()
+                                .addGap(83, 83, 83)
+                                .addComponent(btnGenerarPago, javax.swing.GroupLayout.PREFERRED_SIZE, 158, javax.swing.GroupLayout.PREFERRED_SIZE)))))
                 .addContainerGap(35, Short.MAX_VALUE))
         );
         jPanel10Layout.setVerticalGroup(
@@ -1290,15 +1291,15 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel15)
                     .addComponent(txtMontoTransferencia, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 47, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jLabel12)
                 .addGap(18, 18, 18)
                 .addGroup(jPanel10Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnPasarGrande, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btnPasarChica, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(28, 28, 28)
+                .addGap(18, 18, 18)
                 .addComponent(btnGenerarPago, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(38, 38, 38))
+                .addGap(48, 48, 48))
         );
 
         tblMovimientosCaja.setModel(new javax.swing.table.DefaultTableModel(
@@ -1314,25 +1315,40 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         ));
         jScrollPane4.setViewportView(tblMovimientosCaja);
 
+        btn_cerrarCaja.setBackground(new java.awt.Color(0, 102, 153));
+        btn_cerrarCaja.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        btn_cerrarCaja.setText("CERRAR CAJA");
+        btn_cerrarCaja.setActionCommand("");
+        btn_cerrarCaja.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btn_cerrarCajaActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(52, 52, 52)
-                .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jPanel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btn_cerrarCaja, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(33, 33, 33)
                 .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 640, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(38, Short.MAX_VALUE))
+                .addContainerGap(41, Short.MAX_VALUE))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGap(36, 36, 36)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jPanel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jScrollPane4))
-                .addContainerGap(61, Short.MAX_VALUE))
+                    .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 507, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jPanel10, javax.swing.GroupLayout.PREFERRED_SIZE, 446, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btn_cerrarCaja, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap(67, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("GESTION DE CAJA", jPanel4);
@@ -1514,10 +1530,70 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         // TODO add your handling code here:
     }//GEN-LAST:event_txtMontoTransferenciaActionPerformed
 
+    private void btn_cerrarCajaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cerrarCajaActionPerformed
+// 1. Obtener la caja activa del día (Puede estar ABIERTA o ENCUADRADA)
+        // Usamos ID Sucursal = 1 como en el resto de tu código
+        int idSucursal = 1; 
+        edu.UPAO.proyecto.DAO.CajaDAO dao = new edu.UPAO.proyecto.DAO.CajaDAO();
+        
+        // NOTA: Asegúrate de que obtenerCajaAbierta en tu DAO traiga también las de estado 'ENCUADRADA'
+        edu.UPAO.proyecto.Modelo.Caja cajaPendiente = dao.obtenerCajaAbierta(idSucursal); 
+        
+        if (cajaPendiente != null) {
+            
+            // CASO A: El cajero YA hizo su conteo (Ideal)
+            if ("ENCUADRADA".equals(cajaPendiente.getEstado())) {
+                
+                int resp = JOptionPane.showConfirmDialog(this, 
+                    "<html>La caja tiene un arqueo registrado de: <font color='blue'><b>S/ " + cajaPendiente.getSaldoFinal() + "</b></font><br>" +
+                    "Diferencia reportada: S/ " + cajaPendiente.getDiferencia() + "<br><br>" +
+                    "¿Desea <b>CERRARLA DEFINITIVAMENTE</b> y mover el dinero a la Bóveda?</html>", 
+                    "Cierre Administrativo", JOptionPane.YES_NO_OPTION);
+                    
+                if (resp == JOptionPane.YES_OPTION) {
+                    // 1. Mover dinero al presupuesto de la tienda (Bóveda)
+                    edu.UPAO.proyecto.DAO.SucursalDAO sucDao = new edu.UPAO.proyecto.DAO.SucursalDAO();
+                    
+                    // true = Ingreso (Suma al presupuesto)
+                    boolean presupuestoOk = sucDao.actualizarPresupuesto(idSucursal, cajaPendiente.getSaldoFinal(), true); 
+                    
+                    if (presupuestoOk) {
+                        // 2. Cerrar caja definitivamente en BD (Poner fecha cierre y estado CERRADA)
+                        // Asegúrate de haber agregado este método en CajaDAO como te indiqué antes
+                        if (dao.cerrarCajaDefinitivaAdmin(cajaPendiente.getIdCaja())) {
+                            
+                            JOptionPane.showMessageDialog(this, "✅ Caja cerrada exitosamente.\nEl saldo ha regresado al presupuesto de la tienda.");
+                            
+                            // 3. Actualizar la interfaz visual
+                            lblSaldoChica.setText("CERRADA");
+                            lblSaldoChica.setForeground(java.awt.Color.RED);
+                            actualizarSaldos();
+                            cargarTablaMovimientos();
+                            
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Error al cerrar la caja en la BD.", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al actualizar el presupuesto.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } 
+            // CASO B: La caja sigue ABIERTA (El cajero no ha contado)
+            else if ("ABIERTA".equals(cajaPendiente.getEstado())) {
+                JOptionPane.showMessageDialog(this, 
+                    "⚠️ La caja está ABIERTA pero el cajero aún no ha hecho el encuadre (conteo).\n" +
+                    "Por favor, espere a que el turno termine y el cajero registre su conteo.", 
+                    "Esperando Arqueo", JOptionPane.WARNING_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "No hay cajas pendientes de cierre en este momento.");
+        }    }//GEN-LAST:event_btn_cerrarCajaActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnGenerarPago;
     private javax.swing.JButton btnPasarChica;
     private javax.swing.JButton btnPasarGrande;
+    private javax.swing.JButton btn_cerrarCaja;
     private javax.swing.JComboBox<String> cboFiltroFacturas;
     private com.toedter.calendar.JDateChooser dcFecha;
     private javax.swing.JButton jButton1;

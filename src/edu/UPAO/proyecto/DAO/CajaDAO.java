@@ -203,11 +203,9 @@ public class CajaDAO {
         return (totalVentas + totalEntradas) - totalSalidas;
     }
 
-// En edu.UPAO.proyecto.DAO.CajaDAO
     public Caja obtenerCajaAbierta(int idSucursal) {
-        // Agregamos: AND DATE(fecha_hora_apertura) = CURDATE()
-        // Esto asegura que solo recupere la caja SI es del día actual.
-        String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado = 'ABIERTA' AND DATE(fecha_hora_apertura) = CURDATE() ORDER BY id_caja DESC LIMIT 1";
+        // Asegúrate de que la consulta traiga todo (*) o las columnas específicas
+        String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado IN ('ABIERTA', 'ENCUADRADA') ORDER BY id_caja DESC LIMIT 1";
 
         try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
@@ -218,10 +216,16 @@ public class CajaDAO {
                 c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
                 c.setSaldoInicial(rs.getDouble("saldo_inicial"));
                 c.setEstado(rs.getString("estado"));
+
+                // ✅ IMPORTANTE: Leer los datos del arqueo
+                c.setSaldoFinal(rs.getDouble("saldo_final"));
+                c.setDiferencia(rs.getDouble("diferencia"));
+                c.setObservacion(rs.getString("observacion"));
+
                 return c;
             }
         } catch (SQLException e) {
-            System.err.println("Error obteniendo caja abierta: " + e.getMessage());
+            System.err.println("Error obteniendo caja: " + e.getMessage());
         }
         return null;
     }
@@ -241,10 +245,144 @@ public class CajaDAO {
         return -1;
     }
 
-    public boolean abrirCaja(int idSucursal, double saldoInicial) {
-        // Este método es una versión simplificada, podría asumir un empleado por defecto o ser obsoleto
-        // Se recomienda usar la versión completa abajo
-        return abrirCaja(idSucursal, saldoInicial, "DEFAULT", "MAÑANA");
+    // En edu.UPAO.proyecto.DAO.CajaDAO
+// MÉTODO NUEVO: Solo guarda el conteo del cajero, pero NO cierra la caja (Estado 'ENCUADRADA' o sigue 'ABIERTA')
+    public boolean realizarEncuadreCajero(int idCaja, double saldoReal, double diferencia, String observaciones) {
+        // Calculamos el saldo teórico (sistema)
+        double saldoSistema = saldoReal - diferencia;
+
+        // Actualizamos los datos del arqueo, pero NO ponemos fecha_cierre ni estado 'CERRADA'
+        // Podemos usar un estado intermedio 'ENCUADRADA' para que el Admin sepa que ya contaron.
+        String sql = "UPDATE caja SET "
+                + "saldo_final = ?, " // Lo que contó el cajero
+                + "saldo_sistema = ?, " // Lo que debía haber
+                + "diferencia = ?, " // El descuadre
+                + "observacion = ?, " // Justificación
+                + "estado = 'ENCUADRADA' " // Nuevo estado intermedio (Opcional, o déjalo en ABIERTA)
+                + "WHERE id_caja = ?";
+
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
+
+            stmt.setDouble(1, saldoReal);
+            stmt.setDouble(2, saldoSistema);
+            stmt.setDouble(3, diferencia);
+            stmt.setString(4, observaciones);
+            stmt.setInt(5, idCaja);
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error realizando encuadre: " + e.getMessage());
+            return false;
+        }
+    }
+
+// En edu.UPAO.proyecto.DAO.CajaDAO
+    public boolean abrirCaja(int idSucursal, double saldoInicial, String idEmpleado, String turno) {
+        Connection con = null;
+        try {
+            con = new Conexion().establecerConexion();
+            con.setAutoCommit(false); // Iniciamos transacción para que se guarde todo o nada
+
+            // 1. Insertar la Caja en la tabla 'caja'
+            String sqlCaja = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal, id_empleado, turno) "
+                    + "VALUES (NOW(), ?, 0, 'ABIERTA', ?, ?, ?)";
+
+            int idCajaGenerada = -1;
+
+            try (PreparedStatement ps = con.prepareStatement(sqlCaja, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setDouble(1, saldoInicial);
+                ps.setInt(2, idSucursal);
+                ps.setString(3, idEmpleado);
+                ps.setString(4, turno);
+                ps.executeUpdate();
+
+                // Obtener el ID de la caja recién creada
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    idCajaGenerada = rs.getInt(1);
+                }
+            }
+
+            // 2. Insertar el Movimiento 'APERTURA' en 'movimiento_caja' (ESTO ES LO QUE FALTABA)
+            // Esto es el "recibo" para que el panel del Administrador sepa que ya se abrió.
+            if (idCajaGenerada != -1) {
+                String sqlMov = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) "
+                        + "VALUES ('APERTURA', ?, NOW(), 'Apertura Automática del Día', ?, 'ACTIVO', ?)";
+                try (PreparedStatement psMov = con.prepareStatement(sqlMov)) {
+                    psMov.setDouble(1, saldoInicial);
+                    psMov.setInt(2, idSucursal);
+                    psMov.setInt(3, idCajaGenerada);
+                    psMov.executeUpdate();
+                }
+            }
+
+            con.commit(); // Confirmar cambios
+            return true;
+
+        } catch (SQLException e) {
+            try {
+                if (con != null) {
+                    con.rollback();
+                }
+            } catch (Exception ex) {
+            }
+            System.err.println("Error abriendo caja y registrando movimiento: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                if (con != null) {
+                    con.close();
+                }
+            } catch (Exception ex) {
+            }
+        }
+    }
+    // En edu.UPAO.proyecto.DAO.CajaDAO
+
+    // En edu.UPAO.proyecto.DAO.CajaDAO
+    public Caja obtenerCajaPendienteAnterior(int idSucursal) {
+        // Busca cajas que NO estén cerradas Y que sean de días pasados (fecha < hoy)
+        String sql = "SELECT * FROM caja WHERE id_sucursal = ? "
+                + "AND estado IN ('ABIERTA', 'ENCUADRADA') "
+                + "AND DATE(fecha_hora_apertura) < CURDATE() "
+                + "ORDER BY id_caja DESC LIMIT 1";
+
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
+
+            stmt.setInt(1, idSucursal);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                Caja c = new Caja();
+                c.setIdCaja(rs.getInt("id_caja"));
+                c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
+                c.setSaldoInicial(rs.getDouble("saldo_inicial"));
+                c.setSaldoFinal(rs.getDouble("saldo_final")); // Importante si ya fue encuadrada
+                c.setSaldoSistema(rs.getDouble("saldo_sistema"));
+                c.setEstado(rs.getString("estado"));
+                return c;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error buscando cajas pendientes: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public boolean cerrarCajaDefinitivaAdmin(int idCaja) {
+        // Este método SÍ cierra la caja y pone la fecha
+        String sql = "UPDATE caja SET "
+                + "fecha_hora_cierre = NOW(), "
+                + "estado = 'CERRADA' "
+                + "WHERE id_caja = ?";
+
+        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
+
+            stmt.setInt(1, idCaja);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error en cierre administrativo: " + e.getMessage());
+            return false;
+        }
     }
 
     public boolean cerrarCaja(int idCaja, double saldoFinal) {
@@ -273,22 +411,6 @@ public class CajaDAO {
         return 0.0;
     }
 
-    public boolean abrirCaja(int idSucursal, double saldoInicial, String idEmpleado, String turno) {
-        String sql = "INSERT INTO caja (fecha_hora_apertura, saldo_inicial, saldo_final, estado, id_sucursal, id_empleado, turno) "
-                + "VALUES (NOW(), ?, 0, 'ABIERTA', ?, ?, ?)";
-
-        try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
-            stmt.setDouble(1, saldoInicial);
-            stmt.setInt(2, idSucursal);
-            stmt.setString(3, idEmpleado);
-            stmt.setString(4, turno);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            System.err.println("Error abriendo caja: " + e.getMessage());
-            return false;
-        }
-    }
-
     // ✅ CORRECCIÓN: Buscar caja abierta ESPECÍFICA del empleado en esa sucursal
     public Caja obtenerCajaAbiertaPorUsuario(int idSucursal, String idEmpleado) {
         String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
@@ -298,12 +420,18 @@ public class CajaDAO {
             stmt.setString(2, idEmpleado);
 
             ResultSet rs = stmt.executeQuery();
+// En CajaDAO.java, dentro de obtenerCajaAbierta (o obtenerCajaPendiente)
             if (rs.next()) {
                 Caja c = new Caja();
                 c.setIdCaja(rs.getInt("id_caja"));
-                c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
-                c.setSaldoInicial(rs.getDouble("saldo_inicial"));
-                c.setEstado(rs.getString("estado"));
+                // ... otros campos ...
+
+                // ✅ ASEGÚRATE DE AGREGAR ESTAS LÍNEAS AL LEER DE LA BD:
+                c.setSaldoFinal(rs.getDouble("saldo_final"));
+                c.setSaldoSistema(rs.getDouble("saldo_sistema"));
+                c.setDiferencia(rs.getDouble("diferencia"));
+                c.setObservacion(rs.getString("observacion"));
+
                 return c;
             }
         } catch (SQLException e) {

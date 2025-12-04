@@ -62,44 +62,45 @@ public class LoginjFrame extends javax.swing.JFrame {
 
     private void aplicarEstiloModerno() {
         // 1. COLORES
-        Color colorNaranja = new Color(255, 153, 0); 
+        Color colorNaranja = new Color(255, 153, 0);
         Color colorBlanco = Color.WHITE;
-        
+
         // 2. CONFIGURACIÓN DE PANELES
         Right.setBackground(colorBlanco); // Logo en fondo blanco
         Left.setBackground(colorNaranja); // Formulario en fondo naranja
         jPanel1.setBackground(colorNaranja);
-        
+
         // 3. ESTILIZAR LABELS
         jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 28));
         jLabel1.setForeground(colorBlanco);
-        jLabel1.setText("INICIO DE SESIÓN"); 
-        
-        estilizarLabel(jLabel2, colorBlanco); 
-        estilizarLabel(jLabel3, colorBlanco); 
-        
+        jLabel1.setText("INICIO DE SESIÓN");
+
+        estilizarLabel(jLabel2, colorBlanco);
+        estilizarLabel(jLabel3, colorBlanco);
+
         // 4. ESTILIZAR INPUTS (Corrección: Texto a la izquierda)
         estilizarInput(tf_identificacion);
         estilizarInput(tf_contraseña);
-        
+
         // 5. BOTÓN INGRESAR (Corrección: Sin borde feo)
         btn_login.setBackground(colorBlanco);
         btn_login.setForeground(colorNaranja);
         btn_login.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        
+
         // AQUÍ QUITAMOS EL BORDE BLANCO FINO
         btn_login.setBorder(null); // Sin borde
         btn_login.setBorderPainted(false);
-        
+
         btn_login.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn_login.setFocusPainted(false);
-        
+
         // Efecto Hover suave
         btn_login.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 btn_login.setBackground(new Color(245, 245, 245)); // Gris muy claro
             }
+
             @Override
             public void mouseExited(MouseEvent e) {
                 btn_login.setBackground(colorBlanco);
@@ -111,13 +112,13 @@ public class LoginjFrame extends javax.swing.JFrame {
         btn_olivdeContraseña.setBackground(new Color(204, 102, 0)); // Un naranja más oscuro (Sombra)
         btn_olivdeContraseña.setForeground(Color.WHITE);
         btn_olivdeContraseña.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        
+
         // Hacemos que tenga fondo para que parezca botón
-        btn_olivdeContraseña.setContentAreaFilled(true); 
+        btn_olivdeContraseña.setContentAreaFilled(true);
         btn_olivdeContraseña.setBorderPainted(false); // Sin borde linea, solo color de fondo
         btn_olivdeContraseña.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn_olivdeContraseña.setFocusPainted(false);
-        
+
         // 7. COMBOBOX
         cb_sucursales.setBackground(colorBlanco);
         cb_sucursales.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -132,20 +133,21 @@ public class LoginjFrame extends javax.swing.JFrame {
     // Método auxiliar para Inputs (Text Fields) CORREGIDO
     private void estilizarInput(JTextField tf) {
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tf.setForeground(Color.WHITE); 
-        tf.setCaretColor(Color.WHITE); 
-        tf.setBackground(new Color(255, 153, 0)); 
-        
+        tf.setForeground(Color.WHITE);
+        tf.setCaretColor(Color.WHITE);
+        tf.setBackground(new Color(255, 153, 0));
+
         // CORRECCIÓN 1: TEXTO A LA IZQUIERDA
         tf.setHorizontalAlignment(JTextField.LEFT);
-        
+
         // CORRECCIÓN 2: BORDE INFERIOR + PADDING (Sangría)
         // Creamos un borde compuesto: Línea abajo + Espacio vacío a la izquierda
         javax.swing.border.Border lineaInferior = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.WHITE);
         javax.swing.border.Border espacioIzquierda = BorderFactory.createEmptyBorder(0, 5, 0, 0); // 5 pixeles de margen
-        
+
         tf.setBorder(BorderFactory.createCompoundBorder(lineaInferior, espacioIzquierda));
     }
+
     //----------------------------------------
     /**
      * This method is called from within the constructor to initialize the form.
@@ -484,7 +486,7 @@ public class LoginjFrame extends javax.swing.JFrame {
 
                 edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
                 asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
-                
+
             }
 
             System.out.println("🎉 Login exitoso - Redirigiendo a: " + usuarioAutenticado.getCargo());
@@ -538,57 +540,66 @@ public class LoginjFrame extends javax.swing.JFrame {
     //  👇 REEMPLAZA TU MÉTODO ANTIGUO POR ESTE NUEVO BLOQUE 👇
     // =========================================================================
     // En edu.UPAO.proyecto.app.LoginjFrame
+// En LoginjFrame.java
+    private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
+        edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+        edu.UPAO.proyecto.DAO.SucursalDAO sucursalDAO = new edu.UPAO.proyecto.DAO.SucursalDAO();
 
-private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
-    edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
-    edu.UPAO.proyecto.DAO.SucursalDAO sucursalDAO = new edu.UPAO.proyecto.DAO.SucursalDAO();
+        // ---------------------------------------------------------
+        // 1. DETECTAR Y CORREGIR OLVIDOS DEL DÍA ANTERIOR
+        // ---------------------------------------------------------
+        edu.UPAO.proyecto.Modelo.Caja cajaVieja = cajaDAO.obtenerCajaPendienteAnterior(idSucursal);
 
-    // 1. Verificar si YA existe caja abierta hoy (para no abrirla dos veces)
-    edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
+        if (cajaVieja != null) {
+            System.out.println("⚠️ ALERTA: Se detectó una caja del día anterior sin cerrar (Estado: " + cajaVieja.getEstado() + ")");
 
-    if (cajaDia == null) {
-        System.out.println("☀️ Primer ingreso del día. Calculando saldo inicial desde Presupuesto...");
+            double montoRecuperar = 0.0;
 
-        // A. Obtener el presupuesto actual de la tienda
-        double presupuestoActual = sucursalDAO.obtenerPresupuesto(idSucursal);
-        
-        // B. Calcular el 5% para la caja chica (sencillo)
-        double porcentaje = 0.05; // 5%
-        double saldoInicial = presupuestoActual * porcentaje;
-        
-        // Validar que haya fondos suficientes
-        if (presupuestoActual < saldoInicial) {
-            JOptionPane.showMessageDialog(this, "⚠️ La tienda no tiene fondos suficientes para el saldo inicial.");
-            saldoInicial = 0; // O manejarlo como error crítico
+            // Caso A: El cajero SÍ hizo el encuadre, pero el Admin olvidó cerrar
+            if ("ENCUADRADA".equals(cajaVieja.getEstado())) {
+                montoRecuperar = cajaVieja.getSaldoFinal(); // Recuperamos lo que contó el cajero
+            } // Caso B: Nadie cerró nada (Ni cajero ni Admin) - CRÍTICO
+            else {
+                // Asumimos el saldo del sistema para no perder el rastro, o 0 si queremos ser estrictos.
+                // Lo ideal es recuperar el saldo teórico calculado.
+                montoRecuperar = cajaDAO.calcularSaldoTeorico(cajaVieja.getIdCaja());
+            }
+
+            // AUTO-CIERRE: Mover dinero al presupuesto y cerrar caja vieja
+            boolean devolucion = sucursalDAO.actualizarPresupuesto(idSucursal, montoRecuperar, true); // true = Ingreso
+            boolean cierre = cajaDAO.cerrarCajaDefinitivaAdmin(cajaVieja.getIdCaja()); // Usamos el método que creamos para el Admin
+
+            if (devolucion && cierre) {
+                JOptionPane.showMessageDialog(this,
+                        "⚠️ AVISO DE SEGURIDAD:\n"
+                        + "La caja del día anterior no fue cerrada correctamente por el Administrador.\n"
+                        + "El sistema ha realizado el CIERRE AUTOMÁTICO recuperando S/ " + montoRecuperar + "\n"
+                        + "al presupuesto de la tienda para permitir la operación de hoy.");
+            }
         }
 
-        // C. RESTAR ese dinero del presupuesto de la tienda (porque se mueve a la caja física)
-        boolean descuentoExitoso = sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, false); // false = Restar
+        // ---------------------------------------------------------
+        // 2. FLUJO NORMAL: ABRIR CAJA DE HOY (O unirse a ella)
+        // ---------------------------------------------------------
+        edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-        if (descuentoExitoso) {
-            // D. Abrir la caja con ese dinero
-            boolean exito = cajaDAO.abrirCaja(idSucursal, saldoInicial, idEmpleado, "DIA_COMPLETO");
+        if (cajaDia == null) {
+            // ... (Aquí va el código que ya tenías para pedir el 5% y abrir) ...
+            // COPIA PEGA LA LÓGICA DE APERTURA QUE TE DI EN LA RESPUESTA ANTERIOR
+            // (Calcular 5%, restar presupuesto, abrir caja nueva)
 
-            if (exito) {
-                System.out.println("✅ CAJA DIARIA CREADA.");
-                System.out.println("💰 Presupuesto Tienda: " + presupuestoActual);
-                System.out.println("📉 Retirado (5%): " + saldoInicial);
-                JOptionPane.showMessageDialog(this, 
-                    "☀️ Se ha aperturado la Caja del Día.\n" +
-                    "Fondos asignados (5% del presupuesto): S/ " + String.format("%.2f", saldoInicial));
-            } else {
-                // Si falla abrir la caja, devolver el dinero al presupuesto (Rollback manual)
-                sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, true);
-                JOptionPane.showMessageDialog(this, "Error crítico al abrir caja en BD.");
+            double presupuestoActual = sucursalDAO.obtenerPresupuesto(idSucursal);
+            double saldoInicial = presupuestoActual * 0.05; // 5%
+
+            if (sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, false)) {
+                if (cajaDAO.abrirCaja(idSucursal, saldoInicial, idEmpleado, "DIA_COMPLETO")) {
+                    JOptionPane.showMessageDialog(this, "☀️ Caja del día aperturada (Saldo inicial 5%: S/ " + String.format("%.2f", saldoInicial) + ")");
+                }
             }
         } else {
-            JOptionPane.showMessageDialog(this, "Error al descontar saldo del presupuesto de la tienda.");
+            System.out.println("ℹ️ Uniéndose a la caja del día existente.");
         }
-
-    } else {
-        System.out.println("ℹ️ Uniéndose a la caja abierta del día existente (ID: " + cajaDia.getIdCaja() + ")");
     }
-}
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;

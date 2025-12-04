@@ -116,40 +116,22 @@ public class DialogoArqueoCaja extends javax.swing.JDialog {
             }
 
             int confirm = JOptionPane.showConfirmDialog(this,
-                    "¿Seguro que desea cerrar la caja con S/ " + real + "?\nEsta acción es irreversible y cierra su turno.",
-                    "Confirmar Cierre", JOptionPane.YES_NO_OPTION);
+                    "¿Confirmar arqueo con S/ " + real + "?\nSe guardará el conteo pero la caja permanecerá abierta para revisión del Admin.",
+                    "Confirmar Encuadre", JOptionPane.YES_NO_OPTION);
 
-            // En el método ejecutarCierre() de DialogoArqueoCaja
-// ... (Validaciones previas y obtención del monto 'real') ...
             if (confirm == JOptionPane.YES_OPTION) {
                 CajaDAO dao = new CajaDAO();
 
-                // 1. Cerrar la caja en la tabla 'caja'
-                if (dao.cerrarCajaConArqueo(idCaja, real, diff, obs)) {
+                // CAMBIO: Llamamos al nuevo método que NO cierra, solo encuadra
+                if (dao.realizarEncuadreCajero(idCaja, real, diff, obs)) {
 
-                    // --- NUEVA LÓGICA: DEVOLVER DINERO A LA TIENDA ---
-                    // Obtener el ID de la sucursal (puedes pasarlo al constructor del Dialogo o buscarlo por la caja)
-                    // Asumiremos que puedes obtenerlo o que lo agregas al constructor de DialogoArqueoCaja
-                    int idSucursal = dao.obtenerIdSucursalPorCaja(idCaja); // Necesitarás este método simple en el DAO
+                    JOptionPane.showMessageDialog(this, "✅ Encuadre registrado correctamente.\nLa caja queda pendiente de cierre por el Administrador.");
 
-                    if (idSucursal > 0) {
-                        edu.UPAO.proyecto.DAO.SucursalDAO sucursalDAO = new edu.UPAO.proyecto.DAO.SucursalDAO();
-
-                        // 'real' es el dinero físico que contaron. Ese dinero vuelve a la bóveda/presupuesto.
-                        boolean devolucionExitosa = sucursalDAO.actualizarPresupuesto(idSucursal, real, true); // true = Sumar
-
-                        if (devolucionExitosa) {
-                            JOptionPane.showMessageDialog(this, "✅ Caja Cerrada y fondos devueltos al presupuesto general.");
-                        } else {
-                            JOptionPane.showMessageDialog(this, "⚠️ Caja cerrada, pero error al actualizar presupuesto de tienda.");
-                        }
-                    }
-                    // -------------------------------------------------
-
-                    this.cajaCerradaExito = true;
+                    // NO devolvemos dinero al presupuesto aquí todavía.
+                    this.cajaCerradaExito = true; // Para que Menu2 sepa que se completó la acción
                     dispose();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Error al guardar cierre en BD.");
+                    JOptionPane.showMessageDialog(this, "Error al guardar el encuadre.");
                 }
             }
         } catch (NumberFormatException e) {
