@@ -65,7 +65,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         }
 
         cargarListadoFacturas();
-        verificarAperturaAutomatica();
+        //verificarAperturaAutomatica();
         actualizarSaldos();
         cargarTablaMovimientos();
         aplicarEstiloModerno();
