@@ -2,7 +2,9 @@ package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.ProductoDAO;
-
+// AGREGAR ESTOS IMPORTS DEBAJO DE LOS QUE YA TIENES
+import edu.UPAO.proyecto.DAO.CajaDAO;          // <--- FALTABA ESTE
+import edu.UPAO.proyecto.LoginController;      // <--- FALTABA ESTE
 import java.util.List;
 import java.util.Random;
 import javax.swing.JOptionPane;
@@ -26,7 +28,7 @@ public class Menu2 extends javax.swing.JFrame {
 
     public Menu2(String idEmpleado) {
         initComponents();
-        //btn_validar.addActionListener(e -> onValidarCupon());
+         //btn_validar.addActionListener(e -> onValidarCupon());
         this.idEmpleado = idEmpleado;
         this.idSucursal = obtenerSucursalEmpleado(idEmpleado);
         this.idCaja = idCaja;
@@ -37,9 +39,168 @@ public class Menu2 extends javax.swing.JFrame {
         setTitle("Sistema Kuyay - Menú Principal");
 
         inicializarComponentes();
+        verificarStockCajero(idEmpleado); 
+        // AGREGAR ESTA LÍNEA AQUÍ:
+        aplicarDisenoWeb(); 
+
         verificarStockCajero(idEmpleado);
+}
+    //------------------------
+    // =========================================================================
+    //  ÁREA DE DISEÑO WEB (AGREGAR AL FINAL DE LA CLASE)
+    // =========================================================================
+
+    private void aplicarDisenoWeb() {
+        // 1. Colores y Fuentes Estilo Web
+        java.awt.Color blancoInfinito = java.awt.Color.WHITE;
+        java.awt.Color grisClaroHeader = new java.awt.Color(248, 249, 250); // Color humo para cabeceras
+        java.awt.Color grisBorde = new java.awt.Color(230, 230, 230);
+        java.awt.Font fuenteWeb = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14);
+        java.awt.Font fuenteBold = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14);
+
+        // 2. Fondo Blanco Infinito (Resetear fondos de paneles principales)
+        this.getContentPane().setBackground(blancoInfinito);
+        // Y REEMPLÁZALA por esta:
+        jPanel1.setBackground(new java.awt.Color(255, 153, 0)); // Color Naranja de la marca
+        jPanel2.setBackground(blancoInfinito); // Navbar
+        // 👇 AGREGA ESTA LÍNEA EXACTAMENTE AQUÍ 👇
+        jPanel2.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(200, 200, 200)));
+        panelFormulario.setBackground(blancoInfinito);
+        jPanel7.setBackground(blancoInfinito); // Buscador
+        jPanel8.setBackground(blancoInfinito); // Tabla productos
+        panel.setBackground(blancoInfinito);   // Panel carrito (Izquierda)
+
+        // 3. Estilizar la Cabecera (Eliminar imagen de fondo naranja si existía y dejarlo limpio)
+        // Si deseas mantener el logo, no toques los labels, pero el fondo será blanco.
+        jSeparator1.setForeground(grisBorde);
+        jSeparator1.setBackground(grisBorde);
+
+        // 4. Estilizar Botones de Navegación (Efecto Hover Línea Amarilla)
+        javax.swing.JButton[] botonesMenu = {btn_cuenta, btn_ventas, btn_devolver, btn_compras};
+        for (javax.swing.JButton btn : botonesMenu) {
+            estilizarBotonNavegacion(btn);
+        }
+        // El toggle button requiere un trato similar
+        estilizarBotonNavegacion(tb_entrada);
+
+        // 5. Estilizar Tablas (Estilo Web: filas altas, sin grillas verticales)
+        estilizarTablaWeb(tablaProductos);
+        estilizarTablaWeb(miniTabla);
+
+        // 6. Línea Divisoria Vertical (Separador entre Carrito y Productos)
+        // Agregamos un borde derecho al panel del carrito
+        panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 0, 2, new java.awt.Color(220, 220, 220)));
+        
+        // 7. Estilizar Inputs y Buscador
+        txtBuscarCodigo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200,200,200)), 
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        
+        // 8. Botones de Acción (Estilo Flat)
+        estilizarBotonAccion(btn_SKU, new java.awt.Color(255, 193, 7)); // Amarillo
+        estilizarBotonAccion(btn_buscar, new java.awt.Color(255, 193, 7));
+        estilizarBotonAccion(btn_Siguiente, new java.awt.Color(40, 167, 69)); // Verde
+        estilizarBotonAccion(btn_agregar, new java.awt.Color(40, 167, 69));
+        estilizarBotonAccion(btn_cancelar, new java.awt.Color(220, 53, 69)); // Rojo
+        estilizarBotonAccion(btn_salir, new java.awt.Color(220, 53, 69));
+        
+        // Ajuste visual del separador del header
+        jPanel1.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, grisBorde));
     }
 
+    private void estilizarBotonNavegacion(javax.swing.AbstractButton btn) {
+        // 1. Configuración Visual Base
+        btn.setContentAreaFilled(false); // Quitar fondo gris por defecto
+        btn.setFocusPainted(false);      // Quitar cuadro de enfoque
+        btn.setOpaque(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        
+        // IMPORTANTE: Esto debe estar en TRUE para que la línea se dibuje
+        btn.setBorderPainted(true); 
+
+        // 2. Definir Fuente y Colores
+        java.awt.Font fuente = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14);
+        java.awt.Color colorNormal = new java.awt.Color(0, 0, 0);     // Negro
+        java.awt.Color colorHover = new java.awt.Color(255, 193, 7);  // Amarillo/Naranja (Tu color deseado)
+
+        btn.setFont(fuente);
+        btn.setForeground(colorNormal);
+
+        // 3. BORDE INVISIBLE (ESTADO NORMAL)
+        // Usamos un borde compuesto: 
+        // - Exterior: Borde Mate de 3px abajo (pero transparente/invisible por ahora)
+        // - Interior: Espacio vacío (padding) para separar el texto de la línea
+        javax.swing.border.Border bordeInvisible = javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 0, 3, 0, new java.awt.Color(255, 255, 255, 0)), // Línea Transparente
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 2, 10) // Relleno interno
+        );
+        
+        btn.setBorder(bordeInvisible);
+
+        // 4. EVENTOS DEL MOUSE (HOVER)
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent e) {
+                // Cambiar color de texto
+                btn.setForeground(colorHover);
+                
+                // Cambiar el borde transparente por uno de color SÓLIDO
+                btn.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createMatteBorder(0, 0, 3, 0, colorHover), // <--- AQUÍ APARECE LA LÍNEA
+                    javax.swing.BorderFactory.createEmptyBorder(5, 10, 2, 10) // Mismo relleno para que no se mueva el texto
+                ));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent e) {
+                // Volver al estado normal
+                btn.setForeground(colorNormal);
+                btn.setBorder(bordeInvisible);
+            }
+        });
+    }
+
+    private void estilizarTablaWeb(javax.swing.JTable tabla) {
+        tabla.setRowHeight(40); // Filas más altas
+        tabla.setShowVerticalLines(false);
+        tabla.setGridColor(new java.awt.Color(230, 230, 230));
+        tabla.setSelectionBackground(new java.awt.Color(232, 240, 254)); // Azul muy suave al seleccionar
+        tabla.setSelectionForeground(java.awt.Color.BLACK);
+        tabla.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        
+        // Cabecera
+        javax.swing.table.JTableHeader header = tabla.getTableHeader();
+        header.setDefaultRenderer(new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setBackground(new java.awt.Color(250, 250, 250)); // Fondo gris muy claro
+                setForeground(new java.awt.Color(100, 100, 100)); // Texto gris
+                setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+                setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 2, 0, new java.awt.Color(230, 230, 230)));
+                return this;
+            }
+        });
+        
+        // Scroll pane limpio
+        if (tabla.getParent() instanceof javax.swing.JViewport) {
+            javax.swing.JScrollPane scroll = (javax.swing.JScrollPane) tabla.getParent().getParent();
+            scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+            scroll.getViewport().setBackground(java.awt.Color.WHITE);
+        }
+    }
+    
+    private void estilizarBotonAccion(javax.swing.JButton btn, java.awt.Color colorFondo) {
+        btn.setBackground(colorFondo);
+        btn.setForeground(java.awt.Color.WHITE);
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btn.setFocusPainted(false);
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+    }
+    //---------------------------
+    
     private int obtenerIdCajaAbierta() {
         int idCaja = -1;
         String sql = "SELECT id_caja FROM caja WHERE id_empleado = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
@@ -361,6 +522,8 @@ public class Menu2 extends javax.swing.JFrame {
         }
         return items;
     }
+
+    //-------------------------------------------------
 
     @SuppressWarnings("unchecked")
 
@@ -821,7 +984,7 @@ public class Menu2 extends javax.swing.JFrame {
                 .addGroup(panelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btn_Siguiente, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_cancelar, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(12, 12, 12))
+                .addContainerGap(30, Short.MAX_VALUE))
         );
 
         jPanel7.setBackground(new java.awt.Color(255, 255, 255));
@@ -900,12 +1063,13 @@ public class Menu2 extends javax.swing.JFrame {
             panelFormularioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelFormularioLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(panelFormularioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(panel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(panelFormularioLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(panel, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(panelFormularioLayout.createSequentialGroup()
                         .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+                        .addComponent(jPanel8, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addGap(0, 0, Short.MAX_VALUE))
         );
 
         getContentPane().add(panelFormulario, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 152, 1380, -1));
