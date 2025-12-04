@@ -32,7 +32,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
         aplicarEstiloModerno();
-        cb_sucursales.setVisible(rootPaneCheckingEnabled);
+        cb_sucursales.setVisible(false);
     }
 
     private void cargarSucursales() {

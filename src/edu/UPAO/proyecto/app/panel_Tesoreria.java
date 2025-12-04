@@ -1375,10 +1375,10 @@ private void configurarTablaSaldosSucursal() {
 // =======================================================================
     //   MÓDULO RENTABILIDAD (FORMATO FINAL: S/ 18,142.25)
     // =======================================================================
-    private void initRentabilidad() {
-        // 1. Configurar Combo
+private void initRentabilidad() {
+        // 1. Configurar Combo (MANTENIDO IGUAL)
         if (RangoFechas.getItemCount() == 0) {
-            RangoFechas.addItem("Anual");
+            RangoFechas.addItem("Anual"); // index 0
             String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
                 "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
             for (String m : meses) {
@@ -1386,16 +1386,16 @@ private void configurarTablaSaldosSucursal() {
             }
         }
 
-        // 2. Listeners
+        // 2. Listeners (LIMPIEZA PREVIA PARA EVITAR DUPLICADOS)
         for (java.awt.event.ActionListener al : RangoFechas.getActionListeners()) {
             RangoFechas.removeActionListener(al);
         }
         RangoFechas.addActionListener(e -> {
-            System.out.println("🔄 Cambio de mes en Rentabilidad...");
+            System.out.println("🔄 Cambio de periodo en Rentabilidad...");
             cargarDatosRentabilidad();
         });
 
-        // Botones
+        // Botones PDF
         for (java.awt.event.ActionListener al : PDFRentabilidad.getActionListeners()) {
             PDFRentabilidad.removeActionListener(al);
         }
@@ -1403,6 +1403,7 @@ private void configurarTablaSaldosSucursal() {
                 -> GeneradorPDFRentabilidad.generarPDF(TablaRentabilidad, chartRentabilidad, "Rentabilidad_2025")
         );
 
+        // Botones Excel
         for (java.awt.event.ActionListener al : ExcelRentabilidad.getActionListeners()) {
             ExcelRentabilidad.removeActionListener(al);
         }
@@ -1414,17 +1415,19 @@ private void configurarTablaSaldosSucursal() {
         cargarDatosRentabilidad();
     }
 
-    private void cargarDatosRentabilidad() {
+private void cargarDatosRentabilidad() {
         if (RangoFechas.getItemCount() == 0) {
             return;
         }
 
         // --- A. DEFINIR FECHAS ---
-        int mesIndex = RangoFechas.getSelectedIndex();
+        int mesIndex = RangoFechas.getSelectedIndex(); 
         String fechaInicio, fechaFin;
         int anioFijo = 2025;
+        
+        boolean esMesEspecifico = (mesIndex > 0);
 
-        if (mesIndex <= 0) { // Anual
+        if (!esMesEspecifico) { // Anual
             fechaInicio = anioFijo + "-01-01 00:00:00";
             fechaFin = anioFijo + "-12-31 23:59:59";
         } else { // Mes específico
@@ -1439,69 +1442,65 @@ private void configurarTablaSaldosSucursal() {
             fechaFin = anioFijo + "-" + mesStr + "-" + ultimoDia + " 23:59:59";
         }
 
-        System.out.println("📅 Rentabilidad Fechas: " + fechaInicio + " al " + fechaFin);
+        System.out.println("📅 Rentabilidad (Venta Bruta vs Costo Producto): " + fechaInicio + " al " + fechaFin);
 
-        // --- B. CONSULTA SQL (TU LÓGICA DEFINIDA) ---
+        // --- B. CONSULTA SQL (SIN IGV, SIN SUELDOS) ---
         DefaultTableModel modelo = new DefaultTableModel(null,
                 new String[]{"LOCALES", "INGRESOS", "COSTOS", "GANANCIA NETA", "RENTABILIDAD"});
 
-        String sql
-                = "SELECT s.nombre_sucursal AS LOCALES, "
-                + "   COALESCE(v_stats.ingresos, 0) AS INGRESOS, "
-                + "   COALESCE(c_stats.costos, 0) AS COSTOS "
-                + "FROM sucursal s "
-                + // JOIN 1: INGRESOS (Lógica Ranking)
-                "LEFT JOIN ( "
-                + "   SELECT id_sucursal, SUM(total) as ingresos "
-                + "   FROM venta "
-                + "   WHERE fecha_hora BETWEEN ? AND ? "
-                + "   GROUP BY id_sucursal "
-                + ") v_stats ON s.id_sucursal = v_stats.id_sucursal "
-                + // JOIN 2: COSTOS (Lógica Stock Min * Precio Compra)
-                "LEFT JOIN ( "
-                + "   SELECT v.id_sucursal, SUM(p.stock_minimo * p.precio_compra) as costos "
-                + "   FROM venta v "
-                + "   JOIN detalle_venta dv ON v.id_venta = dv.id_venta "
-                + "   JOIN producto p ON dv.id_producto = p.id_producto "
-                + "   WHERE v.fecha_hora BETWEEN ? AND ? "
-                + "   GROUP BY v.id_sucursal "
-                + ") c_stats ON s.id_sucursal = c_stats.id_sucursal";
+        // LÓGICA FINAL:
+        // 1. INGRESOS: Suma directa de v.total (Incluye IGV, tal como entra a caja).
+        // 2. COSTOS:   Suma de (cantidad * precio_compra). Solo mercadería.
+        
+        String sql = "SELECT " +
+            "    s.nombre_sucursal AS LOCALES, " +
+            "    COALESCE(SUM(v.total), 0) AS INGRESOS, " +
+            "    COALESCE(SUM(dv.cantidad * p.precio_compra), 0) AS COSTOS " +
+            "FROM sucursal s " +
+            "LEFT JOIN venta v ON s.id_sucursal = v.id_sucursal " +
+            "    AND v.fecha_hora BETWEEN ? AND ? " + 
+            "LEFT JOIN detalle_venta dv ON v.id_venta = dv.id_venta " +
+            "LEFT JOIN producto p ON dv.id_producto = p.id_producto " +
+            "GROUP BY s.id_sucursal, s.nombre_sucursal";
 
-        try (Connection cnRent = new Conexion().establecerConexion(); PreparedStatement ps = cnRent.prepareStatement(sql)) {
+        try (Connection cnRent = new Conexion().getConexion(); 
+             PreparedStatement ps = cnRent.prepareStatement(sql)) {
 
             ps.setString(1, fechaInicio);
             ps.setString(2, fechaFin);
-            ps.setString(3, fechaInicio);
-            ps.setString(4, fechaFin);
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String local = rs.getString("LOCALES");
-                    double ingresos = rs.getDouble("INGRESOS");
-                    double costos = rs.getDouble("COSTOS");
-                    double ganancia = ingresos - costos;
-                    double rentabilidad = (ingresos > 0) ? (ganancia / ingresos) * 100 : 0;
+                    
+                    // Recuperamos datos crudos
+                    double ingresosBrutos = rs.getDouble("INGRESOS");
+                    double costosProductos = rs.getDouble("COSTOS");
+                    
+                    // Cálculo Java
+                    double gananciaBruta = ingresosBrutos - costosProductos;
+                    
+                    double rentabilidad = (ingresosBrutos > 0) 
+                            ? (gananciaBruta / ingresosBrutos) * 100 
+                            : 0.0;
 
-                    // --- AQUÍ ESTÁ EL CAMBIO DE FORMATO (%,.2f) ---
                     modelo.addRow(new Object[]{
                         local,
-                        "S/ " + String.format(Locale.US, "%,.2f", ingresos), // Ej: S/ 1,500.00
-                        "S/ " + String.format(Locale.US, "%,.2f", costos),
-                        "S/ " + String.format(Locale.US, "%,.2f", ganancia),
+                        "S/ " + String.format(Locale.US, "%,.2f", ingresosBrutos),
+                        "S/ " + String.format(Locale.US, "%,.2f", costosProductos),
+                        "S/ " + String.format(Locale.US, "%,.2f", gananciaBruta),
                         String.format(Locale.US, "%.2f", rentabilidad) + "%"
                     });
                 }
             }
         } catch (Exception e) {
             System.err.println("❌ Error SQL Rentabilidad: " + e.getMessage());
+            e.printStackTrace();
         }
 
         TablaRentabilidad.setModel(modelo);
-
-        // --- C. ACTUALIZAR INTERFAZ ---
         actualizarKPIsYGraficoRentabilidad(modelo);
     }
-
     private void actualizarKPIsYGraficoRentabilidad(DefaultTableModel modelo) {
         double tIngresos = 0, tCostos = 0, tGanancia = 0;
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -2016,6 +2015,7 @@ private void configurarTablaSaldosSucursal() {
 
         lbl_TiendaTOP.setFont(new java.awt.Font("Lucida Fax", 1, 18)); // NOI18N
         lbl_TiendaTOP.setForeground(new java.awt.Color(255, 255, 255));
+        lbl_TiendaTOP.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lbl_TiendaTOP.setText("SUCURSAL A");
 
         lbl_totalVentas4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -2029,11 +2029,11 @@ private void configurarTablaSaldosSucursal() {
             .addGroup(jPanelTiendaTOPLayout.createSequentialGroup()
                 .addGap(58, 58, 58)
                 .addComponent(lbl_totalVentas4)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(64, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelTiendaTOPLayout.createSequentialGroup()
-                .addContainerGap(35, Short.MAX_VALUE)
-                .addComponent(lbl_TiendaTOP, javax.swing.GroupLayout.PREFERRED_SIZE, 140, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(26, 26, 26))
+                .addContainerGap()
+                .addComponent(lbl_TiendaTOP, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         jPanelTiendaTOPLayout.setVerticalGroup(
             jPanelTiendaTOPLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2218,7 +2218,7 @@ private void configurarTablaSaldosSucursal() {
             .addGroup(panel_RankingLayout.createSequentialGroup()
                 .addGap(25, 25, 25)
                 .addComponent(jPanel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(60, Short.MAX_VALUE))
+                .addContainerGap(55, Short.MAX_VALUE))
         );
 
         Tabbed_Estadisticas.addTab("RANKING", panel_Ranking);
@@ -2240,7 +2240,7 @@ private void configurarTablaSaldosSucursal() {
 
         lbl_costos.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
         lbl_costos.setForeground(new java.awt.Color(255, 255, 255));
-        lbl_costos.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lbl_costos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lbl_costos.setText("0.00");
         lbl_costos.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
@@ -2253,20 +2253,21 @@ private void configurarTablaSaldosSucursal() {
         costos_totalesLayout.setHorizontalGroup(
             costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(costos_totalesLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(lbl_costos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGap(18, 18, 18))
-            .addGroup(costos_totalesLayout.createSequentialGroup()
-                .addGap(92, 92, 92)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(103, Short.MAX_VALUE))
+                .addGroup(costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(costos_totalesLayout.createSequentialGroup()
+                        .addGap(92, 92, 92)
+                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 106, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(costos_totalesLayout.createSequentialGroup()
+                        .addGap(54, 54, 54)
+                        .addComponent(lbl_costos, javax.swing.GroupLayout.PREFERRED_SIZE, 190, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(57, Short.MAX_VALUE))
         );
         costos_totalesLayout.setVerticalGroup(
             costos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(costos_totalesLayout.createSequentialGroup()
-                .addGap(25, 25, 25)
+                .addGap(31, 31, 31)
                 .addComponent(lbl_costos, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jLabel1)
                 .addContainerGap(18, Short.MAX_VALUE))
         );
@@ -2275,7 +2276,7 @@ private void configurarTablaSaldosSucursal() {
 
         lbl_totalIngresos.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
         lbl_totalIngresos.setForeground(new java.awt.Color(255, 255, 255));
-        lbl_totalIngresos.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lbl_totalIngresos.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lbl_totalIngresos.setText("0.00");
         lbl_totalIngresos.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
@@ -2288,13 +2289,13 @@ private void configurarTablaSaldosSucursal() {
         Ingresos_totalesLayout.setHorizontalGroup(
             Ingresos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(Ingresos_totalesLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(lbl_totalIngresos, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGap(22, 22, 22))
-            .addGroup(Ingresos_totalesLayout.createSequentialGroup()
                 .addGap(84, 84, 84)
                 .addComponent(lbl_Ingresos)
-                .addContainerGap(88, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, Ingresos_totalesLayout.createSequentialGroup()
+                .addContainerGap(55, Short.MAX_VALUE)
+                .addComponent(lbl_totalIngresos, javax.swing.GroupLayout.PREFERRED_SIZE, 178, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(52, 52, 52))
         );
         Ingresos_totalesLayout.setVerticalGroup(
             Ingresos_totalesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2317,7 +2318,7 @@ private void configurarTablaSaldosSucursal() {
 
         lbl_gananciastotales.setFont(new java.awt.Font("Dialog", 1, 36)); // NOI18N
         lbl_gananciastotales.setForeground(new java.awt.Color(255, 255, 255));
-        lbl_gananciastotales.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        lbl_gananciastotales.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         lbl_gananciastotales.setText("0.00");
         lbl_gananciastotales.setHorizontalTextPosition(javax.swing.SwingConstants.LEADING);
 
@@ -2326,13 +2327,13 @@ private void configurarTablaSaldosSucursal() {
         ganancia_netaLayout.setHorizontalGroup(
             ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(ganancia_netaLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(24, 24, 24))
-            .addGroup(ganancia_netaLayout.createSequentialGroup()
                 .addGap(80, 80, 80)
                 .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(80, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ganancia_netaLayout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(lbl_gananciastotales, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(43, 43, 43))
         );
         ganancia_netaLayout.setVerticalGroup(
             ganancia_netaLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2413,7 +2414,7 @@ private void configurarTablaSaldosSucursal() {
                                 .addComponent(costos_totales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(ganancia_neta, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addContainerGap(157, Short.MAX_VALUE))))
+                        .addContainerGap(161, Short.MAX_VALUE))))
         );
         jPanel9Layout.setVerticalGroup(
             jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2447,7 +2448,7 @@ private void configurarTablaSaldosSucursal() {
         panel_RentabilidadLayout.setVerticalGroup(
             panel_RentabilidadLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panel_RentabilidadLayout.createSequentialGroup()
-                .addGap(0, 4, Short.MAX_VALUE)
+                .addGap(0, 13, Short.MAX_VALUE)
                 .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -2457,7 +2458,7 @@ private void configurarTablaSaldosSucursal() {
         panel_Estadisticas.setLayout(panel_EstadisticasLayout);
         panel_EstadisticasLayout.setHorizontalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(Tabbed_Estadisticas, javax.swing.GroupLayout.DEFAULT_SIZE, 1157, Short.MAX_VALUE)
+            .addComponent(Tabbed_Estadisticas)
         );
         panel_EstadisticasLayout.setVerticalGroup(
             panel_EstadisticasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
