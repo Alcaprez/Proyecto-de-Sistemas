@@ -32,6 +32,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
         aplicarEstiloModerno();
+        cb_sucursales.setVisible(false);
     }
 
     private void cargarSucursales() {
@@ -246,6 +247,11 @@ public class LoginjFrame extends javax.swing.JFrame {
         });
 
         cb_sucursales.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        cb_sucursales.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cb_sucursalesActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout LeftLayout = new javax.swing.GroupLayout(Left);
         Left.setLayout(LeftLayout);
@@ -294,7 +300,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         );
 
         jPanel1.add(Left);
-        Left.setBounds(400, 0, 400, 505);
+        Left.setBounds(400, 0, 400, 502);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -331,6 +337,10 @@ public class LoginjFrame extends javax.swing.JFrame {
         // Al presionar Enter en identificación, pasar a contraseña
         tf_contraseña.requestFocus();
     }//GEN-LAST:event_tf_identificacionActionPerformed
+
+    private void cb_sucursalesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cb_sucursalesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cb_sucursalesActionPerformed
 
     private void abrirPanelSegunRol(Usuario usuario) {
         String rol = usuario.getCargo().toUpperCase();

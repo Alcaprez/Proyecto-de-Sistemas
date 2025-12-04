@@ -54,6 +54,28 @@ public class SucursalDAO {
             return false;
         }
     }
+    
+// AGREGAR EN SucursalDAO.java
+
+public int obtenerIdPorNombre(String nombreSucursal) {
+    int id = -1;
+    // Busca el ID exacto basándose en el nombre que seleccionas en el combo
+    String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
+    
+    try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); 
+         java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
+        
+        ps.setString(1, nombreSucursal);
+        java.sql.ResultSet rs = ps.executeQuery();
+        
+        if (rs.next()) {
+            id = rs.getInt("id_sucursal");
+        }
+    } catch (Exception e) {
+        System.err.println("Error al buscar ID de sucursal por nombre: " + e.getMessage());
+    }
+    return id;
+}
 
     public List<String> obtenerSucursalesActivas() {
         List<String> sucursales = new ArrayList<>();
@@ -73,24 +95,7 @@ public class SucursalDAO {
         return sucursales;
     }
 
-    // Método para obtener el ID de una sucursal dado su nombre
-    public int obtenerIdPorNombre(String nombreSucursal) {
-        int id = -1;
-        String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ?";
 
-        try (java.sql.Connection cn = new BaseDatos.Conexion().establecerConexion(); java.sql.PreparedStatement ps = cn.prepareStatement(sql)) {
-
-            ps.setString(1, nombreSucursal);
-            java.sql.ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                id = rs.getInt("id_sucursal");
-            }
-        } catch (Exception e) {
-            System.err.println("Error al buscar ID de sucursal por nombre: " + e.getMessage());
-        }
-        return id;
-    }
 
     public int obtenerIdSucursalPorNombre(String nombreSucursal) {
         String sql = "SELECT id_sucursal FROM sucursal WHERE nombre_sucursal = ? AND estado = 'ACTIVO'";

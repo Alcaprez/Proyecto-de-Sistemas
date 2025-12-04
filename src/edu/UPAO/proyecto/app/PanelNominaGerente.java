@@ -272,13 +272,21 @@ public class PanelNominaGerente extends JPanel {
         }
     }
 
-    private int obtenerIdSucursal(String nombre) {
-        // Método auxiliar rápido, idealmente debería estar en SucursalDAO
-        if (nombre.equals("Tienda Principal") || nombre.equals("Central")) {
-            return 1;
+// REEMPLAZAR EN PanelNominaGerente.java
+    private int obtenerIdSucursal(String nombreSucursal) {
+        // ANTES: return 1; (Esto causaba el error)
+        // AHORA: Preguntamos a la base de datos cuál es el ID verdadero
+        try {
+            // Asegúrate de que sucursalDAO esté inicializado en el constructor
+            if (sucursalDAO == null) {
+                sucursalDAO = new SucursalDAO();
+            }
+
+            return sucursalDAO.obtenerIdPorNombre(nombreSucursal);
+        } catch (Exception e) {
+            System.err.println("Error buscando ID de sucursal: " + e.getMessage());
+            return -1;
         }
-        // Aquí deberías consultar a la BD si tienes muchas sucursales
-        return 1; // Default
     }
 
     // ==================== ESTILOS ====================
