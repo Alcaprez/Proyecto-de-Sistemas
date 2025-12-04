@@ -1,23 +1,20 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package edu.UPAO.proyecto.app;
 
 import java.awt.BorderLayout;
-import javax.swing.JFrame;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
 
-/**
- *
- * @author ALBERTH
- */
 public class PrincipalGerente extends javax.swing.JFrame {
 
-    /**
-     * Creates new form Principal
-     */
     private String idEmpleado;
     private String nombreUsuario;
     private int idSucursalActual;
@@ -27,10 +24,12 @@ public class PrincipalGerente extends javax.swing.JFrame {
         this.nombreUsuario = nombreUsuario;
  
         initComponents(); // Inicia los componentes visuales
-
+        aplicarDisenoModerno();
+        corregirLayoutHeader();
         // Configuración inicial de la ventana
+        MostrarPanel(new DashboradBienvenida());
+        this.setExtendedState(MAXIMIZED_BOTH);
         panel_Tesoreria panel_Rentabilidad1 = new panel_Tesoreria();
-        MostrarPanel(panel_Rentabilidad1);
         this.setResizable(false);
         setLocationRelativeTo(null);
 
@@ -39,14 +38,133 @@ public class PrincipalGerente extends javax.swing.JFrame {
     }
 
     private void MostrarPanel(JPanel p) {
-
+        p.setOpaque(true);
         content.removeAll();
         content.add(p, BorderLayout.CENTER);
         content.revalidate();
         content.repaint();
-        setLocationRelativeTo(null);
-
     }
+    // =======================================================
+    //  MÉTODOS DE DISEÑO (ESTILO MODERNO IGUAL AL ADMIN)
+    // =======================================================
+
+    private void aplicarDisenoModerno() {
+        // 1. EL ENCABEZADO (Amarillo/Dorado)
+        jPanel4.setBackground(new Color(255, 193, 7)); 
+        
+        lblFrase.setText("GERENTE");
+        lblFrase.setForeground(new Color(13, 59, 40)); 
+        lblFrase.setFont(new Font("Serif", Font.BOLD, 48)); // Fuente grande igual al Admin
+        
+        // Alineación a la IZQUIERDA para que quede pegado al logo (o CENTER si prefieres)
+        lblFrase.setHorizontalAlignment(SwingConstants.LEFT);
+
+        // 2. EL MENÚ LATERAL
+        jPanel1.setBackground(new Color(13, 59, 40)); 
+
+        // 3. ESTILIZAR BOTONES
+        estilizarBoton(btn_tesoreria, new Color(211, 84, 0));       
+        estilizarBoton(btn_venta, new Color(39, 174, 96));          
+        estilizarBoton(btn_compras, new Color(192, 57, 43));        
+        estilizarBoton(btn_almacenes, new Color(142, 68, 173));     
+        estilizarBoton(btn_personal, new Color(22, 160, 133));      
+        estilizarBoton(btn_cuenta, new Color(41, 128, 185));        
+
+        btn_cerrarSesion.setContentAreaFilled(false);
+        btn_cerrarSesion.setBorderPainted(false);
+        btn_cerrarSesion.setForeground(new Color(255, 255, 0)); 
+        btn_cerrarSesion.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn_cerrarSesion.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void estilizarBoton(JButton btn, Color colorFondo) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(colorFondo);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        btn.setRolloverEnabled(true); 
+
+        btn.setBorder(new BordeRedondeado(20)); 
+        btn.setContentAreaFilled(false);
+        btn.setOpaque(false);
+
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, javax.swing.JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                javax.swing.AbstractButton b = (javax.swing.AbstractButton) c;
+                javax.swing.ButtonModel model = b.getModel();
+                
+                Color colorActual = c.getBackground();
+                
+                if (model.isPressed()) {
+                    colorActual = colorActual.darker(); 
+                } else if (model.isRollover()) {
+                    colorActual = colorActual.brighter(); 
+                }
+                
+                g2.setColor(colorActual);
+                g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 20, 20); 
+                
+                super.paint(g2, c);
+                g2.dispose();
+            }
+        });
+    }
+
+    // Clase para bordes redondeados (necesaria para el estilo)
+    class BordeRedondeado implements javax.swing.border.Border {
+        private int radio;
+        BordeRedondeado(int radio) { this.radio = radio; }
+        public java.awt.Insets getBorderInsets(java.awt.Component c) {
+            return new java.awt.Insets(10, 20, 10, 20); 
+        }
+        public boolean isBorderOpaque() { return false; }
+        public void paintBorder(java.awt.Component c, Graphics g, int x, int y, int width, int height) {}
+    }
+        private void corregirLayoutHeader() {
+        // Redefinimos el Layout del panel naranja (jPanel4) manualmente
+        // para ignorar lo que haya hecho NetBeans en initComponents.
+        
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addGap(27, 27, 27)
+                // El Logo
+                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
+                
+                // Espacio fijo de 50px (NO Short.MAX_VALUE)
+                .addGap(50, 50, 50) 
+                
+                // El Texto "GERENTE" con espacio suficiente
+                .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                
+                // El resto vacío
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
+                .addContainerGap(18, Short.MAX_VALUE)
+                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+        
+        // Forzamos a que se pinte de nuevo
+        jPanel4.revalidate();
+        jPanel4.repaint();
+    }
+    
+    //--------------------------------------------------------------------------------
 
     private void verificarStockGlobal() {
         new Thread(() -> {
@@ -107,7 +225,6 @@ public class PrincipalGerente extends javax.swing.JFrame {
         jPanel4 = new javax.swing.JPanel();
         lblFrase = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
-        jLabel1 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setExtendedState(6);
@@ -251,10 +368,6 @@ public class PrincipalGerente extends javax.swing.JFrame {
 
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/miniLogo.png"))); // NOI18N
 
-        jLabel1.setFont(new java.awt.Font("Bell MT", 1, 55)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel1.setText("GERENTE");
-
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
         jPanel4Layout.setHorizontalGroup(
@@ -263,8 +376,6 @@ public class PrincipalGerente extends javax.swing.JFrame {
                 .addGap(27, 27, 27)
                 .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 139, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 300, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(296, 296, 296)
                 .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 193, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -278,10 +389,7 @@ public class PrincipalGerente extends javax.swing.JFrame {
                         .addContainerGap())
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
                         .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap())
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addGap(21, 21, 21))))
+                        .addContainerGap())))
         );
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
@@ -387,7 +495,6 @@ public class PrincipalGerente extends javax.swing.JFrame {
     private javax.swing.JButton btn_tesoreria;
     private javax.swing.JButton btn_venta;
     private javax.swing.JPanel content;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLayeredPane jLayeredPane1;
     private javax.swing.JPanel jPanel1;

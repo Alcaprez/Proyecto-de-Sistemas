@@ -11,6 +11,7 @@ import com.itextpdf.text.pdf.PdfWriter;
 import edu.UPAO.proyecto.DAO.CajaDAO;
 import edu.UPAO.proyecto.Modelo.Caja;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.io.FileOutputStream;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -18,6 +19,7 @@ import java.util.Date;
 import javax.swing.JFileChooser;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -64,6 +66,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         verificarAperturaAutomatica();
         actualizarSaldos();
         cargarTablaMovimientos();
+        aplicarEstiloModerno();
     }
 
     private void cargarReporteVentas() {
@@ -554,6 +557,196 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
             }
         }
     }
+        //-------------------------------------------------------------------------
+        // --- MÉTODOS DE DISEÑO (COPIAR AL FINAL DE LA CLASE) ---
+
+    private void aplicarEstiloModerno() {
+        // 1. Colores Generales del Tema
+        Color colorFondo = new Color(245, 247, 251); // Gris azulado muy suave
+        this.setBackground(colorFondo);
+        
+        // Estilo del TabbedPane (Pestañas)
+        jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        jTabbedPane1.setBackground(Color.WHITE);
+        
+        // 2. Unificar Fondos de las Pestañas
+        jPanel1.setBackground(colorFondo); // Ventas
+        jPanel2.setBackground(colorFondo); // Gastos
+        jPanel3.setBackground(colorFondo); // Facturas
+        jPanel4.setBackground(colorFondo); // Gestión Caja
+
+        // 3. Estilizar Tarjetas KPI (Los cuadros de colores de arriba)
+        // Pestaña Ventas
+        estilizarKPI(jPanel5, new Color(46, 125, 50), new Color(232, 245, 233)); // Ingresos (Verde)
+        estilizarKPI(jPanel6, new Color(239, 108, 0), new Color(255, 243, 224)); // Ticket (Naranja)
+        estilizarDateChooser(dcFecha);
+        
+        // Pestaña Gastos
+        estilizarKPI(jPanel7, new Color(198, 40, 40), new Color(255, 235, 238)); // Gastos Totales (Rojo)
+        estilizarKPI(jPanel8, new Color(230, 81, 0),  new Color(255, 248, 225)); // Compras (Naranja suave)
+        estilizarKPI(jPanel9, new Color(0, 121, 107), new Color(224, 242, 241)); // Salarios (Teal)
+
+        // 4. Estilizar Panel de Gestión de Caja (El cuadro verde grande)
+        // Lo convertimos en una "Tarjeta de Control" blanca y limpia
+        jPanel10.setBackground(Color.WHITE);
+        jPanel10.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            javax.swing.BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        // Corregir colores de etiquetas dentro del Panel de Caja (porque antes eran blancas sobre fondo verde)
+        fixLabelsCaja(jPanel10);
+
+        // 5. Estilizar Tablas (Card Style)
+        estilizarTabla(tblReporteVentas, jScrollPane1);
+        estilizarTabla(tblReporteGastos, jScrollPane2);
+        estilizarTabla(tblListadoFacturas, jScrollPane3);
+        estilizarTabla(tblMovimientosCaja, jScrollPane4);
+
+        // 6. Estilizar Botones
+        estilizarBoton(jButton1, new Color(0, 153, 102)); // Exportar PDF (Verde)
+        estilizarBoton(btnPasarGrande, new Color(255, 102, 0)); // Naranja
+        estilizarBoton(btnPasarChica, new Color(2, 119, 189));  // Azul
+        estilizarBoton(btnGenerarPago, new Color(220, 53, 69)); // Rojo (Gasto)
+
+        // 7. Estilizar Inputs y Combos
+        estilizarInput(txtMontoTransferencia);
+        estilizarCombo(cboFiltroFacturas);
+        
+        // 8. Títulos
+        estilizarTitulo(jLabel1); // "Detalle ingresos"
+        estilizarTitulo(jLabel4); // "Registro Gastos"
+        estilizarTitulo(jLabel6); // "Listado Facturas"
+        estilizarTitulo(jLabel10); // "Detalles Caja"
+    }
+
+    // Transforma los paneles sólidos en tarjetas modernas con borde inferior de color
+    private void estilizarKPI(JPanel panel, Color colorBorde, Color colorFondo) {
+        panel.setBackground(colorFondo);
+        panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 4, 0, colorBorde)); 
+        
+        for (java.awt.Component comp : panel.getComponents()) {
+            if (comp instanceof javax.swing.JLabel) {
+                javax.swing.JLabel lbl = (javax.swing.JLabel) comp;
+                // Títulos en el color del tema, números en gris oscuro
+                if (lbl.getFont().getSize() < 15) { // Asumimos que fuente pequeña es título
+                     lbl.setForeground(colorBorde);
+                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+                } else {
+                     lbl.setForeground(Color.DARK_GRAY);
+                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22));
+                }
+            }
+        }
+    }
+
+    private void estilizarTabla(JTable tabla, javax.swing.JScrollPane scroll) {
+        tabla.setRowHeight(35);
+        tabla.setShowVerticalLines(false);
+        tabla.setGridColor(new Color(230, 230, 230));
+        tabla.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        tabla.setSelectionBackground(new Color(232, 240, 254));
+        tabla.setSelectionForeground(Color.BLACK);
+        tabla.setBackground(Color.WHITE);
+
+        javax.swing.table.JTableHeader header = tabla.getTableHeader();
+        header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        header.setBackground(Color.WHITE);
+        header.setForeground(new Color(100, 100, 100));
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200,200,200)));
+
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBackground(Color.WHITE);
+        scroll.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0),
+            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220))
+        ));
+    }
+
+    private void fixLabelsCaja(JPanel panel) {
+        for (java.awt.Component comp : panel.getComponents()) {
+            if (comp instanceof javax.swing.JLabel) {
+                javax.swing.JLabel lbl = (javax.swing.JLabel) comp;
+                lbl.setForeground(new Color(50, 50, 50)); // Gris oscuro en vez de blanco
+                if(lbl.getText().contains("s/")) {
+                     lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+                     lbl.setForeground(new Color(0, 100, 0)); // Verde oscuro para dinero
+                }
+            }
+        }
+    }
+
+    private void estilizarBoton(javax.swing.JButton btn, Color colorFondo) {
+        btn.setBackground(colorFondo);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    private void estilizarInput(javax.swing.JTextField txt) {
+        txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        txt.setBackground(Color.WHITE);
+        txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
+            javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+    }
+    
+    private void estilizarCombo(javax.swing.JComboBox cbo) {
+        cbo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        cbo.setBackground(Color.WHITE);
+    }
+
+    private void estilizarTitulo(javax.swing.JLabel lbl) {
+        lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 20));
+        lbl.setForeground(new Color(60, 60, 60)); // Gris oscuro profesional
+    }
+    //--------------------- SI EL CALENDARIO NO FUNCIO SOLO BORRA ESTO--------------------------
+    // 
+    private void estilizarDateChooser(com.toedter.calendar.JDateChooser dc) {
+        if (dc == null) return;
+
+        // 1. Estilo del Contenedor Principal
+        dc.setBackground(Color.WHITE);
+        dc.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+        
+        // 2. Estilo de la Caja de Texto Interna (Donde sale la fecha)
+        // JDateChooser tiene un método getDateEditor() que nos da acceso al input
+        javax.swing.JComponent editor = (javax.swing.JComponent) dc.getDateEditor().getUiComponent();
+        
+        if (editor instanceof javax.swing.JTextField) {
+            javax.swing.JTextField txt = (javax.swing.JTextField) editor;
+            txt.setBackground(Color.WHITE);
+            txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 14));
+            txt.setForeground(Color.DARK_GRAY);
+            
+            // Borde moderno (Gris suave con padding)
+            txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
+                javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+            ));
+        }
+
+        // 3. Estilo del Botón del Calendario (El ícono pequeño)
+        // Buscamos el botón dentro de los componentes del JDateChooser
+        for (java.awt.Component comp : dc.getComponents()) {
+            if (comp instanceof javax.swing.JButton) {
+                javax.swing.JButton btn = (javax.swing.JButton) comp;
+                
+                // Le damos un fondo sutil o lo hacemos plano
+                btn.setBackground(new Color(245, 247, 251)); 
+                btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+                btn.setContentAreaFilled(false); // Quita el relieve 3D feo
+                btn.setFocusPainted(false);
+                btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Espacio alrededor
+            }
+        }
+    }
+    //----------------------------------------------------------------------------------------------------------------------------
+    //----------------- SU WEBADA DE DETALLES DE INGRESO POR VENTAS DE POR NO HACIA CUANDO HICE CLONE NANDA NOMAS DIGO------------
+     //---------------------------------------------------------------------------------------------------------------------------
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -626,7 +819,6 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jScrollPane1.setViewportView(tblReporteVentas);
 
         jLabel1.setFont(new java.awt.Font("Arial Black", 0, 18)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
         jLabel1.setText("Detalle de ingresos por ventas ");
 
         jPanel5.setBackground(new java.awt.Color(0, 153, 0));
@@ -861,37 +1053,36 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
+            .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(51, 51, 51)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel4)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addComponent(jScrollPane2)
                         .addGap(76, 76, 76))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                         .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(54, 54, 54)
+                        .addGap(55, 55, 55)
                         .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(54, 54, 54)
                         .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(246, 246, 246)
-                .addComponent(jLabel4)
-                .addContainerGap(305, Short.MAX_VALUE))
+                        .addContainerGap(206, Short.MAX_VALUE))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(23, 23, 23)
+                .addGap(14, 14, 14)
                 .addComponent(jLabel4)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 45, Short.MAX_VALUE)
+                .addGap(18, 18, 18)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel8, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel7, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel9, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(30, 30, 30)
+                    .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jPanel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
                 .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 342, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(35, 35, 35))
+                .addContainerGap(83, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("REPORTE DE GASTOS", jPanel2);
@@ -937,18 +1128,14 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(366, 366, 366)
-                        .addComponent(jLabel6))
-                    .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGap(52, 52, 52)
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(cboFiltroFacturas, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 1078, javax.swing.GroupLayout.PREFERRED_SIZE)))))
-                .addContainerGap(52, Short.MAX_VALUE))
+                .addGap(52, 52, 52)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 159, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(cboFiltroFacturas, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 1078, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jLabel6)))
+                .addContainerGap(55, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -958,7 +1145,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
                 .addGap(18, 18, 18)
                 .addComponent(cboFiltroFacturas, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 399, Short.MAX_VALUE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 403, Short.MAX_VALUE)
                 .addGap(18, 18, 18)
                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(26, 26, 26))
@@ -973,31 +1160,24 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         jPanel10.setBorder(javax.swing.BorderFactory.createEtchedBorder());
 
         jLabel8.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        jLabel8.setForeground(new java.awt.Color(0, 0, 0));
         jLabel8.setText("Caja grande:");
 
         lblSaldoGrande.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        lblSaldoGrande.setForeground(new java.awt.Color(0, 0, 0));
         lblSaldoGrande.setText("s/ 000");
 
         jLabel11.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        jLabel11.setForeground(new java.awt.Color(0, 0, 0));
         jLabel11.setText("Caja chica:");
 
         lblSaldoChica.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        lblSaldoChica.setForeground(new java.awt.Color(0, 0, 0));
         lblSaldoChica.setText("s/ 000");
 
         jLabel13.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        jLabel13.setForeground(new java.awt.Color(0, 0, 0));
         jLabel13.setText("Total de hoy:");
 
         lblTotalHoy.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        lblTotalHoy.setForeground(new java.awt.Color(0, 0, 0));
         lblTotalHoy.setText("s/ 000");
 
         jLabel15.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
-        jLabel15.setForeground(new java.awt.Color(0, 0, 0));
         jLabel15.setText("Monto del dia a pasar:");
 
         txtMontoTransferencia.setBackground(new java.awt.Color(204, 204, 204));

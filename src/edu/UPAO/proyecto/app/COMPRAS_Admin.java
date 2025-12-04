@@ -2,6 +2,7 @@ package edu.UPAO.proyecto.app;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.sql.*;
 import javax.swing.JLabel;
 import javax.swing.table.DefaultTableModel;
@@ -16,34 +17,37 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
     public COMPRAS_Admin() {
 
         initComponents();
-        new Thread(() -> {
-            llenarFiltros();
-            mostrarDatos();
-        }).start();
+        aplicarEstiloModerno();
+        // 1. Cargamos los datos iniciales (Combos y Tabla)
+        // Lo hacemos directo para evitar condiciones de carrera con los eventos
+        llenarFiltros(); 
+        mostrarDatos();
 
-        // --- CORRECCIÓN 2: Configuración real de la tabla ---
-        // (Tu código anterior creaba un modelo pero no lo asignaba a la tabla visual)
-        // Asumiremos que la tabla de recepción es tblDetalleCompra o una nueva. 
-        // Si usas una tabla específica para recepción, asegúrate de usar su nombre correcto.
-        // Por ahora, dejaremos comentado esto para que no rompa si la tabla no existe en el diseño.
-        // configurarTablaRecepcion(); 
-        // Eventos de pestañas
+        // 2. AGREGAMOS LOS LISTENERS AL FINAL
+        // Esto evita que al llenar los combos se disparen eventos locos al inicio
+        agregarEventos();
+        
+        // Configuración de pestañas
         try {
             jTabbedPane1.setSelectedIndex(0);
             jTabbedPane1.addChangeListener(evt -> {
                 if (jTabbedPane1.getSelectedIndex() == 1) {
-                    // Usamos SwingUtilities para asegurar que esto corra en el hilo gráfico
-                    javax.swing.SwingUtilities.invokeLater(this::mostrarHistorialCompras);
+                    mostrarHistorialCompras();
                 }
             });
         } catch (Exception e) {
-            System.err.println("Error inicializando pestañas: " + e.getMessage());
+            System.err.println("Error pestañas: " + e.getMessage());
         }
-        
-        // Eventos de filtros
+    }
+
+    // --- NUEVO MÉTODO AUXILIAR PARA ORDENAR EL CÓDIGO ---
+    private void agregarEventos() {
+        // Ahora sí es seguro escuchar cambios, porque los combos ya están llenos
         cboProveedor.addActionListener(evt -> mostrarDatos());
         cboEstado.addActionListener(evt -> mostrarDatos());
+        
         txtBuscar.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 mostrarDatos();
             }
@@ -137,7 +141,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 fila[2] = rs.getDate("fecha_pedido");
                 fila[3] = rs.getDate("fecha_comprometida");
                 fila[4] = rs.getString("estado");
-                fila[5] = "🔍 Ver Detalle";
+                fila[5] = "+ Ver Detalle";
                 modelo.addRow(fila);
             }
             con.close();
@@ -148,41 +152,52 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
         }
     }
 
+    // Reemplaza tu método pintarColoresTabla por este:
     private void pintarColoresTabla() {
-        // Renderizador para la columna ESTADO (Columna 4)
         tblPedidos.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
-                // Centramos el texto y lo ponemos blanco/negro según convenga
+                
                 label.setHorizontalAlignment(CENTER);
-                label.setOpaque(true); // Importante para que se vea el color de fondo
-
+                label.setOpaque(true);
+                
+                // Configuración de fuente pequeña y negrita para parecer una etiqueta
+                label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11)); 
+                
                 String estado = (String) value;
-
-                // Lógica de colores tipo "Semáforo"
-                if (estado != null) {
-                    switch (estado) {
-                        case "Pendiente":
-                            label.setBackground(new Color(255, 193, 7)); // Amarillo mostaza
-                            label.setForeground(Color.BLACK);
-                            break;
-                        case "Enviado":
-                            label.setBackground(new Color(23, 162, 184)); // Azul cian
-                            label.setForeground(Color.WHITE);
-                            break;
-                        case "Recibido":
-                            label.setBackground(new Color(40, 167, 69));  // Verde
-                            label.setForeground(Color.WHITE);
-                            break;
-                        case "Atrasado":
-                            label.setBackground(new Color(220, 53, 69));  // Rojo
-                            label.setForeground(Color.WHITE);
-                            break;
-                        default:
-                            label.setBackground(table.getBackground());
-                            label.setForeground(table.getForeground());
+                
+                // Si la fila está seleccionada, mantenemos el azul de selección, si no, aplicamos color pastel
+                if (isSelected) {
+                    label.setBackground(table.getSelectionBackground());
+                    label.setForeground(table.getSelectionForeground());
+                } else {
+                    if (estado != null) {
+                        switch (estado) {
+                            case "Pendiente":
+                                // Amarillo Pastel suave
+                                label.setBackground(new Color(255, 248, 225)); 
+                                label.setForeground(new Color(180, 100, 0));
+                                break;
+                            case "Enviado":
+                                // Azul Pastel suave
+                                label.setBackground(new Color(225, 245, 254)); 
+                                label.setForeground(new Color(2, 119, 189));
+                                break;
+                            case "Recibido":
+                                // Verde Pastel suave
+                                label.setBackground(new Color(232, 245, 233)); 
+                                label.setForeground(new Color(46, 125, 50));
+                                break;
+                            case "Atrasado":
+                                // Rojo Pastel suave
+                                label.setBackground(new Color(255, 235, 238)); 
+                                label.setForeground(new Color(198, 40, 40));
+                                break;
+                            default:
+                                label.setBackground(Color.WHITE);
+                                label.setForeground(Color.BLACK);
+                        }
                     }
                 }
                 return label;
@@ -246,6 +261,87 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 }
             }
         });
+    }
+    
+    private void aplicarEstiloModerno() {
+        // 1. Colores Generales
+        Color colorFondo = new Color(245, 247, 251); // Gris azulado muy suave
+        this.setBackground(colorFondo);
+        
+        // Pestañas
+        jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        jTabbedPane1.setBackground(Color.WHITE);
+        
+        // 2. Estilizar los Paneles contenedores
+        // Hacemos que los paneles de fondo se fusionen con el color general
+        jPanel3.setBackground(colorFondo); // Panel "COMPRAR"
+        jPanel2.setBackground(colorFondo); // Panel "DEVOLUCIONES"
+
+        // 3. Estilizar los Inputs y Combos (Barra superior)
+        estilizarInput(txtBuscar);
+        estilizarCombo(cboProveedor);
+        estilizarCombo(cboEstado);
+
+        // 4. Estilizar Botones (Más planos y modernos)
+        estilizarBoton(jButton1, new Color(0, 153, 153)); // Nuevo Pedido
+        estilizarBoton(btnRecepcion, new Color(255, 153, 0)); // Recepción
+        estilizarBoton(btnAnular, new Color(220, 53, 69)); // Devolución (Rojo)
+
+        // 5. ESTILIZAR LAS TABLAS (Lo más importante)
+        // Aplicamos el diseño de "Tarjeta Blanca" a los ScrollPanes
+        estilizarTabla(tblPedidos, jScrollPane2);
+        estilizarTabla(tblCompras, jScrollPane4);
+        estilizarTabla(tblDetalleCompra, jScrollPane3);
+    }
+
+    private void estilizarTabla(JTable tabla, javax.swing.JScrollPane scroll) {
+        // Diseño de la tabla
+        tabla.setRowHeight(45); // Filas altas
+        tabla.setShowVerticalLines(false);
+        tabla.setGridColor(new Color(230, 230, 230)); // Líneas sutiles
+        tabla.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        tabla.setSelectionBackground(new Color(232, 240, 254)); // Azul selección suave
+        tabla.setSelectionForeground(Color.BLACK);
+        tabla.setBackground(Color.WHITE);
+
+        // Encabezado
+        javax.swing.table.JTableHeader header = tabla.getTableHeader();
+        header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        header.setBackground(Color.WHITE);
+        header.setForeground(new Color(100, 100, 100));
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200,200,200)));
+
+        // Diseño del ScrollPane (Efecto Tarjeta)
+        scroll.getViewport().setBackground(Color.WHITE); // Fondo blanco detrás de filas vacías
+        scroll.setBackground(Color.WHITE);
+        scroll.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0), // Margen externo
+            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220)) // Borde gris suave
+        ));
+    }
+
+    // Auxiliares para inputs y botones
+    private void estilizarInput(javax.swing.JTextField txt) {
+        txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
+            javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+    }
+
+    private void estilizarCombo(javax.swing.JComboBox cbo) {
+        cbo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        cbo.setBackground(Color.WHITE);
+        ((javax.swing.JComponent) cbo.getRenderer()).setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 5, 3, 5));
+    }
+
+    private void estilizarBoton(javax.swing.JButton btn, Color colorFondo) {
+        btn.setBackground(colorFondo);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     @SuppressWarnings("unchecked")
@@ -318,17 +414,14 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
 
         jLabel1.setBackground(new java.awt.Color(0, 0, 0));
         jLabel1.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
         jLabel1.setText("Proveedor:");
 
         jLabel2.setBackground(new java.awt.Color(0, 0, 0));
         jLabel2.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        jLabel2.setForeground(new java.awt.Color(0, 0, 0));
         jLabel2.setText("Estado:");
 
         jLabel3.setBackground(new java.awt.Color(0, 0, 0));
         jLabel3.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        jLabel3.setForeground(new java.awt.Color(0, 0, 0));
         jLabel3.setText("Fecha:");
 
         cboProveedor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
@@ -364,10 +457,10 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(txtBuscar, javax.swing.GroupLayout.PREFERRED_SIZE, 196, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 65, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(0, 0, Short.MAX_VALUE))
+                        .addGap(0, 382, Short.MAX_VALUE))
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 840, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 23, Short.MAX_VALUE)
+                        .addComponent(jScrollPane2)
+                        .addGap(18, 18, 18)
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 159, Short.MAX_VALUE)
                             .addComponent(btnRecepcion, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
@@ -392,8 +485,8 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                         .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(btnRecepcion, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 444, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(40, Short.MAX_VALUE))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 460, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(42, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("COMPRAR", jPanel3);
@@ -459,7 +552,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 413, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addContainerGap(616, Short.MAX_VALUE))
+                        .addContainerGap(692, Short.MAX_VALUE))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
@@ -484,7 +577,7 @@ public class COMPRAS_Admin extends javax.swing.JPanel {
                 .addComponent(jLabel4)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 227, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(35, Short.MAX_VALUE))
+                .addContainerGap(49, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("DEVOLUCIONES", jPanel2);

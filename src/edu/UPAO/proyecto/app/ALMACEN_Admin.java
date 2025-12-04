@@ -18,6 +18,12 @@ import javax.swing.BoxLayout;
 import javax.swing.table.DefaultTableModel;
 import static edu.UPAO.proyecto.DAO.ColorADM.*;
 import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.GridLayout;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
 
 public class ALMACEN_Admin extends javax.swing.JPanel {
 
@@ -55,6 +61,8 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         configurarComboBoxes();
         // Carga inicial de datos reales
         cargarDatosDesdeBD();
+        aplicarEstiloVisual();
+        corregirLayoutTabla();
         actualizarMetricasBD();
         configurarBuscador();
         inicializarInventarioTienda();
@@ -184,12 +192,12 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             jLabel4.setText("<html><center>VALOR EN RIESGO<br><b style='font-size:18px'>S/ " + String.format("%.2f", riesgo) + "</b></center></html>");
 
             // Colores
-            jPanel6.setBackground(new Color(220, 53, 69));
-            jPanel5.setBackground(new Color(255, 193, 7));
-            jPanel4.setBackground(new Color(255, 235, 156));
-            jPanel7.setBackground(new Color(173, 216, 230));
-            jLabel1.setForeground(Color.WHITE);
-
+            //jPanel6.setBackground(new Color(220, 53, 69));
+            //jPanel5.setBackground(new Color(255, 193, 7));
+            //jPanel4.setBackground(new Color(255, 235, 156));
+            //jPanel7.setBackground(new Color(173, 216, 230));
+            //jLabel1.setForeground(Color.WHITE);
+            
         } catch (SQLException e) {
             System.out.println("Error en métricas: " + e);
         }
@@ -252,93 +260,134 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
     private void inicializarInventarioTienda() {
         listaCategorias = new ArrayList<>();
         configurarPanelCategorias();
-        jPanel9.setLayout(new BoxLayout(jPanel9, BoxLayout.Y_AXIS));
         configurarPanelProductos();
-
         cargarCategoriasBD(); // Carga real
         actualizarVistaCategorias();
+        jPanel9.setLayout(new BoxLayout(jPanel9, BoxLayout.Y_AXIS));
     }
 
     private void configurarPanelProductos() {
+        jPanel9.setLayout(new BoxLayout(jPanel9, BoxLayout.Y_AXIS));
         jPanel9.setBackground(Color.WHITE);
+
+        // --- AGREGA ESTO (FIX DEL APLASTAMIENTO) ---
+        // Obligamos al ScrollPane a tener una altura fija.
+        jScrollPane3.setPreferredSize(new Dimension(480, 460));
+        jScrollPane3.setMinimumSize(new Dimension(480, 460));
+        // -------------------------------------------
+
         jScrollPane3.getViewport().setBackground(Color.WHITE);
+        jScrollPane3.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
     }
 
     private void configurarPanelCategorias() {
-        panelCategorias = new JPanel();
+        // 1. Usamos el panel existente
+        panelCategorias = jPanel8; 
+        
+        // 2. Layout vertical
         panelCategorias.setLayout(new BoxLayout(panelCategorias, BoxLayout.Y_AXIS));
         panelCategorias.setBackground(Color.WHITE);
-        jScrollPane2.setViewportView(panelCategorias);
+        
+        // --- AGREGA ESTO (FIX DEL APLASTAMIENTO) ---
+        // Obligamos al ScrollPane a tener una altura fija, ignorando que el panel esté vacío.
+        jScrollPane2.setPreferredSize(new Dimension(453, 460));
+        jScrollPane2.setMinimumSize(new Dimension(453, 460)); 
+        // -------------------------------------------
+        
+        // 3. Estética
+        jScrollPane2.getViewport().setBackground(Color.WHITE);
+        jScrollPane2.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
     }
 
-// Carga Categorías que tengan productos con stock
+// EN ALMACEN_Admin.java
     private void cargarCategoriasBD() {
         listaCategorias.clear();
-        String sql = "SELECT DISTINCT c.id_categoria, c.nombre "
-                + "FROM categoria c "
-                + "INNER JOIN producto p ON c.id_categoria = p.id_categoria "
-                + "INNER JOIN inventario_sucursal i ON p.id_producto = i.id_producto "
-                + "WHERE i.stock_actual > 0 AND i.id_sucursal = ?";
+        
+        // --- CAMBIO CLAVE ---
+        // Antes usabas INNER JOIN que filtraba por stock.
+        // Ahora seleccionamos DIRECTAMENTE de la tabla categoria para verlas todas.
+        String sql = "SELECT id_categoria, nombre FROM categoria ORDER BY nombre ASC";
 
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setInt(1, idSucursalUsuario);
             ResultSet rs = ps.executeQuery();
+
             while (rs.next()) {
                 int id = rs.getInt("id_categoria");
                 String nombre = rs.getString("nombre");
 
-                // --- CORRECCIÓN AQUÍ ---
-                // Eliminamos el tercer parámetro "descripcion"
+                // Usamos el constructor simple (id, nombre)
                 listaCategorias.add(new Categoria(id, nombre));
             }
         } catch (SQLException e) {
-            System.out.println("Error categorías: " + e);
+            System.out.println("Error cargando categorías: " + e);
         }
     }
 
     private void actualizarVistaCategorias() {
         panelCategorias.removeAll();
-        panelCategorias.add(Box.createVerticalStrut(10));
+        // panelCategorias.add(Box.createVerticalStrut(10)); // <--- BORRAR O COMENTAR ESTO
 
         for (Categoria categoria : listaCategorias) {
             JPanel cardCategoria = crearCardCategoria(categoria);
             panelCategorias.add(cardCategoria);
-            panelCategorias.add(Box.createVerticalStrut(10));
+            // panelCategorias.add(Box.createVerticalStrut(10)); // <--- BORRAR O COMENTAR ESTO
         }
 
         panelCategorias.revalidate();
         panelCategorias.repaint();
     }
 
-    // Diseño de la tarjeta de Categoría (SIN BOTONES EDITAR/BORRAR)
     private JPanel crearCardCategoria(Categoria categoria) {
         JPanel card = new JPanel();
         card.setLayout(new BorderLayout(10, 5));
-        card.setMaximumSize(new Dimension(350, 70));
-        card.setPreferredSize(new Dimension(350, 70));
+        
+        // --- ESTILO VISUAL MODERNO (Expandido) ---
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60)); 
+        card.setPreferredSize(new Dimension(0, 60));
+        
+        // Borde solo abajo
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 230, 230)), 
+                BorderFactory.createEmptyBorder(0, 20, 0, 10) 
         ));
 
-        // Colores (Usando tus constantes o defaults)
+        // Colores de selección
         if (categoria.equals(categoriaSeleccionada)) {
-            card.setBackground(new Color(255, 248, 225)); // Color seleccionado suave
+            card.setBackground(new Color(255, 248, 225)); 
+            // Borde naranja a la izquierda
+            card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 1, 0, new Color(255, 102, 0)),
+                BorderFactory.createEmptyBorder(0, 16, 0, 10)
+            ));
         } else {
             card.setBackground(Color.WHITE);
         }
 
         JLabel lblNombre = new JLabel(categoria.getNombre());
         lblNombre.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblNombre.setForeground(new Color(50, 50, 50)); 
+
+        // ELIMINADO: card.setToolTipText(...) -> Ya no va.
 
         card.add(lblNombre, BorderLayout.CENTER);
 
-        // Evento Clic
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
                 seleccionarCategoria(categoria);
+            }
+            // Efecto Hover
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                if (!categoria.equals(categoriaSeleccionada)) {
+                    card.setBackground(new Color(250, 250, 250));
+                    card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                }
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                if (!categoria.equals(categoriaSeleccionada)) {
+                    card.setBackground(Color.WHITE);
+                }
             }
         });
 
@@ -377,7 +426,7 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
 
                 JPanel cardProducto = crearCardProducto(nombre, stock);
                 jPanel9.add(cardProducto);
-                jPanel9.add(Box.createVerticalStrut(8));
+                //jPanel9.add(Box.createVerticalStrut(8));
             }
 
             if (!hayProductos) {
@@ -392,23 +441,34 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jPanel9.repaint();
     }
 
-    // Diseño de tarjeta de Producto (SIN BOTONES DE BORRAR)
     private JPanel crearCardProducto(String nombreProducto, int stock) {
         JPanel card = new JPanel(new BorderLayout(10, 0));
-        card.setMaximumSize(new Dimension(350, 45));
-        card.setPreferredSize(new Dimension(350, 45));
+        
+        // --- CAMBIO 1: ANCHO EXPANDIBLE ---
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // Altura un poco menor para productos
+        card.setPreferredSize(new Dimension(0, 50));
+
+        // --- CAMBIO 2: BORDE SOLO ABAJO ---
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(235, 235, 235)), // Línea muy sutil
+                BorderFactory.createEmptyBorder(0, 20, 0, 20) // Márgenes a los lados
         ));
-        card.setBackground(new Color(250, 250, 250));
+        
+        card.setBackground(Color.WHITE); // Fondo blanco limpio
 
         JLabel lblNombre = new JLabel(nombreProducto);
         lblNombre.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblNombre.setForeground(new Color(60, 60, 60));
 
-        JLabel lblCantidad = new JLabel("(" + stock + " unid.)");
+        JLabel lblCantidad = new JLabel(stock + " unid."); // Quitamos paréntesis para look más limpio
         lblCantidad.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblCantidad.setForeground(new Color(0, 100, 0)); // Verde oscuro
+        
+        // Lógica de color de stock (opcional: rojo si es bajo stock)
+        if(stock < 10) {
+            lblCantidad.setForeground(new Color(200, 50, 50)); // Rojo
+        } else {
+            lblCantidad.setForeground(new Color(0, 153, 102)); // Verde
+        }
 
         card.add(lblNombre, BorderLayout.CENTER);
         card.add(lblCantidad, BorderLayout.EAST);
@@ -447,6 +507,284 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             }
         });
     }
+    //----------------------------------------
+    // --- MÉTODO DE DISEÑO MODERNO (COPIAR AL FINAL DE LA CLASE) ---
+private void aplicarEstiloVisual() {
+    // 1. Configuración General
+    this.setBackground(new Color(245, 247, 251)); // Fondo general gris muy claro
+    jPanel2.setBackground(new Color(245, 247, 251)); // Fondo del tab
+    jTabbedPane1.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    
+    // 2. Estilizar Tabla (Lo más importante para que se vea como la imagen 3)
+    jTable1.setRowHeight(45); // Filas más altas
+    jTable1.setShowVerticalLines(false); // Quitar líneas verticales
+    jTable1.setGridColor(new Color(230, 230, 230)); // Líneas horizontales sutiles
+    jTable1.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    jTable1.setSelectionBackground(new Color(232, 240, 254)); // Azul muy suave al seleccionar
+    jTable1.setSelectionForeground(Color.BLACK);
+    
+    // Encabezado de la tabla
+    javax.swing.table.JTableHeader header = jTable1.getTableHeader();
+    // CAMBIO 1: Fuente un poco más pequeña y elegante
+    header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+    // CAMBIO 2: Fondo BLANCO PURO para el contraste limpio
+    header.setBackground(Color.WHITE);
+    // CAMBIO 3: Texto gris oscuro/azulado
+    header.setForeground(new Color(49, 65, 81));
+    header.setFont(new Font("Segoe UI", Font.BOLD, 13));
+    header.setBackground(Color.WHITE);
+    header.setForeground(new Color(100, 100, 100)); // Texto gris oscuro
+    
+    // Quitar bordes del ScrollPane para que se vea flotante
+    jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
+    jScrollPane1.getViewport().setBackground(Color.WHITE);
+    
+    // 3. Estilizar Buscador y Combo
+    jTextField1.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)), 
+            BorderFactory.createEmptyBorder(5, 10, 5, 10))); // Padding interno
+    
+    Estado.setBackground(Color.WHITE);
+    // Nota: El estilo avanzado de ComboBox requiere librerías, pero esto lo limpia.
+
+    // 4. Estilizar Tarjetas de KPIs (Simulación de tarjetas limpias)
+    // Definimos colores pastel modernos (Tipo Imagen 3)
+    estilizarPanelKPI(jPanel6, new Color(255, 235, 238), new Color(211, 47, 47)); // Rojo suave
+    estilizarPanelKPI(jPanel5, new Color(255, 243, 224), new Color(230, 81, 0));  // Naranja suave
+    estilizarPanelKPI(jPanel4, new Color(255, 253, 231), new Color(249, 168, 37)); // Amarillo suave
+    estilizarPanelKPI(jPanel7, new Color(224, 242, 241), new Color(0, 121, 107));  // Verde/Teal suave
+    //------------------color rojo ELIMINA SI LO VES FEO xd --------------------------------------------
+        javax.swing.table.DefaultTableCellRenderer rendererSuave = new javax.swing.table.DefaultTableCellRenderer() {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value, 
+                boolean isSelected, boolean hasFocus, int row, int column) {
+
+            java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            // 1. Obtener los días restantes (Asumiendo que es la columna 3, índice 3)
+            // Ajusta el índice si moviste las columnas.
+            try {
+                Object diasObj = table.getValueAt(row, 3); 
+                int dias = Integer.parseInt(diasObj.toString());
+
+                // 2. Lógica de Colores Suaves
+                if (isSelected) {
+                    // Mantener el azul de selección si se hace clic
+                    c.setBackground(new Color(232, 240, 254)); 
+                    c.setForeground(Color.BLACK);
+                } else {
+                    if (dias < 0) {
+                        // ESTADO VENCIDO: Rojo Pastel Suave
+                        // Fondo: Rosado muy pálido | Texto: Rojo oscuro elegante
+                        c.setBackground(new Color(255, 235, 235)); 
+                        c.setForeground(new Color(180, 40, 40));   
+                    } else if (dias <= 7) {
+                        // POR VENCER (7 días): Naranja Pastel
+                        c.setBackground(new Color(255, 248, 225));
+                        c.setForeground(new Color(180, 100, 0));
+                    } else {
+                        // NORMAL: Blanco
+                        c.setBackground(Color.WHITE);
+                        c.setForeground(new Color(60, 60, 60));
+                    }
+                }
+            } catch (Exception e) {
+                // Si falla al leer el número, poner blanco por defecto
+                c.setBackground(Color.WHITE);
+                c.setForeground(Color.BLACK);
+            }
+
+            // Ajuste de borde para limpieza
+            setBorder(noFocusBorder);
+            return c;
+        }
+    };
+
+    // Aplicar este renderizador a TODAS las columnas
+    for (int i = 0; i < jTable1.getColumnCount(); i++) {
+        jTable1.getColumnModel().getColumn(i).setCellRenderer(rendererSuave);
+    }
+    // --- AGREGAR ESTO AL FINAL DEL MÉTODO ---
+    // Estilo para el botón ELIMINAR (Rojo intenso)
+    Eliminar.setBackground(new Color(220, 53, 69)); // Rojo "Danger"
+    Eliminar.setForeground(Color.WHITE);
+    Eliminar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+    Eliminar.setFocusPainted(false);
+    Eliminar.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+    Eliminar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+}
+
+// Método auxiliar para limpiar los paneles de arriba
+private void estilizarPanelKPI(JPanel panel, Color bgColor, Color textColor) {
+    panel.setBackground(bgColor);
+    panel.setBorder(BorderFactory.createMatteBorder(0, 0, 4, 0, textColor)); // Borde solo abajo
+    
+    // Buscar los labels dentro para cambiarles el color de letra
+    for (java.awt.Component comp : panel.getComponents()) {
+        if (comp instanceof JLabel) {
+            JLabel lbl = (JLabel) comp;
+            lbl.setForeground(textColor); // Texto del color temático
+            // Quitamos el HTML antiguo para poner fuente limpia si es necesario, 
+            // pero tu código usa HTML para saltos de línea, así que solo cambiamos color.
+        }
+    }
+}
+    private void corregirLayoutTabla() {
+    // --- 0. DEFINIMOS EL COLOR DE FUSIÓN ---
+    // Este color se aplicará a TODO para que parezca una sola superficie.
+    // Usamos el azul grisáceo suave que te gustó.
+    Color colorFusion = new Color(248, 250, 252); 
+
+    // --- 1. CONFIGURACIÓN DEL FONDO PRINCIPAL ---
+    jPanel2.removeAll();
+    jPanel2.setLayout(new BorderLayout());
+    jPanel2.setBackground(colorFusion); // Color base
+    jPanel2.setOpaque(true);
+    // Mantenemos márgenes externos para que el contenido no toque los bordes de la ventana
+    jPanel2.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+
+    // --- 2. CONTENEDOR PRINCIPAL (LA "EX-TARJETA") ---
+    JPanel panelTarjeta = new JPanel(new BorderLayout());
+    panelTarjeta.setBackground(colorFusion); // ¡CAMBIO!: Mismo color que el fondo
+    // ¡CAMBIO!: Quitamos el LineBorder. Ahora es invisible.
+    panelTarjeta.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+
+    // --- 3. CONFIGURACIÓN DE LA ZONA SUPERIOR ---
+    JPanel panelNorte = new JPanel();
+    panelNorte.setLayout(new BoxLayout(panelNorte, BoxLayout.Y_AXIS));
+    panelNorte.setBackground(colorFusion); // ¡CAMBIO!: Fondo fusionado
+    // Ajustamos márgenes. Quitamos el padding superior para que suba un poco más si deseas.
+    panelNorte.setBorder(BorderFactory.createEmptyBorder(0, 25, 15, 25));
+
+    // === A. FILA DE TARJETAS KPI ===
+    JPanel filaKPIs = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+    filaKPIs.setBackground(colorFusion); // ¡CAMBIO!: Fondo fusionado
+
+    Dimension dimTarjeta = new Dimension(220, 90);
+    // Asumimos que tienes el método auxiliar 'configurarTarjetaKPI' agregado previamente
+    configurarTarjetaKPI(jPanel6, dimTarjeta); 
+    configurarTarjetaKPI(jPanel5, dimTarjeta); 
+    configurarTarjetaKPI(jPanel4, dimTarjeta); 
+    configurarTarjetaKPI(jPanel7, dimTarjeta); 
+
+    filaKPIs.add(jPanel6);
+    filaKPIs.add(jPanel5);
+    filaKPIs.add(jPanel4);
+    filaKPIs.add(jPanel7);
+
+    // === B. FILA DE CONTROLES (Buscador) ===
+    JPanel filaControles = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+    filaControles.setBackground(colorFusion); // ¡CAMBIO!: Fondo fusionado
+    
+    jTextField1.setPreferredSize(new Dimension(350, 40));
+    Estado.setPreferredSize(new Dimension(180, 40));
+
+    filaControles.add(jTextField1);
+    filaControles.add(Box.createHorizontalStrut(15)); 
+    filaControles.add(Estado);
+
+    // === C. ENSAMBLAJE NORTE ===
+    panelNorte.add(filaKPIs);
+    panelNorte.add(Box.createVerticalStrut(25)); 
+    panelNorte.add(filaControles);
+
+    // --- 4. ZONA DE LA TABLA (CENTRO) ---
+    JPanel panelTablaWrapper = new JPanel(new BorderLayout());
+    // ¡OJO AQUÍ!: El wrapper también se fusiona, PERO la tabla (jScrollPane1) seguirá siendo blanca
+    // gracias a la configuración en 'aplicarEstiloVisual'.
+    panelTablaWrapper.setBackground(colorFusion); 
+    panelTablaWrapper.setBorder(BorderFactory.createEmptyBorder(10, 25, 25, 25));
+    panelTablaWrapper.add(jScrollPane1, BorderLayout.CENTER);
+
+    // --- 5. UNIÓN FINAL ---
+    panelTarjeta.add(panelNorte, BorderLayout.NORTH);
+    panelTarjeta.add(panelTablaWrapper, BorderLayout.CENTER);
+
+    jPanel2.add(panelTarjeta, BorderLayout.CENTER);
+    jPanel2.revalidate();
+    jPanel2.repaint();
+}
+
+    /**
+ * Método auxiliar para forzar el tamaño y centrado de las tarjetas de colores.
+ * Soluciona el problema de "texto cortado" y "estiramiento".
+ */
+private void configurarTarjetaKPI(JPanel panel, Dimension dim) {
+    // 1. Forzar tamaño fijo
+    panel.setPreferredSize(dim);
+    panel.setMaximumSize(dim);
+    panel.setMinimumSize(dim);
+    
+    // 2. Arreglar el diseño interno para que el texto no se corte
+    // Guardamos los componentes (Labels) que tiene adentro
+    java.awt.Component[] componentes = panel.getComponents();
+    panel.removeAll(); // Borramos el layout viejo de NetBeans
+    
+    // Usamos GridBagLayout que es el mejor para centrar cosas vertical y horizontalmente
+    panel.setLayout(new java.awt.GridBagLayout());
+    java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+    gbc.gridx = 0;
+    gbc.gridy = java.awt.GridBagConstraints.RELATIVE; // Uno debajo del otro
+    gbc.insets = new java.awt.Insets(2, 0, 2, 0); // Pequeño margen entre textos
+    gbc.anchor = java.awt.GridBagConstraints.CENTER; // Centrado total
+
+    // Volvemos a añadir los labels con el nuevo diseño centrado
+    for (java.awt.Component comp : componentes) {
+        if (comp instanceof JLabel) {
+            // Aseguramos que el texto se centre
+            ((JLabel) comp).setHorizontalAlignment(SwingConstants.CENTER);
+            panel.add(comp, gbc);
+        }
+    }
+    
+    // Redondear bordes (Opcional, visualmente agradable)
+    panel.setBorder(BorderFactory.createLineBorder(panel.getBackground(), 1)); // Borde limpio
+}
+//-------------------------------------------------------------------------------------------------------------------------
+    private void eliminarCategoriaBD(int idCategoria) {
+        // SQL para borrar
+        String sql = "DELETE FROM categoria WHERE id_categoria = ?";
+
+        try (Connection con = DriverManager.getConnection(url, usuario, password);
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, idCategoria);
+            int filas = ps.executeUpdate();
+
+            if (filas > 0) {
+                JOptionPane.showMessageDialog(this, "Categoría eliminada correctamente.");
+                
+                // --- ACTUALIZAR LA INTERFAZ ---
+                categoriaSeleccionada = null; // Ya no hay selección
+                listaCategorias.clear();      // Limpiar lista memoria
+                cargarCategoriasBD();         // Recargar desde BD
+                actualizarVistaCategorias();  // Pintar de nuevo
+                
+                // Limpiar el panel de productos de la derecha
+                jPanel9.removeAll();
+                jLabel6.setText("Productos"); // Resetear título
+                jPanel9.revalidate();
+                jPanel9.repaint();
+                
+            } else {
+                JOptionPane.showMessageDialog(this, "No se pudo eliminar la categoría.");
+            }
+
+        } catch (SQLException e) {
+            // Error común: Integridad referencial (Error 1451 en MySQL)
+            // Esto pasa si intentas borrar una categoría que tiene productos asignados.
+            if (e.getErrorCode() == 1451) {
+                JOptionPane.showMessageDialog(this, 
+                    "⚠️ No se puede eliminar esta categoría porque contiene PRODUCTOS.\n" +
+                    "Primero elimina o mueve los productos de esta categoría.",
+                    "Error de Integridad", JOptionPane.ERROR_MESSAGE);
+            } else {
+                System.out.println("Error al eliminar: " + e);
+                JOptionPane.showMessageDialog(this, "Error base de datos: " + e.getMessage());
+            }
+        }
+    }
+//---------------------------------------------------------
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -475,10 +813,11 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         jPanel9 = new javax.swing.JPanel();
         jButton1 = new javax.swing.JButton();
         jButton2 = new javax.swing.JButton();
+        Eliminar = new javax.swing.JButton();
 
         setBackground(new java.awt.Color(153, 0, 255));
 
-        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
+        jPanel2.setBackground(new java.awt.Color(255, 84, 84));
 
         jPanel4.setBackground(new java.awt.Color(255, 102, 0));
         jPanel4.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
@@ -614,22 +953,24 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 .addGap(41, 41, 41)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 991, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 51, Short.MAX_VALUE))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                                 .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jPanel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 471, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(31, 31, 31)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(Estado, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(50, 50, 50))))
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, 222, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGap(36, 36, 36)
+                                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(41, 41, 41)
+                                .addComponent(jPanel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 65, Short.MAX_VALUE))))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 1043, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(18, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -645,8 +986,8 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                     .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(Estado, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 305, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(60, Short.MAX_VALUE))
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 348, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(17, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("GESTIÓN DE CADUCIDAD", jPanel2);
@@ -707,28 +1048,36 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
             }
         });
 
+        Eliminar.setText("Eliminar");
+        Eliminar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                EliminarActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
+                .addGap(46, 46, 46)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 146, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel3Layout.createSequentialGroup()
-                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                            .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 237, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanel3Layout.createSequentialGroup()
-                                .addGap(46, 46, 46)
-                                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 237, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
-                                .addContainerGap()
+                                .addGap(134, 134, 134)
+                                .addComponent(Eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(34, 34, 34)
                         .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 480, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, 352, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap(70, Short.MAX_VALUE))
+                .addContainerGap(101, Short.MAX_VALUE))
         );
         jPanel3Layout.setVerticalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -744,8 +1093,9 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(23, Short.MAX_VALUE))
+                    .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(Eliminar, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(26, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab("INVENTARIO DE TIENDA", jPanel3);
@@ -797,8 +1147,32 @@ public class ALMACEN_Admin extends javax.swing.JPanel {
         actualizarMetricasBD();
     }//GEN-LAST:event_jButton2ActionPerformed
 
+    private void EliminarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_EliminarActionPerformed
+        // 1. Validar que haya una categoría seleccionada
+        if (categoriaSeleccionada == null) {
+            JOptionPane.showMessageDialog(this, 
+                "Por favor, selecciona primero una categoría de la lista izquierda.", 
+                "Sin selección", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 2. Confirmación de seguridad
+        int confirmacion = JOptionPane.showConfirmDialog(this, 
+            "¿Estás seguro de ELIMINAR la categoría: " + categoriaSeleccionada.getNombre() + "?\n" +
+            "Esta acción no se puede deshacer.", 
+            "Confirmar Eliminación", 
+            JOptionPane.YES_NO_OPTION, 
+            JOptionPane.WARNING_MESSAGE);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // 3. Llamar al método que borra en la BD
+            eliminarCategoriaBD(categoriaSeleccionada.getId());
+        }
+    }//GEN-LAST:event_EliminarActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Eliminar;
     private javax.swing.JComboBox<String> Estado;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;

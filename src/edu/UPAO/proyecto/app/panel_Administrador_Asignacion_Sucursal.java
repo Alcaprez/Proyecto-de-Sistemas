@@ -1,190 +1,331 @@
 
 package edu.UPAO.proyecto.app;
 
-import edu.UPAO.proyecto.modelo.Sucursal;
+import edu.UPAO.proyecto.dao.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.Font;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 public class panel_Administrador_Asignacion_Sucursal extends javax.swing.JPanel {
-    
+
     private edu.UPAO.proyecto.dao.UsuarioDAOADM usuarioDAO = new edu.UPAO.proyecto.dao.UsuarioDAOADM();
+    
+    // COLORES MODERNOS
+    private final Color COLOR_FONDO = new Color(248, 250, 252);
+    private final Color COLOR_BLANCO = Color.WHITE;
+    private final Color COLOR_AZUL = new Color(59, 130, 246);
+    private final Color COLOR_ROJO = new Color(239, 68, 68);
+    private final Color COLOR_TEXTO = new Color(30, 41, 59);
+    private final Color COLOR_BORDE = new Color(226, 232, 240);
     
     public panel_Administrador_Asignacion_Sucursal() {
         initComponents();
+        reorganizarYEstilizar();
         configurarTabla();
         cargarSucursalesDesdeBD();
+        cargarTodosLosEmpleados();
     }
     
      public panel_Administrador_Asignacion_Sucursal(int idAdministrador) {
         this();
     }
      
+    private void reorganizarYEstilizar() {
+        this.removeAll();
+        this.setLayout(new BorderLayout(20, 20));
+        this.setBackground(COLOR_FONDO);
+        this.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // HEADER
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
+        estilizarPanelBlanco(jPanel1);
+        jPanel1.setLayout(new BorderLayout());
+        JLabel lblTituloSelector = new JLabel("Filtrar por Sucursal");
+        estilizarTitulo(lblTituloSelector);
+        lblTituloSelector.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
+        jComboBox1.setBackground(COLOR_BLANCO);
+        jComboBox1.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        jComboBox1.setPreferredSize(new Dimension(300, 40));
+        JPanel containerCombo = new JPanel(new BorderLayout());
+        containerCombo.setOpaque(false);
+        containerCombo.add(jComboBox1, BorderLayout.WEST);
+        jPanel1.removeAll(); 
+        jPanel1.add(lblTituloSelector, BorderLayout.NORTH);
+        jPanel1.add(containerCombo, BorderLayout.CENTER);
+        headerPanel.add(jPanel1, BorderLayout.CENTER);
+        
+        // CUERPO
+        JPanel bodyPanel = new JPanel(new BorderLayout(0, 15));
+        bodyPanel.setOpaque(false);
+        estilizarPanelBlanco(jPanel2);
+        jPanel2.setLayout(new BorderLayout(0, 10));
+        jPanel2.removeAll(); 
+        JPanel tableHeader = new JPanel(new BorderLayout());
+        tableHeader.setOpaque(false);
+        JLabel lblTituloTabla = new JLabel("Empleados Asignados");
+        estilizarTitulo(lblTituloTabla);
+        estilizarBotonAccion(AsignarEmpleado, COLOR_AZUL);
+        tableHeader.add(lblTituloTabla, BorderLayout.WEST);
+        tableHeader.add(AsignarEmpleado, BorderLayout.EAST);
+        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
+        jScrollPane1.getViewport().setBackground(COLOR_BLANCO);
+        jPanel2.add(tableHeader, BorderLayout.NORTH);
+        jPanel2.add(jScrollPane1, BorderLayout.CENTER);
+        bodyPanel.add(jPanel2, BorderLayout.CENTER);
+        
+        this.add(headerPanel, BorderLayout.NORTH);
+        this.add(bodyPanel, BorderLayout.CENTER);
+    }
+    
+    private void estilizarPanelBlanco(JPanel p) {
+        p.setBackground(COLOR_BLANCO);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(COLOR_BORDE, 1),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+    }
+    
+    private void estilizarTitulo(JLabel l) {
+        l.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        l.setForeground(COLOR_TEXTO);
+    }
+    
+    private void estilizarBotonAccion(JButton btn, Color bg) {
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
     private void configurarTabla() {
+        jTable1.setRowHeight(40);
+        jTable1.setShowVerticalLines(false);
+        jTable1.setGridColor(new Color(240, 240, 240));
+        jTable1.setSelectionBackground(new Color(240, 248, 255));
+        jTable1.setSelectionForeground(Color.BLACK);
+        jTable1.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        
+        jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                lbl.setBackground(COLOR_BLANCO);
+                lbl.setForeground(new Color(100, 116, 139));
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                lbl.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_BORDE));
+                lbl.setPreferredSize(new Dimension(lbl.getWidth(), 40));
+                return lbl;
+            }
+        });
+
         DefaultTableModel modelo = new DefaultTableModel(
-            new Object[]{"ID", "Nombre", "Rol", "Fecha Asignación", "Acción"}, 0
+            new Object[]{"ID", "Nombre", "Rol", "Sucursal", "Acción"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; 
+                return column == 4; // Solo la columna de botón es editable (clicable)
             }
         };
         jTable1.setModel(modelo);
         
         jTable1.getColumnModel().getColumn(0).setMinWidth(0);
         jTable1.getColumnModel().getColumn(0).setMaxWidth(0);
-        jTable1.getColumnModel().getColumn(1).setPreferredWidth(250);
-        jTable1.getColumnModel().getColumn(2).setPreferredWidth(150);
-        jTable1.getColumnModel().getColumn(3).setPreferredWidth(180);
-        jTable1.getColumnModel().getColumn(4).setPreferredWidth(120);
+        jTable1.getColumnModel().getColumn(1).setPreferredWidth(200);
         
+        // ASIGNAR RENDERER (Dibujo) Y EDITOR (Acción)
         jTable1.getColumn("Acción").setCellRenderer(new ButtonRenderer());
-        
-        TableButtonEditor editor = new TableButtonEditor(new JCheckBox());
-        editor.setActionListener(e -> {
-            int row = jTable1.getSelectedRow();
-            if (row != -1) {
-                quitarEmpleadoDeSucursal(row);
-            }
-        });
-        jTable1.getColumn("Acción").setCellEditor(editor);
-        jTable1.setRowHeight(35);
+        jTable1.getColumn("Acción").setCellEditor(new ButtonEditor(new JCheckBox()));
     }
     
+    // --- RENDERIZADOR (Solo dibuja) ---
     class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer() { setOpaque(true); }
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            setText("Quitar");
-            setFont(new Font("Segoe UI", Font.BOLD, 12));
-            setForeground(Color.BLACK); 
+        public ButtonRenderer() { 
+            setOpaque(true); 
+            setFont(new Font("Segoe UI", Font.BOLD, 11));
             setBackground(Color.WHITE);
-            setBorder(javax.swing.BorderFactory.createLineBorder(new Color(200,200,200), 1));
-            if (isSelected) {
-                setBackground(new Color(220, 53, 69));
-                setForeground(Color.WHITE);
-            }
+            setForeground(Color.BLACK); // Negro elegante
+            setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText("Quitar");
             return this;
         }
     }
+
+    // --- EDITOR (Detecta el clic) ---
+    class ButtonEditor extends DefaultCellEditor {
+        private JButton button;
+        private String label;
+        private boolean isPushed;
+        private int currentRow;
+
+        public ButtonEditor(JCheckBox checkBox) {
+            super(checkBox);
+            button = new JButton();
+            button.setOpaque(true);
+            button.addActionListener(e -> fireEditingStopped());
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            label = (value == null) ? "Quitar" : value.toString();
+            button.setText(label);
+            currentRow = row; // Guardamos la fila donde se hizo clic
+            isPushed = true;
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            if (isPushed) {
+                // AL HACER CLIC, LLAMAMOS A LA FUNCIÓN DE BORRAR
+                quitarEmpleadoDeSucursal(currentRow);
+            }
+            isPushed = false;
+            return label;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            isPushed = false;
+            return super.stopCellEditing();
+        }
+    }
+    
+    // --- LÓGICA DE DATOS ---
     
     private void cargarSucursalesDesdeBD() {
         jComboBox1.removeAllItems();
-        jComboBox1.addItem("Seleccione una sucursal...");
-        
-        // Llamada al DAO
+        jComboBox1.addItem("Todas las Sucursales");
         List<Sucursal> listaSucursales = usuarioDAO.listarSucursales();
-        
         for (Sucursal sucursal : listaSucursales) {
             jComboBox1.addItem(sucursal);
         }
     }
     
+    private void cargarTodosLosEmpleados() {
+        List<UsuarioADM> lista = usuarioDAO.listar();
+        
+        if (lista != null) {
+            lista.removeIf(u -> u.getNombreRol() != null && u.getNombreRol().equalsIgnoreCase("Gerente"));
+        }
+        // ---------------------------
+        
+        cargarEmpleadosGenerico(lista);
+    }
+    
     private void cargarEmpleadosPorSucursal(int idSucursal) {
-        DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
-        modelo.setRowCount(0);
-        
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        
-        // 1. Traer TODOS los usuarios reales
-        List<UsuarioADM> todosLosUsuarios = usuarioDAO.listar();
-        
-        boolean hayEmpleados = false;
-        for (UsuarioADM usuario : todosLosUsuarios) {
-            // 2. Filtrar solo los de la sucursal seleccionada
-            if (usuario.getIdSucursal() == idSucursal) {
-                hayEmpleados = true;
-                modelo.addRow(new Object[]{
-                    usuario.getId(),
-                    usuario.getNombre(),
-                    usuario.getNombreRol(),
-                    usuario.getUltimoCambio().format(formatter),
-                    "Quitar"
-                });
+        List<UsuarioADM> todos = usuarioDAO.listar();
+        List<UsuarioADM> filtrados = new java.util.ArrayList<>();
+        for (UsuarioADM u : todos) {
+            // Verificamos que sea de la sucursal Y que NO sea Gerente
+            if (u.getIdSucursal() == idSucursal) {
+                if (u.getNombreRol() != null && !u.getNombreRol().equalsIgnoreCase("Gerente")) {
+                    filtrados.add(u);
+                }
             }
         }
-        
-        if (!hayEmpleados) {
-            // Opcional: Mostrar mensaje o dejar tabla vacía
+        cargarEmpleadosGenerico(filtrados);
+    }
+    
+    private void cargarEmpleadosGenerico(List<UsuarioADM> lista) {
+        DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
+        modelo.setRowCount(0);
+        for (UsuarioADM usuario : lista) {
+            if (usuario.getNombreSucursal() != null && !usuario.getNombreSucursal().equals("Sin Asignar")) {
+                modelo.addRow(new Object[]{
+                    usuario.getId(), usuario.getNombre(), usuario.getNombreRol(), usuario.getNombreSucursal(), "Quitar"
+                });
+            }
         }
     }
     
     private void quitarEmpleadoDeSucursal(int row) {
         DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
-        // Validar que la fila exista
+        // Validación extra por si la tabla cambió
         if (row >= modelo.getRowCount()) return;
         
         int idUsuario = (int) modelo.getValueAt(row, 0);
         String nombreUsuario = (String) modelo.getValueAt(row, 1);
         
-        Object sucursalSeleccionada = jComboBox1.getSelectedItem();
-        if (sucursalSeleccionada == null || sucursalSeleccionada instanceof String) return;
-        
-        Sucursal sucursal = (Sucursal) sucursalSeleccionada;
-        
-        int confirm = JOptionPane.showConfirmDialog(this,
-            "¿Quitar a " + nombreUsuario + " de " + sucursal.getNombre() + "?",
-            "Confirmar", JOptionPane.YES_NO_OPTION);
+        int confirm = JOptionPane.showConfirmDialog(this, "¿Quitar a " + nombreUsuario + " de su sucursal?", "Confirmar", JOptionPane.YES_NO_OPTION);
         
         if (confirm == JOptionPane.YES_OPTION) {
-            // ACTUALIZAR BD: Enviar 'null' (0) como idSucursal
+            // SQL: UPDATE empleado SET id_sucursal = NULL ...
             boolean exito = usuarioDAO.actualizarSucursal(idUsuario, null);
             
             if (exito) {
-                JOptionPane.showMessageDialog(this, "Empleado removido exitosamente.");
-                cargarEmpleadosPorSucursal(sucursal.getId()); // Recargar tabla
+                JOptionPane.showMessageDialog(this, "Asignación eliminada.");
+                recargarSegunFiltro(); // Refrescar tabla
             } else {
-                mostrarError("Error al actualizar la base de datos.");
+                mostrarError("Error al actualizar BD.");
             }
+        }
+    }
+    
+    private void recargarSegunFiltro() {
+        Object item = jComboBox1.getSelectedItem();
+        if (item instanceof String && item.equals("Todas las Sucursales")) {
+            cargarTodosLosEmpleados();
+        } else if (item instanceof Sucursal) {
+            cargarEmpleadosPorSucursal(((Sucursal) item).getId());
         }
     }
     
     private void mostrarDialogoAsignarEmpleado() {
         Object sucursalSeleccionada = jComboBox1.getSelectedItem();
-        
         if (sucursalSeleccionada == null || sucursalSeleccionada instanceof String) {
-            JOptionPane.showMessageDialog(this, "Debe seleccionar una sucursal primero.", 
-                    "Advertencia", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Seleccione una sucursal específica primero.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
         
         Sucursal sucursal = (Sucursal) sucursalSeleccionada;
-        
-        // 1. TRAER USUARIOS SIN SUCURSAL DESDE BD
+        // AQUÍ ESTÁ LA MAGIA DE AGREGAR: LISTAMOS SOLO LOS QUE NO TIENEN SUCURSAL
         List<UsuarioADM> disponibles = usuarioDAO.listarSinSucursal();
+        if (disponibles != null) {
+            disponibles.removeIf(u -> u.getNombreRol() != null && u.getNombreRol().equalsIgnoreCase("Gerente"));
+        }
+        // ---------------------------------------
         
         if (disponibles.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay empleados libres para asignar.", 
-                    "Información", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No hay empleados libres para asignar.", "Información", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         
-        UsuarioADM seleccionado = (UsuarioADM) JOptionPane.showInputDialog(
-            this, "Seleccione empleado:", "Asignar Empleado",
-            JOptionPane.QUESTION_MESSAGE, null,
-            disponibles.toArray(), disponibles.get(0)
-        );
+        UsuarioADM seleccionado = (UsuarioADM) JOptionPane.showInputDialog(this, "Seleccione empleado:", "Asignar", JOptionPane.QUESTION_MESSAGE, null, disponibles.toArray(), disponibles.get(0));
         
         if (seleccionado != null) {
-            // ACTUALIZAR BD
             boolean exito = usuarioDAO.actualizarSucursal(seleccionado.getId(), sucursal.getId());
-            
             if (exito) {
-                JOptionPane.showMessageDialog(this, "Empleado asignado con éxito.");
-                cargarEmpleadosPorSucursal(sucursal.getId());
+                JOptionPane.showMessageDialog(this, "Empleado asignado.");
+                recargarSegunFiltro();
             } else {
-                mostrarError("Error al asignar empleado.");
+                mostrarError("Error al asignar.");
             }
         }
     }

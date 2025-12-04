@@ -1,14 +1,18 @@
-
 package edu.UPAO.proyecto.app;
 
-import edu.UPAO.proyecto.dao.RepositorioLog; // <--- IMPORTACIÓN IMPORTANTE
-import edu.UPAO.proyecto.dao.UsuarioDAOADM; // <--- Usamos el DAO correcto
+import edu.UPAO.proyecto.dao.RepositorioLog;
+import edu.UPAO.proyecto.dao.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.HistorialCambio;
 import edu.UPAO.proyecto.modelo.Permiso;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -18,78 +22,179 @@ import java.util.Map;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 
 public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
 
     private int idAdministrador = 1; 
     private UsuarioADM usuarioSeleccionado;
-    
     private UsuarioDAOADM usuarioDAO = new UsuarioDAOADM();
-    
     private List<UsuarioADM> usuariosReales;
     private List<Permiso> permisosLogicos; 
-    private List<HistorialCambio> historialSesion; 
-    
     private Map<String, UsuarioADM> mapaUsuariosCombo;
     private JPanel panelPermisosContenido;
-    
-    private boolean isUpdating = false;
+    private boolean isUpdating = false; 
+    // COLORES
+    private final Color COLOR_FONDO = new Color(245, 247, 250);
+    private final Color COLOR_BLANCO = Color.WHITE;
+    private final Color COLOR_AZUL = new Color(59, 130, 246);
+    private final Color COLOR_NARANJA = new Color(249, 115, 22);
+    private final Color COLOR_TEXTO_GRIS = new Color(100, 116, 139);
+    private final Color COLOR_TEXTO_OSCURO = new Color(50, 50, 50);
     
     public panel_Administrador_Roles_y_Permisos() {
         initComponents();
-        configurarPanelPermisos();
+        // 1. DISEÑO ESTÁTICO (NO SE MUEVE)
+        reorganizarLayoutCompleto(); 
+        
         inicializarPermisosLogicos(); 
-        historialSimulado(); 
+        configurarBuscador(); 
         cargarUsuariosDesdeBD();
         
         jScrollPane1.getVerticalScrollBar().setUnitIncrement(16);
         cargarHistorialVisualGlobal();
+        
+        if (usuarioSeleccionado == null) {
+             mostrarMensajeInicial();
+             limpiarPanelPermisos();
+        }
     }
 
-    private void configurarPanelPermisos() {
-        jLabel9.setVisible(false); jLabel10.setVisible(false);
-        jLabel11.setVisible(false); jLabel12.setVisible(false); jLabel13.setVisible(false);
+    private void reorganizarLayoutCompleto() {
+        this.removeAll(); 
+        this.setLayout(new GridBagLayout()); 
+        this.setBackground(COLOR_FONDO);
         
-        Dimension tamanoOriginal = jPanel3.getPreferredSize();
-        jPanel3.setMinimumSize(tamanoOriginal);
-        jPanel3.setPreferredSize(tamanoOriginal);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 15, 10, 15); // Más margen lateral
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        // --- COLUMNA IZQUIERDA (35% Ancho - Más espacio) ---
+        JPanel panelIzqContainer = new JPanel();
+        panelIzqContainer.setLayout(new BoxLayout(panelIzqContainer, BoxLayout.Y_AXIS));
+        panelIzqContainer.setOpaque(false);
+        
+        estilizarPanelBlanco(jPanel1); // Selector
+        jPanel1.setMaximumSize(new Dimension(5000, 80)); 
+        
+        estilizarPanelBlanco(jPanel2); // Info Usuario
+        jPanel2.setMaximumSize(new Dimension(5000, 250)); 
+        
+        estilizarBoton(CambiarRol);
+        
+        panelIzqContainer.add(jPanel1);
+        panelIzqContainer.add(Box.createVerticalStrut(15));
+        panelIzqContainer.add(jPanel2);
+        panelIzqContainer.add(Box.createVerticalGlue()); 
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridheight = 2; 
+        gbc.weightx = 0.35; // AUMENTADO DE 0.3 A 0.35 (Para que quepa el Combo)
+        gbc.weighty = 1.0;
+        panelIzqContainer.setPreferredSize(new Dimension(0, 0)); 
+        this.add(panelIzqContainer, gbc);
+        
+        // --- COLUMNA DERECHA (65% Ancho) ---
+        
+        // 1. Panel Permisos (Arriba Derecha) - 40% Altura
+        estilizarPanelBlanco(jPanel3);
         
         panelPermisosContenido = new JPanel();
         panelPermisosContenido.setLayout(new BoxLayout(panelPermisosContenido, BoxLayout.Y_AXIS));
-        panelPermisosContenido.setBackground(Color.WHITE);
-        panelPermisosContenido.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        panelPermisosContenido.setBackground(COLOR_BLANCO);
         
+        // QUIMAMOS EL JSCROLLPANE AQUÍ (Directo al panel)
         jPanel3.removeAll();
-        jPanel3.setLayout(new BoxLayout(jPanel3, BoxLayout.Y_AXIS));
-        jPanel3.add(panelPermisosContenido);
+        jPanel3.setLayout(new BorderLayout());
+        JLabel lblTitPermisos = new JLabel("Permisos Actuales");
+        lblTitPermisos.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblTitPermisos.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         
-        jPanel4.setBackground(new Color(245, 247, 250)); 
+        // Usamos un contenedor intermedio para centrar verticalmente si hay pocos items
+        JPanel contenedorCentrado = new JPanel(new BorderLayout());
+        contenedorCentrado.setBackground(COLOR_BLANCO);
+        contenedorCentrado.add(panelPermisosContenido, BorderLayout.NORTH);
+        
+        jPanel3.add(lblTitPermisos, BorderLayout.NORTH);
+        jPanel3.add(contenedorCentrado, BorderLayout.CENTER); // Sin Scroll
+        
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridheight = 1;
+        gbc.weightx = 0.65; // Resto del ancho
+        gbc.weighty = 0.4; // 40% Altura (Ajustado)
+        jPanel3.setPreferredSize(new Dimension(0, 0)); 
+        this.add(jPanel3, gbc);
+        
+        // 2. Panel Historial (Abajo Derecha) - 60% Altura
+        JPanel panelHistorialContainer = new JPanel(new BorderLayout());
+        panelHistorialContainer.setBackground(COLOR_BLANCO);
+        panelHistorialContainer.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+        
+        jPanel4.setBackground(new Color(245, 247, 250));
+        jPanel4.setLayout(new BoxLayout(jPanel4, BoxLayout.Y_AXIS));
+        
+        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
+        jScrollPane1.getViewport().setBackground(new Color(245, 247, 250));
+        jScrollPane1.setViewportView(jPanel4); 
+        
+        jLabel14.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        
+        panelHistorialContainer.add(jLabel14, BorderLayout.NORTH);
+        panelHistorialContainer.add(jScrollPane1, BorderLayout.CENTER);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridheight = 1;
+        gbc.weightx = 0.65;
+        gbc.weighty = 0.6; // 60% Altura (Ajustado)
+        panelHistorialContainer.setPreferredSize(new Dimension(0, 0));
+        this.add(panelHistorialContainer, gbc);
     }
     
-    private void historialSimulado() {
-        historialSesion = new ArrayList<>();
+    private void estilizarPanelBlanco(JPanel p) {
+        p.setBackground(COLOR_BLANCO);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+        ));
+    }
+    
+    private void estilizarTitulo(JLabel label) {
+        if(label != null) {
+            label.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            label.setForeground(COLOR_TEXTO_OSCURO);
+        }
+    }
+    
+    private void estilizarBoton(JButton btn) {
+        btn.setBackground(COLOR_AZUL);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
-    // 1. PERMISOS
-    private void inicializarPermisosLogicos() {
-        permisosLogicos = new ArrayList<>();
-        // ADMINISTRADOR
-        permisosLogicos.add(new Permiso(1, 1, "", "Acceso Total al Sistema"));
-        permisosLogicos.add(new Permiso(2, 1, "", "Gestionar Usuarios y Accesos"));
-        permisosLogicos.add(new Permiso(3, 1, "", "Configuración Global"));
-        permisosLogicos.add(new Permiso(4, 1, "", "Ver Auditoría y Logs"));
-        // CAJERO
-        permisosLogicos.add(new Permiso(5, 2, "", "Procesar Pagos y Cobros"));
-        permisosLogicos.add(new Permiso(6, 2, "", "Emitir Recibos y Facturas"));
-        permisosLogicos.add(new Permiso(7, 2, "", "Apertura y Cierre de Caja"));
-        // GERENTE
-        permisosLogicos.add(new Permiso(9, 3, "", "Gestionar Empleados"));
-        permisosLogicos.add(new Permiso(10, 3, "", "Aprobar Descuentos Especiales"));
-        permisosLogicos.add(new Permiso(11, 3, "", "Ver Reportes Financieros Avanzados"));
+    // --- LÓGICA ---
+    
+    private void configurarBuscador() {
+        mapaUsuariosCombo = new HashMap<>();
     }
 
     private void cargarUsuariosDesdeBD() {
@@ -101,7 +206,10 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         usuariosReales = usuarioDAO.listar();
         
         for (UsuarioADM u : usuariosReales) {
-            String item = u.getNombre() + "  [" + u.getNombreRol() + "]";
+            if (u.getNombreRol() != null && u.getNombreRol().equalsIgnoreCase("GERENTE")) {
+                continue;
+            }
+            String item = u.getNombre() + " [" + u.getNombreRol() + "]";
             if (!mapaUsuariosCombo.containsKey(item)) {
                 jComboBox1.addItem(item);
                 mapaUsuariosCombo.put(item, u);
@@ -109,7 +217,7 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         }
         isUpdating = false; 
     }
-
+    
     private void mostrarInformacionUsuario(UsuarioADM usuario) {
         this.usuarioSeleccionado = usuario;
         jLabel6.setText(usuario.getNombre());
@@ -117,7 +225,7 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jLabel8.setText(usuario.getNombreRol()); 
         
         cargarPermisosVisuales(usuario.getNombreRol());
-        cargarHistorialVisualGlobal();
+        cargarHistorialDeUsuario(usuario.getId(), usuario.getNombre());
     }
     
     private void limpiarInformacionUsuario() {
@@ -126,9 +234,8 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         jLabel6.setText("-");
         jLabel7.setText("-");
         jLabel8.setText("-");
-        panelPermisosContenido.removeAll();
-        panelPermisosContenido.revalidate();
-        panelPermisosContenido.repaint();
+        limpiarPanelPermisos();
+        mostrarMensajeInicial();
     }
 
     private void cargarPermisosVisuales(String rolTexto) {
@@ -138,213 +245,208 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
         else if (rolTexto.equalsIgnoreCase("GERENTE")) idRolLogico = 3;
         
         panelPermisosContenido.removeAll();
-        
-        JLabel titulo = new JLabel("Capacidades del Rol: " + rolTexto);
-        titulo.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 13));
-        titulo.setForeground(new Color(100, 100, 100)); 
-        titulo.setAlignmentX(LEFT_ALIGNMENT);
-        panelPermisosContenido.add(titulo);
-        
-        JPanel separador = new JPanel();
-        separador.setMaximumSize(new Dimension(1000, 1));
-        separador.setBackground(new Color(220, 220, 220));
-        separador.setAlignmentX(LEFT_ALIGNMENT);
-        panelPermisosContenido.add(Box.createVerticalStrut(8));
-        panelPermisosContenido.add(separador);
-        panelPermisosContenido.add(Box.createVerticalStrut(12));
+        panelPermisosContenido.add(Box.createVerticalStrut(10));
         
         boolean tienePermisos = false;
         for (Permiso p : permisosLogicos) {
             if (p.getIdRol() == idRolLogico) {
                 tienePermisos = true;
+                
                 JPanel pPanel = new JPanel();
                 pPanel.setLayout(new BoxLayout(pPanel, BoxLayout.X_AXIS));
-                pPanel.setBackground(Color.WHITE);
+                pPanel.setBackground(COLOR_BLANCO); 
                 pPanel.setAlignmentX(LEFT_ALIGNMENT);
+                pPanel.setMaximumSize(new Dimension(1000, 30)); 
                 
                 JLabel check = new JLabel("✔");
-                check.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
+                check.setFont(new Font("Segoe UI Symbol", Font.BOLD, 14));
                 check.setForeground(new Color(34, 177, 76)); 
                 
                 JLabel texto = new JLabel(p.getNombre());
-                texto.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-                texto.setForeground(new Color(50, 50, 50)); 
+                texto.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                texto.setForeground(COLOR_TEXTO_OSCURO); 
                 
                 pPanel.add(check);
                 pPanel.add(Box.createHorizontalStrut(10)); 
                 pPanel.add(texto);
+                
                 panelPermisosContenido.add(pPanel);
-                panelPermisosContenido.add(Box.createVerticalStrut(8)); 
+                panelPermisosContenido.add(Box.createVerticalStrut(5)); 
             }
         }
         
         if (!tienePermisos) {
-            JLabel lbl = new JLabel("Este rol no tiene permisos configurados.");
-            lbl.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+            JLabel lbl = new JLabel("Sin permisos configurados.");
             lbl.setForeground(Color.GRAY);
             panelPermisosContenido.add(lbl);
         }
-        panelPermisosContenido.add(Box.createVerticalGlue());
+        
+        panelPermisosContenido.add(Box.createVerticalGlue()); 
         panelPermisosContenido.revalidate();
         panelPermisosContenido.repaint();
     }
-
-    private void cargarHistorialVisualGlobal() {
-        jPanel4.removeAll();
-        jPanel4.setLayout(new BoxLayout(jPanel4, BoxLayout.Y_AXIS));
-        
-        JLabel titulo = new JLabel("Log de Cambios (Sesión Actual)");
-        titulo.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 14));
-        titulo.setForeground(new Color(50, 50, 50));
-        titulo.setAlignmentX(LEFT_ALIGNMENT);
-        
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        headerPanel.setOpaque(false);
-        headerPanel.add(Box.createHorizontalStrut(5));
-        headerPanel.add(titulo);
-        headerPanel.setAlignmentX(LEFT_ALIGNMENT);
-        
-        jPanel4.add(Box.createVerticalStrut(10));
-        jPanel4.add(headerPanel);
-        jPanel4.add(Box.createVerticalStrut(15));
-        
-        boolean hayCambios = false;
-        
-        for (int i = historialSesion.size() - 1; i >= 0; i--) {
-            HistorialCambio h = historialSesion.get(i);
-            hayCambios = true;
-            
-            JPanel card = new JPanel();
-            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-            card.setBackground(Color.WHITE);
-            card.setAlignmentX(LEFT_ALIGNMENT);
-            card.setMaximumSize(new Dimension(1000, 90)); 
-            
-            card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 4, 1, 0, new Color(0, 102, 204)), 
-                BorderFactory.createEmptyBorder(10, 15, 10, 15) 
-            ));
-            
-            JLabel lblDesc = new JLabel("<html>" + h.getDescripcionCambio() + "</html>");
-            lblDesc.setFont(new java.awt.Font("Segoe UI", Font.BOLD, 12));
-            lblDesc.setForeground(new Color(33, 37, 41));
-            lblDesc.setAlignmentX(LEFT_ALIGNMENT);
-            
-            String textoMotivo = (h.getMotivo() != null && !h.getMotivo().isEmpty()) 
-                                 ? "Motivo: " + h.getMotivo() 
-                                 : "Sin motivo especificado";
-            JLabel lblMotivo = new JLabel(textoMotivo);
-            lblMotivo.setFont(new java.awt.Font("Segoe UI", Font.ITALIC, 11));
-            lblMotivo.setForeground(new Color(100, 100, 100)); 
-            lblMotivo.setAlignmentX(LEFT_ALIGNMENT);
-            
-            String horaStr = h.getFechaCambio().format(DateTimeFormatter.ofPattern("hh:mm a"));
-            JLabel lblHora = new JLabel("🕒 " + horaStr);
-            lblHora.setFont(new java.awt.Font("Segoe UI", Font.PLAIN, 10));
-            lblHora.setForeground(new Color(150, 150, 150)); 
-            lblHora.setAlignmentX(LEFT_ALIGNMENT);
-            
-            card.add(lblDesc);
-            card.add(Box.createVerticalStrut(4)); 
-            card.add(lblMotivo);
-            card.add(Box.createVerticalStrut(4)); 
-            card.add(lblHora);
-            
-            jPanel4.add(card);
-            jPanel4.add(Box.createVerticalStrut(10)); 
+    
+    private void limpiarPanelPermisos() {
+        if(panelPermisosContenido != null) {
+            panelPermisosContenido.removeAll();
+            panelPermisosContenido.revalidate();
+            panelPermisosContenido.repaint();
         }
-        
-        if (!hayCambios) {
-            JPanel emptyPanel = new JPanel();
-            emptyPanel.setOpaque(false);
-            emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
-            emptyPanel.setAlignmentX(LEFT_ALIGNMENT);
-            JLabel vacio = new JLabel("No se han realizado cambios en esta sesión.");
-            vacio.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            vacio.setForeground(Color.GRAY);
-            emptyPanel.add(Box.createVerticalStrut(20));
-            emptyPanel.add(vacio);
-            jPanel4.add(emptyPanel);
-        }
-        jPanel4.revalidate();
-        jPanel4.repaint();
     }
 
-    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
+    private void mostrarMensajeInicial() {
+        jPanel4.removeAll();
+        JLabel lbl = new JLabel("Seleccione un usuario para ver historial");
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13)); 
+        lbl.setForeground(COLOR_TEXTO_GRIS);
+        lbl.setAlignmentX(CENTER_ALIGNMENT);
+        
+        jPanel4.add(Box.createVerticalGlue());
+        jPanel4.add(lbl);
+        jPanel4.add(Box.createVerticalGlue());
+        
+        jPanel4.revalidate(); jPanel4.repaint();
+        
+        jLabel6.setText("-"); jLabel7.setText("-"); jLabel8.setText("-");
+        limpiarPanelPermisos();
+    }
+
+    private void cargarHistorialVisualGlobal() {
+        cargarHistorialFiltrado(null, null);
+    }
+
+    private void cargarHistorialDeUsuario(int idUsuario, String nombreUsuario) {
+        cargarHistorialFiltrado(idUsuario, nombreUsuario);
+    }
+
+    private void cargarHistorialFiltrado(Integer idUsuario, String nombreUsuario) {
+        jPanel4.removeAll();
+        List<HistorialCambio> todosLosLogs = RepositorioLog.obtenerLogs();
+        List<HistorialCambio> logsAMostrar = new ArrayList<>();
+        
+        if (idUsuario == null) {
+            logsAMostrar = todosLosLogs; 
+        } else {
+            for (HistorialCambio log : todosLosLogs) {
+                if (log.getIdUsuario() == idUsuario) logsAMostrar.add(log);
+            }
+        }
+        
+        String textoTitulo = (nombreUsuario == null) ? "Log Global (Sesión Actual)" : "Historial de: " + nombreUsuario;
+        jLabel14.setText(textoTitulo);
+        
+        if (logsAMostrar.isEmpty()) {
+            JLabel lbl = new JLabel("Sin cambios registrados.");
+            lbl.setForeground(Color.GRAY);
+            lbl.setAlignmentX(LEFT_ALIGNMENT);
+            jPanel4.add(lbl);
+        } else {
+            for (HistorialCambio h : logsAMostrar) {
+                jPanel4.add(crearTarjetaLog(h));
+                jPanel4.add(Box.createVerticalStrut(10));
+            }
+        }
+        jPanel4.revalidate(); jPanel4.repaint();
+    }
+    
+    private JPanel crearTarjetaLog(HistorialCambio h) {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBackground(COLOR_BLANCO);
+        card.setAlignmentX(LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(2000, 80)); 
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 4, 0, 0, COLOR_NARANJA), 
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(230,230,230), 1),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+            )
+        ));
+        
+        JLabel lblDesc = new JLabel("<html>" + h.getDescripcionCambio() + "</html>");
+        lblDesc.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblDesc.setForeground(COLOR_TEXTO_OSCURO);
+        
+        String hora = h.getFechaCambio().format(DateTimeFormatter.ofPattern("hh:mm a"));
+        JLabel lblSub = new JLabel(hora + " - Motivo: " + h.getMotivo());
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSub.setForeground(Color.GRAY);
+        
+        card.add(lblDesc);
+        card.add(Box.createVerticalStrut(5));
+        card.add(lblSub);
+        return card;
+    }
+    
     private void mostrarDialogoCambiarRol() {
         if (usuarioSeleccionado == null) {
             JOptionPane.showMessageDialog(this, "Seleccione un usuario.");
             return;
         }
-        
-        String[] rolesDisponibles = {"ADMINISTRADOR", "GERENTE", "CAJERO"};
-        
+        String[] rolesDisponibles = {"ADMINISTRADOR", "CAJERO"};
+        // 1. PEDIR EL NUEVO ROL
         String nuevoRol = (String) JOptionPane.showInputDialog(
             this, "Cambiar rol de " + usuarioSeleccionado.getNombre() + ":",
             "Gestión de Roles", JOptionPane.QUESTION_MESSAGE, null,
             rolesDisponibles, usuarioSeleccionado.getNombreRol()
         );
         
+        // Si seleccionó algo y es diferente al actual
         if (nuevoRol != null && !nuevoRol.equals(usuarioSeleccionado.getNombreRol())) {
             
+            // 2. PEDIR EL MOTIVO (NUEVO PASO)
             String motivo = JOptionPane.showInputDialog(this, 
-                "Ingrese el motivo del cambio (Opcional):", 
+                "Ingrese el motivo del cambio (Ej: Ascenso, Error de registro):", 
                 "Registro de Auditoría", 
                 JOptionPane.PLAIN_MESSAGE);
-            if (motivo == null) motivo = "Sin motivo"; 
-            
+                
+            // Si cancela o lo deja vacío, ponemos un texto por defecto
+            if (motivo == null || motivo.trim().isEmpty()) {
+                motivo = "Sin motivo especificado";
+            }
+            // 3. ACTUALIZAR EN BASE DE DATOS
             boolean exito = usuarioDAO.actualizarRol(usuarioSeleccionado.getId(), nuevoRol);
-            
             if (exito) {
                 String rolAnterior = usuarioSeleccionado.getNombreRol();
+                // Actualizar objeto en memoria
                 usuarioSeleccionado.setNombreRol(nuevoRol);
-                
+                // Crear descripción para el log
                 String descripcion = "Usuario: " + usuarioSeleccionado.getNombre() + 
                                      " | Rol: " + rolAnterior + " -> " + nuevoRol;
-                
-                // Creamos el log
+                // 4. GUARDAR EL LOG CON EL MOTIVO REAL
                 HistorialCambio nuevoLog = new HistorialCambio(
-                    historialSesion.size() + 1, 
+                    1, // ID ficticio, la BD lo autogeneraría si tuvieras tabla logs
                     usuarioSeleccionado.getId(), 
                     idAdministrador, 
                     descripcion, 
                     LocalDateTime.now(), 
                     "Admin", 
-                    motivo 
+                    motivo // <--- AQUÍ VA TU MOTIVO ESCRITO
                 );
-                
-                // 1. Guardar en lista local (Para ver en este panel)
-                historialSesion.add(nuevoLog);
-                
-                // 2. ¡¡¡GUARDAR EN MEMORIA COMPARTIDA!!! (Para ver en Reportes)
-                RepositorioLog.agregarLog(nuevoLog); 
-                
-                jLabel8.setText(nuevoRol);
-                cargarPermisosVisuales(nuevoRol);
-                cargarHistorialVisualGlobal(); 
-                actualizarNombreEnCombo(usuarioSeleccionado, nuevoRol);
-                
-                JOptionPane.showMessageDialog(this, "Rol actualizado correctamente.");
-                
+                // Agregar al repositorio compartido
+                RepositorioLog.agregarLog(nuevoLog);
+                // Refrescar interfaz
+                mostrarInformacionUsuario(usuarioSeleccionado);
+                cargarHistorialDeUsuario(usuarioSeleccionado.getId(), usuarioSeleccionado.getNombre());
+                JOptionPane.showMessageDialog(this, "Rol actualizado correctamente en la Base de Datos.");
             } else {
-                JOptionPane.showMessageDialog(this, "Error al actualizar BD.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Error crítico: No se pudo actualizar la BD.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
     
-    private void actualizarNombreEnCombo(UsuarioADM usuario, String nuevoRol) {
-        isUpdating = true; 
-        int index = jComboBox1.getSelectedIndex();
-        String nuevoTexto = usuario.getNombre() + "  [" + nuevoRol + "]";
-        String viejoTexto = (String) jComboBox1.getItemAt(index);
-        mapaUsuariosCombo.remove(viejoTexto);
-        mapaUsuariosCombo.put(nuevoTexto, usuario);
-        jComboBox1.removeItemAt(index);
-        jComboBox1.insertItemAt(nuevoTexto, index);
-        jComboBox1.setSelectedIndex(index); 
-        isUpdating = false; 
+    private void inicializarPermisosLogicos() {
+        permisosLogicos = new ArrayList<>();
+        permisosLogicos.add(new Permiso(1, 1, "", "Acceso Total al Sistema"));
+        permisosLogicos.add(new Permiso(2, 1, "", "Gestionar Usuarios"));
+        permisosLogicos.add(new Permiso(3, 1, "", "Configuración Global"));
+        permisosLogicos.add(new Permiso(5, 2, "", "Procesar Pagos"));
+        permisosLogicos.add(new Permiso(6, 2, "", "Apertura/Cierre Caja"));
+        permisosLogicos.add(new Permiso(7, 2, "", "Emitir Facturas"));
+        permisosLogicos.add(new Permiso(9, 3, "", "Gestionar Empleados"));
+        permisosLogicos.add(new Permiso(10, 3, "", "Ver Reportes Financieros"));
     }
+    
     
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -570,14 +672,13 @@ public class panel_Administrador_Roles_y_Permisos extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jComboBox1ActionPerformed
-        if (isUpdating) return; 
-        
+        if (isUpdating) return;
         String item = (String) jComboBox1.getSelectedItem();
         if (item != null && mapaUsuariosCombo != null && mapaUsuariosCombo.containsKey(item)) {
             mostrarInformacionUsuario(mapaUsuariosCombo.get(item));
         } else {
             limpiarInformacionUsuario();
-        }      
+        }        
     }//GEN-LAST:event_jComboBox1ActionPerformed
 
     private void CambiarRolActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CambiarRolActionPerformed

@@ -13,6 +13,7 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
+import java.awt.Cursor;
 import java.io.FileOutputStream;
 import java.io.FileOutputStream;
 import javax.swing.JFileChooser;
@@ -49,7 +50,8 @@ public class VENTAS_Admin extends javax.swing.JPanel {
         cargarGrafico();
         cargarDevoluciones("");
         cargarHistorialCaja(""); // <--- ¡ESTO ES LO QUE FALTABA!
-        
+        aplicarEstiloModerno();
+        corregirLayoutDevoluciones();
         // 3. Evento para el Combo (Para que filtre al cambiar)
         cboTipoMovimiento.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -365,6 +367,164 @@ public class VENTAS_Admin extends javax.swing.JPanel {
             }
         }
     }
+        // --- MÉTODOS DE DISEÑO (COPIAR AL FINAL DE LA CLASE) ---
+
+    private void aplicarEstiloModerno() {
+        // 1. Colores Generales
+        Color colorFondo = new Color(245, 247, 251); // Gris azulado muy suave (Fondo Global)
+        this.setBackground(colorFondo);
+        
+        // Pestañas
+        jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        jTabbedPane1.setBackground(Color.WHITE);
+        
+        // 2. Estilizar Paneles Principales (Pestañas)
+        // Quitamos los colores chillones (amarillo/verde) y ponemos el fondo moderno
+        jPanel1.setBackground(colorFondo); // Pestaña VENTAS
+        jPanel2.setBackground(colorFondo); // Pestaña DEVOLUCIONES
+        jPanel3.setBackground(colorFondo); // Pestaña FACTURAS
+
+        // 3. Estilizar las Tarjetas de KPIs (Cuadros de colores arriba)
+        // Les damos un borde inferior grueso y fondo suave (Estilo Material Design)
+        estilizarTarjetaKPI(jPanel4, new Color(0, 153, 102), new Color(232, 245, 233)); // Verde
+        estilizarTarjetaKPI(jPanel5, new Color(0, 153, 204), new Color(225, 245, 254)); // Azul
+        estilizarTarjetaKPI(jPanel6, new Color(153, 51, 255), new Color(243, 229, 245)); // Morado
+        estilizarTarjetaKPI(jPanel7, new Color(204, 102, 0), new Color(255, 243, 224)); // Naranja
+
+        // 4. Estilizar Tablas (Lo más importante)
+        estilizarTabla(tblDevolucionesVentas, jScrollPane1);
+        estilizarTabla(tblFacturas, jScrollPane2);
+
+        // 5. Inputs y Botones
+        estilizarInput(txtBuscarDev);
+        estilizarCombo(cboTipoMovimiento);
+        
+        estilizarBoton(btnBuscarDev, new Color(255, 102, 0)); // Naranja
+        estilizarBoton(jButton1, new Color(0, 153, 102)); // Verde (Exportar PDF)
+        
+        // 6. Títulos
+        estilizarTitulo(jLabel1); // "PRODUCTOS DEVUELTOS"
+        estilizarTitulo(jLabel3); // "FACTURAS"
+    }
+
+    private void estilizarTarjetaKPI(JPanel panel, Color colorBorde, Color colorFondo) {
+        panel.setBackground(colorFondo);
+        panel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 4, 0, colorBorde)); // Borde inferior de color
+        
+        // Cambiar color de texto de los labels internos
+        for (java.awt.Component comp : panel.getComponents()) {
+            if (comp instanceof javax.swing.JLabel) {
+                javax.swing.JLabel lbl = (javax.swing.JLabel) comp;
+                // Si es el título (negrita), usamos el color del tema. Si es el dato, gris oscuro.
+                if (lbl.getFont().isBold()) {
+                    lbl.setForeground(colorBorde);
+                } else {
+                    lbl.setForeground(Color.DARK_GRAY);
+                    lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18)); // Número más grande
+                }
+            }
+        }
+    }
+    //-------------------------------------------------------------------------------
+    private void estilizarTabla(JTable tabla, javax.swing.JScrollPane scroll) {
+        // Tabla
+        tabla.setRowHeight(40);
+        tabla.setShowVerticalLines(false);
+        tabla.setGridColor(new Color(230, 230, 230));
+        tabla.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        tabla.setSelectionBackground(new Color(232, 240, 254));
+        tabla.setSelectionForeground(Color.BLACK);
+        tabla.setBackground(Color.WHITE);
+
+        // Encabezado
+        javax.swing.table.JTableHeader header = tabla.getTableHeader();
+        header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        header.setBackground(Color.WHITE);
+        header.setForeground(new Color(100, 100, 100));
+        header.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(200,200,200)));
+
+        // ScrollPane (Efecto Tarjeta Blanca)
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setBackground(Color.WHITE);
+        scroll.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0),
+            javax.swing.BorderFactory.createLineBorder(new Color(220, 220, 220))
+        ));
+    }
+
+    private void estilizarInput(javax.swing.JTextField txt) {
+        txt.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        txt.setBackground(Color.WHITE);
+        txt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200)), 
+            javax.swing.BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
+    }
+
+    private void estilizarCombo(javax.swing.JComboBox cbo) {
+        cbo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        cbo.setBackground(Color.WHITE);
+    }
+
+    private void estilizarBoton(javax.swing.JButton btn, Color colorFondo) {
+        btn.setBackground(colorFondo);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+    
+    private void estilizarTitulo(javax.swing.JLabel lbl) {
+        lbl.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        lbl.setForeground(new Color(50, 50, 50)); // Gris oscuro en vez de colores chillones
+    }
+    
+    // --- MÉTODO CORREGIDO (V2): Buscador de tamaño controlado ---
+    private void corregirLayoutDevoluciones() {
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(layout);
+
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(30, 30, 30) // Margen Izquierdo
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    // Título
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 297, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    
+                    // Tabla: Esta SÍ se expande a todo el ancho disponible
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 1000, Short.MAX_VALUE)
+                    
+                    // Fila del Buscador: Controlamos el tamaño aquí
+                    .addGroup(layout.createSequentialGroup()
+                        // CAMBIO: En vez de expandirse al máximo, le damos 450px fijos (tamaño mediano-grande)
+                        .addComponent(txtBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        // Este gap final empuja los componentes a la izquierda y llena el vacío derecho
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))) 
+                .addGap(30, 30, 30)) // Margen Derecho
+        );
+        
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(25, 25, 25)
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 34, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(txtBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnBuscarDev, javax.swing.GroupLayout.PREFERRED_SIZE, 43, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                // Tabla crece hacia abajo
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 400, Short.MAX_VALUE)
+                .addGap(30, 30, 30))
+        );
+    }
+    //-----------------------------------------------------------------
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {

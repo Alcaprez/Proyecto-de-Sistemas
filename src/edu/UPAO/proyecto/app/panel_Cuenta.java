@@ -2,27 +2,135 @@ package edu.UPAO.proyecto.app;
 
 import edu.UPAO.proyecto.DAO.EmpleadoDAO;
 import edu.UPAO.proyecto.DAO.UsuarioDAO;
-import java.awt.Dimension;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
 import java.util.Map;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
 
-/**
- *
- * @author ALBERTH
- */
 public class panel_Cuenta extends javax.swing.JPanel {
 
 private String idEmpleadoLogueado;
-
+// ----------------------------
+    private final Color COLOR_FONDO_GENERAL = Color.WHITE;
+    // El azul vibrante de la tarjeta (referencia imagen 3)
+    private final Color COLOR_TARJETA_AZUL = new Color(13, 110, 253); 
+    private final Color COLOR_TEXTO_BLANCO = Color.WHITE;
+    private final Color COLOR_TEXTO_TITULO_EXTERNO = new Color(50, 50, 50);
+    // Color de los inputs (gris claro para resaltar sobre el azul)
+    private final Color COLOR_INPUT_FONDO = new Color(230, 235, 240); 
+    private final Color COLOR_INPUT_TEXTO = new Color(30, 30, 30);
+    private final Color COLOR_INPUT_BLOQUEADO = new Color(200, 205, 210); // Un poco más oscuro para readonly
+    // Fuentes
+    private final Font FUENTE_TITULO = new Font("Segoe UI", Font.BOLD, 24);
+    private final Font FUENTE_LABEL_INTERNO = new Font("Segoe UI", Font.BOLD, 14); // Negrita y blanco
+    private final Font FUENTE_INPUT = new Font("Segoe UI", Font.PLAIN, 14);
+    private final Font FUENTE_BOTON = new Font("Segoe UI", Font.BOLD, 14);
+    // -----------------------------------------------------
     public panel_Cuenta(String idEmpleado) {
         this.idEmpleadoLogueado = idEmpleado;
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); } catch (Exception e) {}
         initComponents(); // Carga diseño generado
+        aplicarDisenoBloquesAzules(); //
         configurarCampos(); // Bloquea campos de solo lectura
-                cargarInformacion(); // Llena los datos
+        cargarInformacion(); // Llena los datos
+    }
+    // ----------------------
+    private void aplicarDisenoBloquesAzules() {
+        // 1. Fondo General Blanco
+        this.setBackground(COLOR_FONDO_GENERAL);
+        jTabbedPane1.setBackground(COLOR_FONDO_GENERAL);
+        jTabbedPane1.setFont(FUENTE_BOTON);
+        
+        // Paneles contenedores principales (blancos)
+        jPanel1.setBackground(COLOR_FONDO_GENERAL); // Panel Cambiar Datos
+        jPanel3.setBackground(COLOR_FONDO_GENERAL); // Panel Cambiar Contraseña
+        jPanel8.setBackground(COLOR_FONDO_GENERAL); 
 
+        // 2. CONVERTIR PANELES INTERNOS EN "TARJETAS AZULES"
+        // Estos son los que originalmente eran naranjas. Ahora serán el bloque azul.
+        estilizarComoBloqueAzul(jPanel6); // Bloque de formulario datos
+        estilizarComoBloqueAzul(jPanel7); // Bloque de confirmación
+        estilizarComoBloqueAzul(jPanel9); // Bloque de cambio contraseña
+
+        // 3. Estilizar Textos
+        // Labels fuera de los bloques (Títulos grandes: Cuenta, ID)
+        estilizarTituloExterno(jLabel3, lbl_cuenta, jLabel23, lbl_id, jLabel5, lbl_cuenta1, jLabel22, lbl_id1);
+        
+        // Labels DENTRO de los bloques azules (Deben ser BLANCOS)
+        estilizarLabelInterno(jLabel12, jLabel13, jLabel14, jLabel15, jLabel16, jLabel17, 
+                              jLabel18, jLabel19, jLabel20, jLabel21);
+
+        // 4. Estilizar Inputs (Campos de texto dentro del azul)
+        estilizarInput(tf_nombres, tf_apellidos, tf_dni, tf_telefono, tf_direccion, tf_sucursal,
+                       tf_contraseñaActual, tf_constraseñNueva, tf_confirmacionContraseña);
+        estilizarInput(pf_contraseña);
+
+        // 5. Botón
+        estilizarBoton(btn_guardar);
     }
 
+    // --- AYUDANTES DE DISEÑO ---
+
+    private void estilizarComoBloqueAzul(JPanel panel) {
+        panel.setBackground(COLOR_TARJETA_AZUL);
+        // Borde redondeado simulado (EmptyBorder para dar espacio interno + LineBorder opcional)
+        // Nota: Swing puro no hace bordes redondos perfectos sin pintar, pero esto dará el margen correcto.
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); 
+    }
+
+    private void estilizarTituloExterno(JLabel... labels) {
+        for (JLabel l : labels) {
+            l.setFont(FUENTE_TITULO);
+            l.setForeground(COLOR_TEXTO_TITULO_EXTERNO);
+        }
+    }
+
+    private void estilizarLabelInterno(JLabel... labels) {
+        for (JLabel l : labels) {
+            l.setFont(FUENTE_LABEL_INTERNO);
+            l.setForeground(COLOR_TEXTO_BLANCO); // Texto blanco sobre azul
+        }
+    }
+
+    private void estilizarInput(JTextField... inputs) {
+        // Borde vacío para padding interno
+        Border padding = BorderFactory.createEmptyBorder(5, 10, 5, 10);
+        
+        for (JTextField tf : inputs) {
+            tf.setFont(FUENTE_INPUT);
+            tf.setBackground(COLOR_INPUT_FONDO); // Fondo gris claro
+            tf.setForeground(COLOR_INPUT_TEXTO); // Texto oscuro
+            tf.setBorder(padding); // Sin borde negro, solo relleno
+            tf.setCaretColor(Color.BLACK);
+        }
+    }
+
+    private void estilizarBoton(JButton btn) {
+        btn.setFont(FUENTE_BOTON);
+        // Botón blanco o gris claro para contrastar con el fondo azul del panel
+        btn.setBackground(Color.WHITE); 
+        btn.setForeground(COLOR_TARJETA_AZUL); // Letras azules
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.WHITE, 1),
+                BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+    // -----------------------------------------------------
+    
     private void configurarCampos() {
         tf_nombres.setEditable(false);
         tf_apellidos.setEditable(false);
@@ -34,7 +142,12 @@ private String idEmpleadoLogueado;
         tf_apellidos.setBackground(colorBloqueado);
         tf_dni.setBackground(colorBloqueado);
         tf_sucursal.setBackground(colorBloqueado);
-
+        //----------------------
+        tf_nombres.setBackground(COLOR_INPUT_BLOQUEADO);
+        tf_apellidos.setBackground(COLOR_INPUT_BLOQUEADO);
+        tf_dni.setBackground(COLOR_INPUT_BLOQUEADO);
+        tf_sucursal.setBackground(COLOR_INPUT_BLOQUEADO);
+        //-----------------------
         // Acción para guardar DATOS DE CONTACTO (Pestaña 1)
         btn_guardar.addActionListener(e -> guardarCambiosDatos());
     }
@@ -47,6 +160,9 @@ private String idEmpleadoLogueado;
             SwingUtilities.invokeLater(() -> {
                 if (!datos.isEmpty()) {
                     lbl_id.setText(datos.get("id"));
+                    //-------------------------------
+                    lbl_id1.setText(datos.get("id")); // Actualizamos ambos labels de ID
+                    //-------------------------------------
                     tf_dni.setText(datos.get("dni"));
                     tf_nombres.setText(datos.get("nombres"));
                     tf_apellidos.setText(datos.get("apellidos"));
@@ -54,7 +170,9 @@ private String idEmpleadoLogueado;
                     tf_direccion.setText(datos.get("direccion"));
                     tf_sucursal.setText(datos.get("sucursal"));
                     lbl_cuenta.setText(datos.get("cargo"));
-
+                    //---------------------------------
+                    lbl_cuenta1.setText(datos.get("cargo")); // Actualizamos ambos labels de Cargo
+                    //---------------------------------
                     tf_nombres.setText(datos.get("nombres"));
                     tf_apellidos.setText(datos.get("apellidos"));
                     tf_dni.setText(datos.get("dni"));
@@ -93,7 +211,6 @@ private String idEmpleadoLogueado;
             JOptionPane.showMessageDialog(this, "Error al actualizar datos.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-
 
     public void cambiarPassword() {
         // Usamos los campos que ya tienes en las variables
@@ -168,7 +285,11 @@ private String idEmpleadoLogueado;
         lbl_id1 = new javax.swing.JLabel();
         jLabel22 = new javax.swing.JLabel();
 
-        jPanel6.setBackground(new java.awt.Color(255, 153, 0));
+        jTabbedPane1.setBackground(new java.awt.Color(0, 252, 255));
+
+        jPanel1.setBackground(new java.awt.Color(255, 255, 255));
+
+        jPanel6.setBackground(new java.awt.Color(198, 215, 255));
 
         jLabel12.setFont(new java.awt.Font("Dialog", 1, 18)); // NOI18N
         jLabel12.setText("Nombres:");

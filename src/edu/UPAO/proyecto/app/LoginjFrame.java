@@ -7,6 +7,15 @@ import edu.UPAO.proyecto.Modelo.Usuario;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JTextField;
+import javax.swing.border.MatteBorder;
 
 /**
  *
@@ -22,7 +31,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         initComponents();
         setLocationRelativeTo(null);
         cargarSucursales(); // Nueva línea para cargar sucursales
-
+        aplicarEstiloModerno();
     }
 
     private void cargarSucursales() {
@@ -47,7 +56,97 @@ public class LoginjFrame extends javax.swing.JFrame {
             cb_sucursales.addItem("Error cargando sucursales");
         }
     }
+    // =========================================================================
+    //  DISEÑO MODERNO CORREGIDO (TEXTO IZQUIERDA + BOTONES MEJORADOS)
+    // =========================================================================
 
+    private void aplicarEstiloModerno() {
+        // 1. COLORES
+        Color colorNaranja = new Color(255, 153, 0); 
+        Color colorBlanco = Color.WHITE;
+        
+        // 2. CONFIGURACIÓN DE PANELES
+        Right.setBackground(colorBlanco); // Logo en fondo blanco
+        Left.setBackground(colorNaranja); // Formulario en fondo naranja
+        jPanel1.setBackground(colorNaranja);
+        
+        // 3. ESTILIZAR LABELS
+        jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        jLabel1.setForeground(colorBlanco);
+        jLabel1.setText("INICIO DE SESIÓN"); 
+        
+        estilizarLabel(jLabel2, colorBlanco); 
+        estilizarLabel(jLabel3, colorBlanco); 
+        
+        // 4. ESTILIZAR INPUTS (Corrección: Texto a la izquierda)
+        estilizarInput(tf_identificacion);
+        estilizarInput(tf_contraseña);
+        
+        // 5. BOTÓN INGRESAR (Corrección: Sin borde feo)
+        btn_login.setBackground(colorBlanco);
+        btn_login.setForeground(colorNaranja);
+        btn_login.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        
+        // AQUÍ QUITAMOS EL BORDE BLANCO FINO
+        btn_login.setBorder(null); // Sin borde
+        btn_login.setBorderPainted(false);
+        
+        btn_login.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn_login.setFocusPainted(false);
+        
+        // Efecto Hover suave
+        btn_login.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn_login.setBackground(new Color(245, 245, 245)); // Gris muy claro
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn_login.setBackground(colorBlanco);
+            }
+        });
+
+        // 6. BOTÓN OLVIDÉ CONTRASEÑA (Corrección: Que parezca botón)
+        // Lo haremos un botón "fantasma" o con fondo sutil
+        btn_olivdeContraseña.setBackground(new Color(204, 102, 0)); // Un naranja más oscuro (Sombra)
+        btn_olivdeContraseña.setForeground(Color.WHITE);
+        btn_olivdeContraseña.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        
+        // Hacemos que tenga fondo para que parezca botón
+        btn_olivdeContraseña.setContentAreaFilled(true); 
+        btn_olivdeContraseña.setBorderPainted(false); // Sin borde linea, solo color de fondo
+        btn_olivdeContraseña.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn_olivdeContraseña.setFocusPainted(false);
+        
+        // 7. COMBOBOX
+        cb_sucursales.setBackground(colorBlanco);
+        cb_sucursales.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+    }
+
+    // Método auxiliar para Labels
+    private void estilizarLabel(javax.swing.JLabel lbl, Color color) {
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lbl.setForeground(color);
+    }
+
+    // Método auxiliar para Inputs (Text Fields) CORREGIDO
+    private void estilizarInput(JTextField tf) {
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tf.setForeground(Color.WHITE); 
+        tf.setCaretColor(Color.WHITE); 
+        tf.setBackground(new Color(255, 153, 0)); 
+        
+        // CORRECCIÓN 1: TEXTO A LA IZQUIERDA
+        tf.setHorizontalAlignment(JTextField.LEFT);
+        
+        // CORRECCIÓN 2: BORDE INFERIOR + PADDING (Sangría)
+        // Creamos un borde compuesto: Línea abajo + Espacio vacío a la izquierda
+        javax.swing.border.Border lineaInferior = BorderFactory.createMatteBorder(0, 0, 2, 0, Color.WHITE);
+        javax.swing.border.Border espacioIzquierda = BorderFactory.createEmptyBorder(0, 5, 0, 0); // 5 pixeles de margen
+        
+        tf.setBorder(BorderFactory.createCompoundBorder(lineaInferior, espacioIzquierda));
+    }
+    //----------------------------------------
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always

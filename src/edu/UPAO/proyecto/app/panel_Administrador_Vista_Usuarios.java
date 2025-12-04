@@ -1,99 +1,108 @@
 
 package edu.UPAO.proyecto.app;
 
+import edu.UPAO.proyecto.dao.UsuarioDAOADM;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.swing.JOptionPane;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JLabel;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 public class panel_Administrador_Vista_Usuarios extends javax.swing.JPanel {
 
-    // DATOS REALES
-    private edu.UPAO.proyecto.dao.UsuarioDAOADM usuarioDAO = new edu.UPAO.proyecto.dao.UsuarioDAOADM();
+    private UsuarioDAOADM usuarioDAO = new UsuarioDAOADM();
     private List<UsuarioADM> listaUsuariosReales;
+    // COLORES MODERNOS
+    private final Color COLOR_FONDO = new Color(245, 247, 250);
+    private final Color COLOR_BLANCO = Color.WHITE;
+    private final Color COLOR_AZUL = new Color(59, 130, 246);
+    private final Color COLOR_TEXTO_GRIS = new Color(100, 116, 139);
     
     public panel_Administrador_Vista_Usuarios() {
         initComponents();
-        // Ya no usamos datos simulados manuales
+        aplicarEstiloModerno();
         configurarTabla();
         configurarBusqueda();
-        
-        // Esto carga los datos Y llena los combos automáticamente
+        // 2. CARGAR DATOS
         cargarTodosLosUsuarios();
     }
     
     private void configurarTabla() {
+        // Modelo de tabla no editable
         DefaultTableModel modelo = new DefaultTableModel(
             new Object[]{"ID", "Nombre", "Rol", "Sucursal", "Estatus", "Último Cambio"}, 0
         ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int row, int column) { return false; }
         };
         jTable1.setModel(modelo);
         
-        // Ocultar columna ID
+        // Ocultar ID
         jTable1.getColumnModel().getColumn(0).setMinWidth(0);
         jTable1.getColumnModel().getColumn(0).setMaxWidth(0);
+        jTable1.getColumnModel().getColumn(0).setWidth(0);
         
-        // Ajustar anchos
-        jTable1.getColumnModel().getColumn(1).setPreferredWidth(200);
-        jTable1.getColumnModel().getColumn(2).setPreferredWidth(120);
-        jTable1.getColumnModel().getColumn(3).setPreferredWidth(150);
-        jTable1.getColumnModel().getColumn(4).setPreferredWidth(100);
-        jTable1.getColumnModel().getColumn(5).setPreferredWidth(150);
+        // Anchos preferidos
+        jTable1.getColumnModel().getColumn(1).setPreferredWidth(200); // Nombre
+        jTable1.getColumnModel().getColumn(2).setPreferredWidth(120); // Rol
+        jTable1.getColumnModel().getColumn(3).setPreferredWidth(150); // Sucursal
     }
     
     private void configurarBusqueda() {
-        BuscarporNombre.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { aplicarFiltros(); }
-            @Override public void removeUpdate(DocumentEvent e) { aplicarFiltros(); }
-            @Override public void changedUpdate(DocumentEvent e) { aplicarFiltros(); }
-        });
-        
         BuscarporNombre.setForeground(java.awt.Color.GRAY);
         BuscarporNombre.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent evt) {
+            @Override public void focusGained(java.awt.event.FocusEvent evt) {
                 if (BuscarporNombre.getText().equals("Buscar por nombre...")) {
-                    BuscarporNombre.setText("");
-                    BuscarporNombre.setForeground(java.awt.Color.BLACK);
+                    BuscarporNombre.setText(""); BuscarporNombre.setForeground(Color.BLACK);
                 }
             }
-            @Override
-            public void focusLost(java.awt.event.FocusEvent evt) {
+            @Override public void focusLost(java.awt.event.FocusEvent evt) {
                 if (BuscarporNombre.getText().isEmpty()) {
-                    BuscarporNombre.setText("Buscar por nombre...");
-                    BuscarporNombre.setForeground(java.awt.Color.GRAY);
+                    BuscarporNombre.setText("Buscar por nombre..."); BuscarporNombre.setForeground(Color.GRAY);
                 }
             }
+        });
+        
+        // Filtrado en tiempo real al escribir
+        BuscarporNombre.addKeyListener(new KeyAdapter() {
+            @Override public void keyReleased(KeyEvent e) { aplicarFiltros(); }
         });
     }
     
     private void cargarTodosLosUsuarios() {
-        // 1. Traemos los datos de la BD
+        // 1. Traer datos de la BD
         listaUsuariosReales = usuarioDAO.listar(); 
-        
-        // 2. Llenamos la tabla
+        // Eliminamos de la lista a cualquier usuario cuyo rol sea "Gerente" (ignorando mayúsculas/minúsculas)
+        if (listaUsuariosReales != null) {
+            listaUsuariosReales.removeIf(u -> 
+                u.getNombreRol() != null && 
+                u.getNombreRol().equalsIgnoreCase("Gerente")
+            );
+        }
+        // 2. Llenar tabla
         mostrarUsuariosEnTabla(listaUsuariosReales);
         
-        // 3. ¡MAGIA! Llenamos los combos basados en lo que acabamos de traer
+        // 3. Llenar combos dinámicamente
         cargarCombosDinamicos();
     }
     
     private void cargarCombosDinamicos() {
-        // Usamos 'Set' para que no se repitan los nombres
         Set<String> rolesUnicos = new HashSet<>();
         Set<String> sucursalesUnicas = new HashSet<>();
         
-        // Recorremos la lista real para ver qué roles y sucursales existen
         if (listaUsuariosReales != null) {
             for (UsuarioADM u : listaUsuariosReales) {
                 if (u.getNombreRol() != null) rolesUnicos.add(u.getNombreRol());
@@ -102,94 +111,119 @@ public class panel_Administrador_Vista_Usuarios extends javax.swing.JPanel {
         }
         
         // Llenar Combo Roles
-        Todoslosroles.removeAllItems();
-        Todoslosroles.addItem("Todos los roles");
-        for (String rol : rolesUnicos) {
-            Todoslosroles.addItem(rol);
-        }
+        Todoslosroles.setModel(new DefaultComboBoxModel<>(new String[]{"Todos los roles"}));
+        for (String rol : rolesUnicos) Todoslosroles.addItem(rol);
         
         // Llenar Combo Sucursales
-        TodaslasSucursales.removeAllItems();
-        TodaslasSucursales.addItem("Todas las sucursales");
-        for (String suc : sucursalesUnicas) {
-            TodaslasSucursales.addItem(suc);
-        }
+        TodaslasSucursales.setModel(new DefaultComboBoxModel<>(new String[]{"Todas las sucursales"}));
+        for (String suc : sucursalesUnicas) TodaslasSucursales.addItem(suc);
         
-        // Llenar Combo Estatus (Este sí puede ser fijo o dinámico)
-        TodoslosEstatus.removeAllItems();
-        TodoslosEstatus.addItem("Todos");
-        TodoslosEstatus.addItem("ACTIVO"); // Mayúsculas como en tu BD
-        TodoslosEstatus.addItem("INACTIVO");
+        // Llenar Combo Estatus
+        TodoslosEstatus.setModel(new DefaultComboBoxModel<>(new String[]{"Todos", "ACTIVO", "INACTIVO"}));
     }
     
     private void aplicarFiltros() {
-        String nombreBusqueda = BuscarporNombre.getText();
-        if (nombreBusqueda.equals("Buscar por nombre...")) nombreBusqueda = "";
-
-        String nombreRolSel = (String) Todoslosroles.getSelectedItem();
-        String nombreSucSel = (String) TodaslasSucursales.getSelectedItem();
-        String estatusSel = (String) TodoslosEstatus.getSelectedItem();
-
-        List<UsuarioADM> usuariosFiltrados = new ArrayList<>();
-
+        String texto = BuscarporNombre.getText().trim();
+        if (texto.equals("Buscar por nombre...")) texto = "";
+        
+        String rolSel = (String) Todoslosroles.getSelectedItem();
+        String sucSel = (String) TodaslasSucursales.getSelectedItem();
+        String estSel = (String) TodoslosEstatus.getSelectedItem();
+        
+        List<UsuarioADM> filtrados = new ArrayList<>();
+        
         if (listaUsuariosReales != null) {
-            for (UsuarioADM usuario : listaUsuariosReales) {
-                boolean cumple = true;
-
-                // Filtro Nombre
-                if (!nombreBusqueda.isEmpty() && 
-                    !usuario.getNombre().toLowerCase().contains(nombreBusqueda.toLowerCase())) {
-                    cumple = false;
+            for (UsuarioADM u : listaUsuariosReales) {
+                boolean cumpleNombre = texto.isEmpty() || u.getNombre().toLowerCase().contains(texto.toLowerCase());
+                
+                boolean cumpleRol = true;
+                if (rolSel != null && !rolSel.equals("Todos los roles")) {
+                    cumpleRol = u.getNombreRol().equalsIgnoreCase(rolSel);
                 }
-
-                // Filtro Rol
-                if (nombreRolSel != null && !nombreRolSel.equals("Todos los roles")) {
-                    if (usuario.getNombreRol() == null || 
-                        !usuario.getNombreRol().equalsIgnoreCase(nombreRolSel)) {
-                        cumple = false;
-                    }
+                
+                boolean cumpleSuc = true;
+                if (sucSel != null && !sucSel.equals("Todas las sucursales")) {
+                    cumpleSuc = u.getNombreSucursal().equalsIgnoreCase(sucSel);
                 }
-
-                // Filtro Sucursal
-                if (nombreSucSel != null && !nombreSucSel.equals("Todas las sucursales")) {
-                    if (usuario.getNombreSucursal() == null || 
-                        !usuario.getNombreSucursal().equalsIgnoreCase(nombreSucSel)) {
-                        cumple = false;
-                    }
+                
+                boolean cumpleEst = true;
+                if (estSel != null && !estSel.equals("Todos")) {
+                    cumpleEst = u.getEstatus().equalsIgnoreCase(estSel);
                 }
-
-                // Filtro Estatus
-                if (estatusSel != null && !estatusSel.equals("Todos")) {
-                     if (usuario.getEstatus() == null || 
-                        !usuario.getEstatus().equalsIgnoreCase(estatusSel)) {
-                        cumple = false;
-                    }
+                
+                if (cumpleNombre && cumpleRol && cumpleSuc && cumpleEst) {
+                    filtrados.add(u);
                 }
-
-                if (cumple) usuariosFiltrados.add(usuario);
             }
         }
-        mostrarUsuariosEnTabla(usuariosFiltrados);
+        mostrarUsuariosEnTabla(filtrados);
     }
     
     private void mostrarUsuariosEnTabla(List<UsuarioADM> usuarios) {
         DefaultTableModel modelo = (DefaultTableModel) jTable1.getModel();
         modelo.setRowCount(0);
-        
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         
-        for (UsuarioADM usuario : usuarios) {
+        for (UsuarioADM u : usuarios) {
             modelo.addRow(new Object[]{
-                usuario.getId(),
-                usuario.getNombre(),
-                usuario.getNombreRol(),
-                usuario.getNombreSucursal(),
-                usuario.getEstatus(),
-                usuario.getUltimoCambio().format(formatter)
+                u.getId(),
+                u.getNombre(), // Aquí se mostrará el nombre real o DNI según tu DAO
+                u.getNombreRol(),
+                u.getNombreSucursal(),
+                u.getEstatus(),
+                u.getUltimoCambio().format(formatter)
             });
         }
+        jLabel1.setText("Vista Global de Usuarios (" + usuarios.size() + " encontrados)");
+    }
+    
+    // --- DISEÑO MODERNO ---
+    private void aplicarEstiloModerno() {
+        this.setBackground(COLOR_FONDO);
         
-        jLabel1.setText(String.format("Vista Global de Usuarios (%d encontrados)", usuarios.size()));
+        jPanel1.setBackground(COLOR_BLANCO);
+        jPanel1.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        jLabel1.setForeground(new Color(30, 41, 59));
+        
+        // Estilo Tabla
+        jTable1.setRowHeight(40);
+        jTable1.setShowVerticalLines(false);
+        jTable1.setGridColor(new Color(230, 230, 230));
+        jTable1.setSelectionBackground(new Color(240, 245, 255));
+        jTable1.setSelectionForeground(Color.BLACK);
+        jTable1.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        
+        // Encabezado Tabla
+        jTable1.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                lbl.setBackground(COLOR_BLANCO);
+                lbl.setForeground(COLOR_TEXTO_GRIS);
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                lbl.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 230, 230)));
+                lbl.setPreferredSize(new Dimension(lbl.getWidth(), 40));
+                return lbl;
+            }
+        });
+        
+        jScrollPane1.getViewport().setBackground(COLOR_BLANCO);
+        jScrollPane1.setBorder(BorderFactory.createEmptyBorder());
+        
+        // Estilo Combos
+        estilizarCombo(Todoslosroles);
+        estilizarCombo(TodaslasSucursales);
+        estilizarCombo(TodoslosEstatus);
+    }
+    
+    private void estilizarCombo(javax.swing.JComboBox combo) {
+        combo.setBackground(Color.WHITE);
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
     }
     
     @SuppressWarnings("unchecked")

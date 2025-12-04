@@ -1,7 +1,5 @@
-
 package edu.UPAO.proyecto.dao;
 
-import edu.UPAO.proyecto.modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.Sucursal;
 import edu.UPAO.proyecto.modelo.UsuarioADM;
 import java.sql.Connection;
@@ -15,48 +13,56 @@ import java.time.LocalDateTime;
 
 public class UsuarioDAOADM {
 
-    // 1. LISTAR TODOS
+    // 1. LISTAR TODOS (CON EL NOMBRE CORRECTO)
     public List<UsuarioADM> listar() {
-        return ejecutarConsulta("SELECT u.id_usuario, e.dni, e.rol, e.id_sucursal, s.nombre_sucursal, u.estado " +
-                                "FROM usuario u " +
-                                "INNER JOIN empleado e ON u.id_empleado = e.id_empleado " +
-                                "LEFT JOIN sucursal s ON e.id_sucursal = s.id_sucursal");
+        // CAMBIO CLAVE: Usamos 'p.nombres' (plural)
+        return ejecutarConsulta(
+            "SELECT u.id_usuario, p.nombres, p.apellidos, e.rol, e.id_sucursal, s.nombre_sucursal, u.estado " +
+            "FROM usuario u " +
+            "INNER JOIN empleado e ON u.id_empleado = e.id_empleado " +
+            "INNER JOIN persona p ON e.dni = p.dni " + 
+            "LEFT JOIN sucursal s ON e.id_sucursal = s.id_sucursal"
+        );
     }
 
     // 2. LISTAR SOLO SIN SUCURSAL
     public List<UsuarioADM> listarSinSucursal() {
-        return ejecutarConsulta("SELECT u.id_usuario, e.dni, e.rol, e.id_sucursal, s.nombre_sucursal, u.estado " +
-                                "FROM usuario u " +
-                                "INNER JOIN empleado e ON u.id_empleado = e.id_empleado " +
-                                "LEFT JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
-                                "WHERE e.id_sucursal IS NULL");
+        return ejecutarConsulta(
+            "SELECT u.id_usuario, p.nombres, p.apellidos, e.rol, e.id_sucursal, s.nombre_sucursal, u.estado " +
+            "FROM usuario u " +
+            "INNER JOIN empleado e ON u.id_empleado = e.id_empleado " +
+            "INNER JOIN persona p ON e.dni = p.dni " +
+            "LEFT JOIN sucursal s ON e.id_sucursal = s.id_sucursal " +
+            "WHERE e.id_sucursal IS NULL"
+        );
     }
 
-    // 3. MÉTODO COMÚN: AHORA FILTRA POR DNI (CONTENIDO VISUAL)
+    // 3. MÉTODO COMÚN
     private List<UsuarioADM> ejecutarConsulta(String sql) {
         List<UsuarioADM> lista = new ArrayList<>();
-        
-        // CAMBIO CLAVE: Usamos un Set de Strings para guardar DNIs
-        Set<String> dnisProcesados = new HashSet<>();
+        Set<Integer> idsProcesados = new HashSet<>();
         
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                // Obtenemos el DNI primero
-                String dni = rs.getString("dni");
-                
-                // SI YA VIMOS ESTE DNI, SALTAMOS AL SIGUIENTE.
-                // Esto elimina duplicados visuales aunque tengan IDs diferentes.
-                if (dni != null && dnisProcesados.contains(dni)) {
-                    continue; 
-                }
-                if (dni != null) dnisProcesados.add(dni);
+                int id = rs.getInt("id_usuario");
+                if (idsProcesados.contains(id)) continue;
+                idsProcesados.add(id);
 
                 UsuarioADM usu = new UsuarioADM();
-                usu.setId(rs.getInt("id_usuario"));
-                usu.setNombre("DNI: " + dni); 
+                usu.setId(id);
+                
+                // --- CORRECCIÓN: Usamos 'nombres' ---
+                String nombre = rs.getString("nombres"); // Ahora sí coincidirá con tu BD
+                String apellido = rs.getString("apellidos");
+                
+                if (nombre == null) nombre = "SinNombre";
+                if (apellido == null) apellido = "";
+                
+                usu.setNombre(nombre + " " + apellido); 
+                // ------------------------------------
                 
                 usu.setIdRol(0);
                 usu.setNombreRol(rs.getString("rol"));
@@ -78,6 +84,7 @@ public class UsuarioDAOADM {
                 lista.add(usu);
             }
         } catch (Exception e) {
+            System.out.println("Error SQL: " + e.getMessage());
             e.printStackTrace();
         }
         return lista;
@@ -87,7 +94,7 @@ public class UsuarioDAOADM {
     public List<Sucursal> listarSucursales() {
         List<Sucursal> lista = new ArrayList<>();
         String sql = "SELECT id_sucursal, nombre_sucursal FROM sucursal";
-        Set<Integer> idsSuc = new HashSet<>(); // Filtro ID para sucursales
+        Set<Integer> idsSuc = new HashSet<>();
         
         try (Connection con = Conexion.getConexion();
              PreparedStatement ps = con.prepareStatement(sql);
@@ -99,54 +106,30 @@ public class UsuarioDAOADM {
                 idsSuc.add(id);
                 
                 String nombre = rs.getString("nombre_sucursal");
-                if (id == 1) nombre = "Tienda Central"; 
-                else if (id == 2) nombre = "Sucursal Norte";
-                else if (id == 3) nombre = "Sucursal Sur";
-                
-
+                lista.add(new Sucursal(id, nombre, "", "")); 
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
         return lista;
     }
 
     // 5. ACTUALIZAR SUCURSAL
     public boolean actualizarSucursal(int idUsuario, Integer idSucursal) {
-        String sql = "UPDATE empleado e " +
-                     "INNER JOIN usuario u ON e.id_empleado = u.id_empleado " +
-                     "SET e.id_sucursal = ? " +
-                     "WHERE u.id_usuario = ?";
-        try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            
-            if (idSucursal == null || idSucursal == 0) {
-                ps.setNull(1, java.sql.Types.INTEGER);
-            } else {
-                ps.setInt(1, idSucursal);
-            }
+        String sql = "UPDATE empleado e INNER JOIN usuario u ON e.id_empleado = u.id_empleado SET e.id_sucursal = ? WHERE u.id_usuario = ?";
+        try (Connection con = Conexion.getConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
+            if (idSucursal == null || idSucursal == 0) ps.setNull(1, java.sql.Types.INTEGER);
+            else ps.setInt(1, idSucursal);
             ps.setInt(2, idUsuario);
             return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
     
     // 6. ACTUALIZAR ROL
     public boolean actualizarRol(int idUsuario, String nuevoRol) {
-        String sql = "UPDATE empleado e " +
-                     "INNER JOIN usuario u ON e.id_empleado = u.id_empleado " +
-                     "SET e.rol = ? " +
-                     "WHERE u.id_usuario = ?";
-        try (Connection con = Conexion.getConexion();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        String sql = "UPDATE empleado e INNER JOIN usuario u ON e.id_empleado = u.id_empleado SET e.rol = ? WHERE u.id_usuario = ?";
+        try (Connection con = Conexion.getConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, nuevoRol);
             ps.setInt(2, idUsuario);
             return ps.executeUpdate() > 0;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
 }

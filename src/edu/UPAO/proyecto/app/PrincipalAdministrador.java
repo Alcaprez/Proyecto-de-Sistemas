@@ -2,126 +2,82 @@ package edu.UPAO.proyecto.app;
 
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Cursor;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import javax.swing.JButton;
+import javax.swing.border.EmptyBorder;
 
 public class PrincipalAdministrador extends javax.swing.JFrame {
 
     private String idEmpleado;
     private String nombreUsuario;
-
-    // --- VARIABLES DE DISEÑO (AGRÉGALAS AQUÍ) ---
-    private javax.swing.JButton botonSeleccionado = null;
-    private final java.awt.Color COLOR_NORMAL = new java.awt.Color(0, 102, 51);
-    private final java.awt.Color COLOR_HOVER = new java.awt.Color(0, 140, 70);
-    private final java.awt.Color COLOR_ACTIVO = new java.awt.Color(0, 77, 38);
+    private int idSucursal;
 
     public PrincipalAdministrador() {
         initComponents();
-        aplicarEstilos(); // <--- ¡ESTA LÍNEA ES LA QUE ACTIVA TODO!
-    }
-
-    public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
-        initComponents();
-        aplicarEstilos(); // <--- ¡AGRÉGALA AQUÍ TAMBIÉN!
-
-        this.idEmpleado = idEmpleado;
-        this.nombreUsuario = nombreUsuario;
-        this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
+        MostrarPanel(new DashboardBienvenida());
+        
+        // --- AGREGA ESTO AQUÍ ---
+        try {
+            edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+            // Obtenemos el ID de la sucursal y lo guardamos en la variable global
+            this.idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
+        } catch (Exception e) {
+            System.err.println("Error al obtener sucursal: " + e.getMessage());
+            this.idSucursal = 0; // Valor por defecto si falla
+        }
         verificarStockSucursal();
     }
 
-    // --- PEGAR AL FINAL DE LA CLASE ---
-    private void aplicarEstilos() {
-        // Aplica el diseño a todos tus botones
-        estilizarBoton(btn_venta);
-        estilizarBoton(btn_almacenes);
-        estilizarBoton(btn_compras);
-        estilizarBoton(btn_personal);
-        estilizarBoton(btn_cuenta);
-        estilizarBoton(btn_tesoreria);
-        estilizarBoton(btnMarcarAsistencia);
+    public PrincipalAdministrador(String idEmpleado, String nombreUsuario) {
+        // Inicializar componentes visuales primero
+        initComponents();
+        MostrarPanel(new DashboardBienvenida());
+        aplicarDisenoModerno();
+        // Guardar los datos recibidos
+        this.idEmpleado = idEmpleado;
+        this.nombreUsuario = nombreUsuario;
 
-        // Simular clic en el primero para que arranque marcado (opcional)
-        if (btn_tesoreria != null) {
-            botonSeleccionado = btn_tesoreria;
-            btn_tesoreria.setBackground(COLOR_ACTIVO);
-        }
+        // Opcional: Poner el nombre en el título de la ventana o en una etiqueta
+        this.setTitle("Panel Administrador - Usuario: " + nombreUsuario);
+
+        verificarStockSucursal();
     }
-
-    private void estilizarBoton(javax.swing.JButton boton) {
-        // 1. Estilo Visual Sólido y Elegante
-        boton.setBackground(COLOR_NORMAL);
-        boton.setForeground(java.awt.Color.WHITE);
-        boton.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
-
-        // Quita bordes y efectos antiguos
-        boton.setFocusPainted(false);
-        boton.setBorderPainted(false);
-        boton.setContentAreaFilled(true); // <--- ESTO QUITA LA TRANSLUCIDEZ (Lo hace sólido)
-        boton.setOpaque(true);
-        boton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-
-        // 2. Efecto Hover (Pasar el mouse)
-        boton.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                // Solo ilumina si NO es el botón que ya está marcado
-                if (boton != botonSeleccionado) {
-                    boton.setBackground(COLOR_HOVER);
-                }
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                // Si te vas del botón y NO está marcado, vuelve a su color normal
-                if (boton != botonSeleccionado) {
-                    boton.setBackground(COLOR_NORMAL);
-                }
-            }
-        });
-
-        // 3. Lógica para "Quedarse Marcado" al hacer click
-        boton.addActionListener(e -> {
-            // Si había un botón marcado antes, lo "apagamos" (volvemos a normal)
-            if (botonSeleccionado != null && botonSeleccionado != boton) {
-                botonSeleccionado.setBackground(COLOR_NORMAL);
-            }
-
-            // "Encendemos" el nuevo botón clickeado
-            botonSeleccionado = boton;
-            boton.setBackground(COLOR_ACTIVO);
-        });
-    }
-
+    
     private void verificarStockSucursal() {
         new Thread(() -> {
             try {
                 // 1. Obtener la sucursal de ESTE administrador
                 edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
                 int idSucursal = empleadoDAO.obtenerSucursalEmpleado(this.idEmpleado);
-
+                
                 // 2. Buscar alertas SOLO de esa sucursal (pasamos el ID)
                 edu.UPAO.proyecto.DAO.InventarioSucursalDAO inventarioDAO = new edu.UPAO.proyecto.DAO.InventarioSucursalDAO();
                 java.util.List<String> alertas = inventarioDAO.obtenerAlertasBajoStock(idSucursal);
-
+                
                 if (!alertas.isEmpty()) {
                     StringBuilder mensaje = new StringBuilder("⚠️ ALERTA DE STOCK (Tu Sucursal)\n\n");
-
+                    
                     int limite = Math.min(alertas.size(), 15);
                     for (int i = 0; i < limite; i++) {
                         mensaje.append(alertas.get(i)).append("\n");
                     }
-
+                    
                     if (alertas.size() > 15) {
                         mensaje.append("\n... y ").append(alertas.size() - 15).append(" más.");
                     }
-
+                    
                     mensaje.append("\n\nSe requiere reposición urgente en esta sede.");
 
                     javax.swing.SwingUtilities.invokeLater(() -> {
-                        javax.swing.JOptionPane.showMessageDialog(this,
-                                new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)),
-                                "Gestión de Inventario - Local",
-                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                        javax.swing.JOptionPane.showMessageDialog(this, 
+                            new javax.swing.JScrollPane(new javax.swing.JTextArea(mensaje.toString(), 15, 40)), 
+                            "Gestión de Inventario - Local", 
+                            javax.swing.JOptionPane.WARNING_MESSAGE);
                     });
                 }
             } catch (Exception e) {
@@ -133,16 +89,122 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     private void MostrarPanel(JPanel p) {
 // Configurar el panel nuevo
         p.setOpaque(true);
-
         // Limpiar el contenedor
         content.removeAll();
-
         // Agregar y estirar automáticamente
         content.add(p, java.awt.BorderLayout.CENTER);
-
         // Refrescar visualización
         content.revalidate();
         content.repaint();
+    }
+    
+    // =======================================================
+    // MÉTODOS DE DISEÑO (ESTILO MODERNO)
+    // =======================================================
+    
+    private void aplicarDisenoModerno() {
+        // 1. EL ENCABEZADO (Amarillo/Dorado con texto centrado)
+        // Color amarillo similar a la imagen 1
+        jPanel4.setBackground(new Color(255, 204, 51));
+        // Configuramos el texto "ADMINISTRADOR"
+        lblFrase.setText("ADMINISTRADOR");
+        lblFrase.setForeground(new Color(20, 60, 40)); // Verde oscuro para el texto
+        lblFrase.setFont(new Font("Serif", Font.BOLD, 44)); // Fuente elegante
+        lblFrase.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        // 2. EL MENÚ LATERAL (Fondo verde oscuro)
+        jPanel1.setBackground(new Color(13, 59, 40)); // Verde oscuro profundo
+        
+        // 3. LOS BOTONES (Colores vibrantes y forma redondeada)
+        // Tesorería -> Naranja
+        estilizarBoton(btn_tesoreria, new Color(211, 84, 0)); 
+        
+        // Ventas -> Verde Hoja
+        estilizarBoton(btn_venta, new Color(39, 174, 96)); 
+        
+        // Compras -> Rojo Intenso
+        estilizarBoton(btn_compras, new Color(192, 57, 43)); 
+        
+        // Almacén -> Morado/Violeta
+        estilizarBoton(btn_almacenes, new Color(142, 68, 173)); 
+        
+        // Personal -> Verde Azulado (Teal) - Este es el que está activo en tu ejemplo
+        estilizarBoton(btn_personal, new Color(22, 160, 133));
+        
+        // Cuenta -> Azul
+        estilizarBoton(btn_cuenta, new Color(41, 128, 185));
+        
+        // Mis Asistencias -> Gris azulado (para diferenciarlo)
+        estilizarBoton(btnMarcarAsistencia, new Color(90, 100, 110));
+
+        // Cerrar Sesión -> Texto amarillo, fondo transparente
+        btn_cerrarSesion.setContentAreaFilled(false);
+        btn_cerrarSesion.setBorderPainted(false);
+        btn_cerrarSesion.setForeground(new Color(255, 204, 51));
+        btn_cerrarSesion.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn_cerrarSesion.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    // Método auxiliar para dar estilo, forma y efectos modernos (Hover/Press)
+    private void estilizarBoton(JButton btn, Color colorFondo) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(colorFondo);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        
+        // IMPORTANTE: Habilitar la detección del mouse
+        btn.setRolloverEnabled(true); 
+
+        // Aplicamos el borde para el margen interno
+        btn.setBorder(new BordeRedondeado(20)); 
+        btn.setContentAreaFilled(false);
+        btn.setOpaque(false);
+
+        // UI Personalizado con Lógica de Estados (Hover y Click)
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, javax.swing.JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Obtenemos el modelo del botón para saber su estado
+                javax.swing.AbstractButton b = (javax.swing.AbstractButton) c;
+                javax.swing.ButtonModel model = b.getModel();
+                
+                // Lógica de colores dinámica
+                Color colorActual = c.getBackground();
+                
+                if (model.isPressed()) {
+                    // Si se presiona: Color más oscuro
+                    colorActual = colorActual.darker(); 
+                } else if (model.isRollover()) {
+                    // Si el mouse pasa por encima: Color más brillante (Iluminación)
+                    colorActual = colorActual.brighter(); 
+                }
+                
+                g2.setColor(colorActual);
+                
+                // Rellenar forma redondeada con el color calculado
+                g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 20, 20); 
+                
+                // Llamamos a pintar el texto original encima
+                super.paint(g2, c);
+                g2.dispose();
+            }
+        });
+    }
+
+    // Clase interna para el borde (necesaria para el espaciado correcto)
+    class BordeRedondeado implements javax.swing.border.Border {
+        private int radio;
+        BordeRedondeado(int radio) { this.radio = radio; }
+        public java.awt.Insets getBorderInsets(java.awt.Component c) {
+            return new java.awt.Insets(10, 20, 10, 20); // Margen interno (padding)
+        }
+        public boolean isBorderOpaque() { return false; }
+        public void paintBorder(java.awt.Component c, Graphics g, int x, int y, int width, int height) {
+            // No pintamos borde linea, solo usamos esto para el margen
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -163,7 +225,6 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
         jLayeredPane1 = new javax.swing.JLayeredPane();
         jPanel4 = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
-        jLabel1 = new javax.swing.JLabel();
         lblFrase = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -331,10 +392,6 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
 
         jLabel3.setIcon(new javax.swing.ImageIcon(getClass().getResource("/frame/imagenes/miniLogo.png"))); // NOI18N
 
-        jLabel1.setFont(new java.awt.Font("Tw Cen MT", 1, 48)); // NOI18N
-        jLabel1.setForeground(new java.awt.Color(0, 0, 0));
-        jLabel1.setText("ADMINISTRADOR ");
-
         lblFrase.setFont(new java.awt.Font("Harlow Solid Italic", 0, 36)); // NOI18N
         lblFrase.setForeground(new java.awt.Color(193, 28, 28));
         lblFrase.setText("Todo lo que necesitas al alcance");
@@ -348,9 +405,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
                 .addComponent(jLabel3)
                 .addGap(72, 72, 72)
                 .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel1)
-                .addGap(14, 14, 14))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -358,7 +413,6 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
                 .addContainerGap(16, Short.MAX_VALUE)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(lblFrase, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel1)
                     .addComponent(jLabel3))
                 .addContainerGap())
         );
@@ -520,7 +574,6 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
     private javax.swing.JButton btn_tesoreria;
     private javax.swing.JButton btn_venta;
     private javax.swing.JPanel content;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLayeredPane jLayeredPane1;
     private javax.swing.JPanel jPanel1;

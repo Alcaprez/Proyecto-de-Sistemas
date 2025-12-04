@@ -2,49 +2,84 @@
 package edu.UPAO.proyecto.app;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridLayout;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
-
 
 public class CONTROL_PERSONAL extends javax.swing.JPanel {
 
-    
     public CONTROL_PERSONAL() {
         initComponents();
         configurarPestanaAsistencias();
-        configurarContenedoresDinamicos();
-        
-        // 2. PESTAÑA PERMISOS: Configurar contenedor
-        jPanel5.setLayout(new BorderLayout()); 
-        mostrarSubVistaPermisos(new panel_Administrador_Asignacion_Sucursal());
-        
-        // 3. PESTAÑA REPORTES: Configurar contenedor
-        jPanel7.setLayout(new BorderLayout()); 
-        mostrarSubVistaReportes(new panel_Administrador_Indicadores());
+        configurarPestanaPermisos();
+        jTabbedPane1.setBackground(java.awt.Color.WHITE);
+        jTabbedPane1.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
     }
     
     private void configurarPestanaAsistencias() {
-        // 1. Usamos jPanel1 (La pestaña directa)
-        jPanel1.removeAll(); // Limpiamos cualquier basura visual
-        
-        // Aseguramos el Layout (por si acaso NetBeans lo cambió)
+        jPanel1.removeAll();
         jPanel1.setLayout(new BorderLayout());
-        
-        // 2. Inyectamos tu panel diseñado
-        panel_Administrador_Asistencia panelAsistencia = new panel_Administrador_Asistencia();
-        jPanel1.add(panelAsistencia, BorderLayout.CENTER);
-        
+        jPanel1.add(new panel_Administrador_Asistencia(), BorderLayout.CENTER);
         jPanel1.revalidate();
         jPanel1.repaint();
     }
-    
-    private void configurarContenedoresDinamicos() {
-        // Pestaña PERMISOS
-        jPanel5.setLayout(new BorderLayout()); 
+
+    private void configurarPestanaPermisos() {
+        jPanel2.removeAll();
+        jPanel2.setLayout(new BorderLayout(0, 10));
+        jPanel2.setBackground(new Color(248, 250, 252));
+        jPanel2.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel lblTitulo = new JLabel("Gestión de Permisos");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitulo.setForeground(new Color(30, 41, 59));
+        lblTitulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+
+        jPanel4.removeAll();
+        jPanel4.setLayout(new GridLayout(1, 3, 15, 0));
+        jPanel4.setBackground(new Color(248, 250, 252));
+        jPanel4.setPreferredSize(new Dimension(0, 45));
+
+        estilizarBotonMenu(jButton1);
+        estilizarBotonMenu(jButton2);
+        estilizarBotonMenu(jButton3);
+
+        jPanel4.add(jButton1);
+        jPanel4.add(jButton2);
+        jPanel4.add(jButton3);
+
+        jPanel5.setLayout(new BorderLayout());
+        jPanel5.setBorder(null);
+
         mostrarSubVistaPermisos(new panel_Administrador_Asignacion_Sucursal());
-        
-        // Pestaña REPORTES
-        jPanel7.setLayout(new BorderLayout()); 
-        mostrarSubVistaReportes(new panel_Administrador_Indicadores());
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(lblTitulo, BorderLayout.NORTH);
+        topPanel.add(jPanel4, BorderLayout.CENTER);
+
+        jPanel2.add(topPanel, BorderLayout.NORTH);
+        jPanel2.add(jPanel5, BorderLayout.CENTER);
+
+        jPanel2.revalidate();
+        jPanel2.repaint();
+    }
+
+    private void estilizarBotonMenu(JButton btn) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(new Color(59, 130, 246));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
     private void mostrarSubVistaPermisos(JPanel panel) {
@@ -52,16 +87,8 @@ public class CONTROL_PERSONAL extends javax.swing.JPanel {
         jPanel5.add(panel, BorderLayout.CENTER);
         jPanel5.revalidate();
         jPanel5.repaint();
-    }    
-    
-    private void mostrarSubVistaReportes(JPanel panel) {
-        jPanel7.removeAll();
-        jPanel7.add(panel, BorderLayout.CENTER);
-        jPanel7.revalidate();
-        jPanel7.repaint();
     }
-     
-    
+      
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -75,13 +102,6 @@ public class CONTROL_PERSONAL extends javax.swing.JPanel {
         jButton3 = new javax.swing.JButton();
         jPanel5 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
-        jPanel3 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
-        jPanel6 = new javax.swing.JPanel();
-        Indicadores = new javax.swing.JButton();
-        Reporte = new javax.swing.JButton();
-        Historial = new javax.swing.JButton();
-        jPanel7 = new javax.swing.JPanel();
 
         setBackground(new java.awt.Color(0, 153, 153));
 
@@ -167,85 +187,6 @@ public class CONTROL_PERSONAL extends javax.swing.JPanel {
 
         jTabbedPane1.addTab("PERMISOS", jPanel2);
 
-        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
-        jLabel2.setText("Reporte de Personal");
-
-        jPanel6.setBackground(new java.awt.Color(255, 255, 255));
-
-        Indicadores.setText("Indicadores");
-        Indicadores.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                IndicadoresActionPerformed(evt);
-            }
-        });
-
-        Reporte.setText("Reporte Asistencia");
-        Reporte.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                ReporteActionPerformed(evt);
-            }
-        });
-
-        Historial.setText("Historial");
-        Historial.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                HistorialActionPerformed(evt);
-            }
-        });
-
-        javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
-        jPanel6.setLayout(jPanel6Layout);
-        jPanel6Layout.setHorizontalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(Indicadores, javax.swing.GroupLayout.PREFERRED_SIZE, 286, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(Reporte, javax.swing.GroupLayout.PREFERRED_SIZE, 284, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(Historial, javax.swing.GroupLayout.PREFERRED_SIZE, 285, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel6Layout.setVerticalGroup(
-            jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel6Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(Indicadores, javax.swing.GroupLayout.PREFERRED_SIZE, 42, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(Reporte, javax.swing.GroupLayout.PREFERRED_SIZE, 41, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(Historial, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(8, Short.MAX_VALUE))
-        );
-
-        jPanel7.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 0, 0)));
-        jPanel7.setLayout(new java.awt.BorderLayout());
-
-        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
-        jPanel3.setLayout(jPanel3Layout);
-        jPanel3Layout.setHorizontalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addGap(50, 50, 50)
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 239, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(115, Short.MAX_VALUE))
-        );
-        jPanel3Layout.setVerticalGroup(
-            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel3Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jPanel7, javax.swing.GroupLayout.DEFAULT_SIZE, 491, Short.MAX_VALUE))
-        );
-
-        jTabbedPane1.addTab("REPORTES", jPanel3);
-
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -270,35 +211,16 @@ public class CONTROL_PERSONAL extends javax.swing.JPanel {
         mostrarSubVistaPermisos(new panel_Administrador_Asignacion_Sucursal());
     }//GEN-LAST:event_jButton1ActionPerformed
 
-    private void IndicadoresActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_IndicadoresActionPerformed
-        mostrarSubVistaReportes(new panel_Administrador_Indicadores());
-    }//GEN-LAST:event_IndicadoresActionPerformed
-
-    private void ReporteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ReporteActionPerformed
-        mostrarSubVistaReportes(new panel_Administrador_Reporte_Asistencia());
-    }//GEN-LAST:event_ReporteActionPerformed
-
-    private void HistorialActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_HistorialActionPerformed
-        mostrarSubVistaReportes(new panel_Administrador_Historial_Permisos());
-    }//GEN-LAST:event_HistorialActionPerformed
-
  
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton Historial;
-    private javax.swing.JButton Indicadores;
-    private javax.swing.JButton Reporte;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
     private javax.swing.JPanel jPanel5;
-    private javax.swing.JPanel jPanel6;
-    private javax.swing.JPanel jPanel7;
     private javax.swing.JTabbedPane jTabbedPane1;
     // End of variables declaration//GEN-END:variables
 }
