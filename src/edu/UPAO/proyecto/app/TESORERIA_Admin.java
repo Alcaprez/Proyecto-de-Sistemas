@@ -714,90 +714,84 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
         }
     }
     private void transferirDinero(String destino) {
-        // 1. VALIDACIÓN DE MONTO
         double monto;
         try {
             monto = Double.parseDouble(txtMontoTransferencia.getText());
-            if (monto <= 0) {
-                JOptionPane.showMessageDialog(this, "El monto debe ser mayor a 0.");
-                return;
-            }
+            if (monto <= 0) throw new NumberFormatException();
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Ingrese un número válido.");
+            JOptionPane.showMessageDialog(this, "Ingrese un monto válido mayor a 0.");
             return;
         }
 
-        // 2. VALIDAR CAJA ABIERTA (Usando el ID de sucursal correcto)
-        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(this.idSucursalUsuario);
-        
-        if (cajaActual == null) {
-            JOptionPane.showMessageDialog(this, "No hay una caja abierta para realizar operaciones.");
-            return;
-        }
-
-        // 3. PREPARAR VARIABLES SEGÚN EL DESTINO
         String sqlSucursal = "";
         String tipoMovimiento = "";
         String descripcion = "";
-        
-        if (destino.equals("CHICA")) {
-            // SACAR DE BÓVEDA -> METER A CAJA CHICA (Reposición)
-            // Restamos del presupuesto de la sucursal
+
+        if (destino.equals("CHICA")) { 
+            // BÓVEDA -> CAJA CHICA (Sacar Sencillo/Reposición)
             sqlSucursal = "UPDATE sucursal SET presupuesto = presupuesto - ? WHERE id_sucursal = ?";
-            tipoMovimiento = "REPOSICION";
-            descripcion = "Ingreso manual desde Bóveda";
-            
-        } else if (destino.equals("GRANDE")) {
-            // SACAR DE CAJA CHICA -> METER A BÓVEDA (Retiro/Cierre parcial)
-            // Sumamos al presupuesto de la sucursal
+            tipoMovimiento = "REPOSICION"; 
+            descripcion = "Ingreso desde Bóveda";
+        } else { 
+            // CAJA CHICA -> BÓVEDA (Guardar Ganancia/Retiro)
             sqlSucursal = "UPDATE sucursal SET presupuesto = presupuesto + ? WHERE id_sucursal = ?";
             tipoMovimiento = "RETIRO"; 
-            descripcion = "Transferencia parcial hacia Bóveda";
+            descripcion = "Devolución a Bóveda";
         }
 
-        // 4. EJECUTAR TRANSACCIÓN EN BASE DE DATOS
+        ejecutarTransaccion(sqlSucursal, tipoMovimiento, descripcion, monto);
+    }
+    private void registrarGasto() {
+        try {
+            double monto = Double.parseDouble(txtMontoTransferencia.getText());
+            if (monto <= 0) return;
+            
+            String motivo = JOptionPane.showInputDialog("Motivo del pago/gasto:");
+            if (motivo == null || motivo.trim().isEmpty()) return;
+
+            // El gasto no toca la tabla sucursal, solo crea movimiento negativo
+            ejecutarTransaccion(null, "GASTO", motivo, monto);
+
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Monto inválido.");
+        }
+    }
+    private void ejecutarTransaccion(String sqlSucursal, String tipoMov, String desc, double monto) {
         try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-            con.setAutoCommit(false); // Inicio transacción segura
+            con.setAutoCommit(false); 
 
             try {
-                // A. Actualizar Presupuesto Sucursal (Bóveda)
-                PreparedStatement psSuc = con.prepareStatement(sqlSucursal);
-                psSuc.setDouble(1, monto);
-                psSuc.setInt(2, this.idSucursalUsuario); // USAMOS EL ID DINÁMICO
-                int filasSuc = psSuc.executeUpdate();
-
-                // B. Registrar Movimiento en Caja Chica
-                String sqlMov = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) "
-                              + "VALUES (?, ?, NOW(), ?, ?, 'ACTIVO', ?)";
-                
-                PreparedStatement psMov = con.prepareStatement(sqlMov);
-                psMov.setString(1, tipoMovimiento);
-                psMov.setDouble(2, monto);
-                psMov.setString(3, descripcion);
-                psMov.setInt(4, this.idSucursalUsuario); // USAMOS EL ID DINÁMICO
-                psMov.setInt(5, cajaActual.getIdCaja());
-                int filasMov = psMov.executeUpdate();
-
-                if (filasSuc > 0 && filasMov > 0) {
-                    con.commit(); // Confirmar cambios
-                    JOptionPane.showMessageDialog(this, "¡Transferencia de S/ " + monto + " realizada con éxito!");
-                    
-                    // Limpieza y actualización
-                    txtMontoTransferencia.setText("");
-                    actualizarSaldos();
-                    cargarTablaMovimientos();
-                    cargarListadoFacturas();
-                } else {
-                    con.rollback(); // Cancelar si algo falló
-                    JOptionPane.showMessageDialog(this, "No se pudo realizar la transferencia.", "Error", JOptionPane.ERROR_MESSAGE);
+                // 1. Afectar Bóveda (Si aplica)
+                if (sqlSucursal != null) {
+                    PreparedStatement psSuc = con.prepareStatement(sqlSucursal);
+                    psSuc.setDouble(1, monto);
+                    psSuc.setInt(2, this.idSucursalUsuario);
+                    psSuc.executeUpdate();
                 }
 
+                // 2. Registrar Movimiento (Dejamos id_caja como NULL)
+                String sqlMov = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES (?, ?, NOW(), ?, ?, 'ACTIVO', NULL)";
+                PreparedStatement psMov = con.prepareStatement(sqlMov);
+                psMov.setString(1, tipoMov);
+                psMov.setDouble(2, monto);
+                psMov.setString(3, desc);
+                psMov.setInt(4, this.idSucursalUsuario);
+                // No pasamos parámetro 5 (id_caja) porque ya lo pusimos NULL en el SQL
+                
+                psMov.executeUpdate();
+
+                con.commit();
+                JOptionPane.showMessageDialog(this, "✅ Operación Exitosa.");
+                txtMontoTransferencia.setText("");
+                actualizarSaldos();
+                cargarTablaMovimientos();
+                cargarListadoFacturas();
+
             } catch (SQLException ex) {
-                con.rollback(); // Cancelar en caso de error SQL
+                con.rollback();
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "Error SQL: " + ex.getMessage());
             }
-
         } catch (SQLException e) {
             System.out.println("Error conexión: " + e);
         }
@@ -1425,40 +1419,7 @@ public class TESORERIA_Admin extends javax.swing.JPanel {
     }//GEN-LAST:event_btnPasarChicaActionPerformed
 
     private void btnGenerarPagoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnGenerarPagoActionPerformed
-        Caja cajaActual = new edu.UPAO.proyecto.DAO.CajaDAO().obtenerCajaAbierta(1);
-        if (cajaActual == null) {
-            JOptionPane.showMessageDialog(this, "No hay caja abierta para registrar el pago.");
-            return;
-        }
-
-        try {
-            double monto = Double.parseDouble(txtMontoTransferencia.getText());
-            if (monto <= 0) {
-                return;
-            }
-
-            String motivo = JOptionPane.showInputDialog("Motivo del pago/gasto:");
-            if (motivo == null || motivo.isEmpty()) {
-                return;
-            }
-
-            try (Connection con = DriverManager.getConnection(url, usuario, password)) {
-                String sqlGasto = "INSERT INTO movimiento_caja (tipo, monto, fecha_hora, descripcion, id_sucursal, estado, id_caja) VALUES ('GASTO', ?, NOW(), ?, 1, 'ACTIVO', ?)";
-                PreparedStatement psG = con.prepareStatement(sqlGasto);
-                psG.setDouble(1, monto);
-                psG.setString(2, motivo);
-                psG.setInt(3, cajaActual.getIdCaja()); // ID Real
-                psG.executeUpdate();
-
-                JOptionPane.showMessageDialog(this, "Pago registrado correctamente.");
-                txtMontoTransferencia.setText("");
-                actualizarSaldos();
-                cargarTablaMovimientos();
-                cargarListadoFacturas();
-            }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error: Verifique el monto.");
-        }
+      registrarGasto();
     }//GEN-LAST:event_btnGenerarPagoActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed

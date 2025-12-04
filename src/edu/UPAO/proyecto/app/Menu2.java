@@ -49,7 +49,6 @@ public class Menu2 extends javax.swing.JFrame {
     // =========================================================================
     //  ÁREA DE DISEÑO WEB (AGREGAR AL FINAL DE LA CLASE)
     // =========================================================================
-
     private void aplicarDisenoWeb() {
         // 1. Colores y Fuentes Estilo Web
         java.awt.Color blancoInfinito = java.awt.Color.WHITE;

@@ -342,7 +342,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_cb_sucursalesActionPerformed
 
-    private void abrirPanelSegunRol(Usuario usuario, int idSucursal) {
+private void abrirPanelSegunRol(Usuario usuario, int idSucursal) {
         String rol = usuario.getCargo().toUpperCase();
         String nombreUsuario = usuario.getNombreComp();
         String idEmpleado = usuario.getUsuario();
@@ -355,7 +355,6 @@ public class LoginjFrame extends javax.swing.JFrame {
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
                     
                     // El Gerente entra con ID 0 (Global) o sin filtro
-                    // No cambiamos su constructor porque él ve todo
                     PrincipalGerente principalGerente = new PrincipalGerente(idEmpleado, nombreUsuario);
                     principalGerente.setVisible(true);
                     break;
@@ -363,8 +362,7 @@ public class LoginjFrame extends javax.swing.JFrame {
                 case "ADMINISTRADOR":
                     JOptionPane.showMessageDialog(this, mensajeBienvenida, "Login Exitoso", JOptionPane.INFORMATION_MESSAGE);
 
-                    // --- AQUÍ ESTÁ EL CAMBIO CLAVE ---
-                    // Pasamos el ID de la sucursal al Administrador para que él se lo pase a Tesorería
+                    // Pasamos el ID de la sucursal al Administrador
                     PrincipalAdministrador principalAdmin = new PrincipalAdministrador(idEmpleado, nombreUsuario, idSucursal);
                     
                     principalAdmin.setLocationRelativeTo(null);
@@ -378,8 +376,10 @@ public class LoginjFrame extends javax.swing.JFrame {
                     Menu2 menuPrincipal = new Menu2(idEmpleado);
                     menuPrincipal.setVisible(true);
 
-                    jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
-                    asistencia.setVisible(true);
+                    // CORRECCIÓN: Se elimina o comenta la línea que abría una segunda ventana 
+                    // (jFrame_Asistncias) para evitar la duplicación de interfaces.
+                    // jFrame_Asistncias asistencia = new jFrame_Asistncias(nombreUsuario);
+                    // asistencia.setVisible(true); 
                     break;
 
                 default:
@@ -396,7 +396,7 @@ public class LoginjFrame extends javax.swing.JFrame {
         }
     }
 
-    private void realizarLogin() {
+private void realizarLogin() {
         String usuario = tf_identificacion.getText().trim();
         String contrasena = new String(tf_contraseña.getPassword());
         String sucursalSeleccionada = (String) cb_sucursales.getSelectedItem();
@@ -416,16 +416,16 @@ public class LoginjFrame extends javax.swing.JFrame {
         // 3. DETECTAR TIPO DE USUARIO POR PREFIJO
         // 10 = Gerente, 11 = Admin, 12 = Cajero
         int id = Integer.parseInt(usuario);
-        int prefijo = id / 1000000; 
+        int prefijo = id / 1000000;
 
         // 4. Validar que sea usuario interno permitido (10, 11 o 12)
         if (prefijo < 10 || prefijo > 12) {
-             JOptionPane.showMessageDialog(this, "Acceso denegado. Prefijo de usuario no autorizado.", "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
-             return;
+            JOptionPane.showMessageDialog(this, "Acceso denegado. Prefijo de usuario no autorizado.", "Acceso Restringido", JOptionPane.WARNING_MESSAGE);
+            return;
         }
 
         // 5. VALIDACIÓN DE SUCURSAL (SOLO SI NO ES GERENTE)
-        // Si el prefijo NO es 10, obligamos a seleccionar sucursal
+        // Mantenemos la validación de selección, aunque después usemos el ID de la BD
         if (prefijo != 10) { 
             if (sucursalSeleccionada == null || sucursalSeleccionada.equals("No hay sucursales disponibles")) {
                 JOptionPane.showMessageDialog(this, "Por favor, seleccione una sucursal válida", "Sucursal Requerida", JOptionPane.WARNING_MESSAGE);
@@ -438,47 +438,56 @@ public class LoginjFrame extends javax.swing.JFrame {
         Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, contrasena);
 
         if (usuarioAutenticado != null) {
-            
-            // --- LÓGICA DE OBTENCIÓN DE ID SUCURSAL ---
-            int idSucursalReal = 0; // Valor por defecto (0 para Gerentes)
 
-            // Solo buscamos el ID de la sucursal si NO es Gerente (es decir, Admin o Cajero)
-            if (prefijo != 10) {
-                try {
-                    SucursalDAO sucursalDAO = new SucursalDAO();
-                    idSucursalReal = sucursalDAO.obtenerIdPorNombre(sucursalSeleccionada);
-                } catch (Exception e) {
-                    System.err.println("Error buscando sucursal: " + e.getMessage());
-                }
-
-                if (idSucursalReal == -1) {
-                    JOptionPane.showMessageDialog(this, "Error crítico: No se encontró la sucursal en BD.");
-                    return;
-                }
-            }
-            // ------------------------------------------
-
+            int idSucursalReal = 0; 
             String rol = usuarioAutenticado.getCargo().toUpperCase();
+            prefijo = Integer.parseInt(usuarioAutenticado.getUsuario()) / 1000000;
 
-            // Lógica exclusiva de CAJERO (Turnos y Caja)
-            if (rol.equals("CAJERO")) {
-                boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
-                if (!enTurno) {
-                    JOptionPane.showMessageDialog(this, "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.", "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
-                    return;
+            try {
+                // --- CORRECCIÓN CLAVE: OBTENER ID DE LA TABLA EMPLEADO ---
+
+                if (prefijo == 10) { // GERENTE
+                    // El Gerente mantiene ID 0 (Global)
+                    idSucursalReal = 0;
+                } else { // ADMINISTRADOR (11) o CAJERO (12)
+
+                    // OBTENER ID DE SUCURSAL DEL EMPLEADO (De su fila en la BD)
+                    edu.UPAO.proyecto.DAO.EmpleadoDAO empleadoDAO = new edu.UPAO.proyecto.DAO.EmpleadoDAO();
+                    idSucursalReal = empleadoDAO.obtenerSucursalEmpleado(usuarioAutenticado.getUsuario());
+
+                    if (idSucursalReal == -1) {
+                        JOptionPane.showMessageDialog(this, "Error: El empleado no tiene una sucursal asignada en la Base de Datos.");
+                        return;
+                    }
                 }
-                // Aquí usamos el idSucursalReal que ya obtuvimos arriba
-                gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
                 
-                edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
-                asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
+                // --- FIN CORRECCIÓN CLAVE ---
+
+
+                // Lógica exclusiva de CAJERO (Turnos y Caja)
+                if (rol.equals("CAJERO")) {
+                    boolean enTurno = LoginController.esHorarioValido(usuarioAutenticado.getUsuario());
+                    if (!enTurno) {
+                        JOptionPane.showMessageDialog(this, "⛔ ACCESO DENEGADO POR HORARIO\nNo estás en tu turno asignado.", "Fuera de Turno", JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    // Usa el idSucursalReal obtenido de la tabla
+                    gestionarAperturaCajaAutomatica(usuarioAutenticado.getUsuario(), idSucursalReal);
+
+                    edu.UPAO.proyecto.DAO.AsistenciaDAO asisDao = new edu.UPAO.proyecto.DAO.AsistenciaDAO();
+                    asisDao.registrarMarca(usuarioAutenticado.getUsuario(), idSucursalReal, "ENTRADA");
+                }
+
+                System.out.println("🎉 Login exitoso (" + rol + ") - ID Sucursal: " + idSucursalReal);
+
+                // --- CORRECCIÓN DE DUPLICACIÓN: SOLO UNA LLAMADA ---
+                abrirPanelSegunRol(usuarioAutenticado, idSucursalReal);
+                // --- La segunda llamada duplicada fue eliminada aquí ---
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error al obtener datos del empleado: " + e.getMessage(), "Error BD", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
-
-            System.out.println("🎉 Login exitoso (" + rol + ") - ID Sucursal: " + idSucursalReal);
-            
-            // Pasamos el ID (será 0 si es Gerente, o el ID real si es Admin/Cajero)
-            abrirPanelSegunRol(usuarioAutenticado, idSucursalReal);
-
         } else {
             JOptionPane.showMessageDialog(this, "Usuario o contraseña incorrectos", "Error de Autenticación", JOptionPane.ERROR_MESSAGE);
             tf_contraseña.setText("");
