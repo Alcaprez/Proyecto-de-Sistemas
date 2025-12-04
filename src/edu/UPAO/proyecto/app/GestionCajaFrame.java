@@ -208,32 +208,56 @@ public class GestionCajaFrame extends JFrame {
         JOptionPane.showMessageDialog(this, "Saldos actualizados desde la base de datos.");
     }
 
-    private void procesarAccion() {
+private void procesarAccion() {
         if (cajaActual == null) {
-            // ABRIR CON EL ACUMULADO HISTÓRICO
-            if (cajaDAO.abrirCaja(idSucursal, granTotalHistorico)) {
-                JOptionPane.showMessageDialog(this, "Turno iniciado con saldo acumulado: S/ " + granTotalHistorico);
-                cargarDatos();
-            } else {
-                JOptionPane.showMessageDialog(this, "Error al abrir caja.");
-            }
+            // LÓGICA NUEVA: Bloquear apertura manual
+            // Como la apertura es automática en el Login, aquí solo avisamos.
+            JOptionPane.showMessageDialog(this, 
+                "⚠️ La caja se encuentra CERRADA.\n" +
+                "El sistema abre la caja automáticamente con el primer inicio de sesión del día.\n" +
+                "Si necesita abrirla, por favor ingrese nuevamente al sistema.", 
+                "Acción no permitida", JOptionPane.INFORMATION_MESSAGE);
         } else {
-            // CERRAR
+            // LÓGICA DE CIERRE / ARQUEO
             try {
-                double saldoReal = Double.parseDouble(txtSaldoReal.getText().replace(",", "."));
+                // Verificar que el campo no esté vacío
+                if (txtSaldoReal.getText().trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Por favor ingrese el monto contado en 'Dinero Físico'.");
+                    return;
+                }
 
+                double saldoReal = Double.parseDouble(txtSaldoReal.getText().replace(",", "."));
+                
+                // Calculamos diferencias para mostrar en el mensaje
+                // Usamos el total esperado calculado en cargarDatos()
+                double diferencia = saldoReal - this.granTotalHistorico; 
+                
                 int confirm = JOptionPane.showConfirmDialog(this,
-                        "¿Cerrar turno con S/ " + saldoReal + "?",
-                        "Confirmar Cierre", JOptionPane.YES_NO_OPTION);
+                        "¿Confirmar arqueo con S/ " + String.format("%.2f", saldoReal) + "?\n" +
+                        "Diferencia calculada: S/ " + String.format("%.2f", diferencia),
+                        "Confirmar Arqueo", JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    if (cajaDAO.cerrarCaja(cajaActual.getIdCaja(), saldoReal)) {
-                        JOptionPane.showMessageDialog(this, "Turno cerrado.");
+                    // Usamos la nueva lógica de ENCUADRE (No cierre definitivo) para que el Admin revise luego
+                    // O si prefieres cierre directo, usa cerrarCajaConArqueo.
+                    // Aquí usaremos cerrarCajaConArqueo del DAO para mantener coherencia con tu código anterior
+                    // pero asegurándonos de pasar los 4 parámetros que pide el DAO actualizado.
+                    
+                    String observacion = "Cierre desde Gestión de Caja";
+                    if (Math.abs(diferencia) > 5) {
+                        observacion = JOptionPane.showInputDialog("Existe una diferencia mayor a S/ 5.00.\nIngrese una justificación:");
+                        if (observacion == null || observacion.trim().isEmpty()) observacion = "Sin justificación";
+                    }
+
+                    if (cajaDAO.cerrarCajaConArqueo(cajaActual.getIdCaja(), saldoReal, diferencia, observacion)) {
+                        JOptionPane.showMessageDialog(this, "✅ Turno/Caja cerrada correctamente.");
                         this.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error al guardar el cierre en la base de datos.");
                     }
                 }
             } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Monto inválido.");
+                JOptionPane.showMessageDialog(this, "Monto inválido. Ingrese solo números (ej. 150.50).");
             }
         }
     }
