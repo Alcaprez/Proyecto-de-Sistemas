@@ -203,11 +203,12 @@ public class CajaDAO {
         return (totalVentas + totalEntradas) - totalSalidas;
     }
 
-    // En edu.UPAO.proyecto.DAO.CajaDAO
-// Este método ya lo tienes, pero es CRUCIAL que sea el que uses siempre ahora.
+// En edu.UPAO.proyecto.DAO.CajaDAO
     public Caja obtenerCajaAbierta(int idSucursal) {
-        // Busca SI EXISTE una caja abierta hoy en esta sucursal, sin importar el empleado
-        String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado = 'ABIERTA' ORDER BY id_caja DESC LIMIT 1";
+        // Agregamos: AND DATE(fecha_hora_apertura) = CURDATE()
+        // Esto asegura que solo recupere la caja SI es del día actual.
+        String sql = "SELECT * FROM caja WHERE id_sucursal = ? AND estado = 'ABIERTA' AND DATE(fecha_hora_apertura) = CURDATE() ORDER BY id_caja DESC LIMIT 1";
+
         try (Connection conexion = new Conexion().establecerConexion(); PreparedStatement stmt = conexion.prepareStatement(sql)) {
             stmt.setInt(1, idSucursal);
             ResultSet rs = stmt.executeQuery();
@@ -217,13 +218,27 @@ public class CajaDAO {
                 c.setFechaApertura(rs.getTimestamp("fecha_hora_apertura"));
                 c.setSaldoInicial(rs.getDouble("saldo_inicial"));
                 c.setEstado(rs.getString("estado"));
-                // Importante: Aunque la haya abierto 'Juan', 'Maria' la usará en la tarde.
                 return c;
             }
         } catch (SQLException e) {
             System.err.println("Error obteniendo caja abierta: " + e.getMessage());
         }
-        return null; // Si retorna null, significa que es el PRIMER inicio de sesión del día
+        return null;
+    }
+    // En CajaDAO
+
+    public int obtenerIdSucursalPorCaja(int idCaja) {
+        String sql = "SELECT id_sucursal FROM caja WHERE id_caja = ?";
+        try (Connection con = new Conexion().establecerConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, idCaja);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id_sucursal");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     public boolean abrirCaja(int idSucursal, double saldoInicial) {

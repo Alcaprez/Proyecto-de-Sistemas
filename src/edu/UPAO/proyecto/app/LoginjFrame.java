@@ -537,36 +537,58 @@ public class LoginjFrame extends javax.swing.JFrame {
     // =========================================================================
     //  👇 REEMPLAZA TU MÉTODO ANTIGUO POR ESTE NUEVO BLOQUE 👇
     // =========================================================================
-    private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
-        edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+    // En edu.UPAO.proyecto.app.LoginjFrame
 
-        // 1. CAMBIO PRINCIPAL: Verificar si existe UNA caja abierta para la SUCURSAL
-        // Ya no usamos 'obtenerCajaAbiertaPorUsuario', usamos la genérica de la sucursal.
-        edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
+private void gestionarAperturaCajaAutomatica(String idEmpleado, int idSucursal) {
+    edu.UPAO.proyecto.DAO.CajaDAO cajaDAO = new edu.UPAO.proyecto.DAO.CajaDAO();
+    edu.UPAO.proyecto.DAO.SucursalDAO sucursalDAO = new edu.UPAO.proyecto.DAO.SucursalDAO();
 
-        if (cajaDia == null) {
-            // ==> NO hay caja abierta hoy: Significa que eres el primero del día.
-            System.out.println("☀️ Primer ingreso del día. Aperturando caja diaria...");
+    // 1. Verificar si YA existe caja abierta hoy (para no abrirla dos veces)
+    edu.UPAO.proyecto.Modelo.Caja cajaDia = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-            // 2. Calculamos el saldo histórico total de la tienda (acumulado real)
-            // Usamos obtenerSaldoAcumuladoHistorico para que el dinero fluya de ayer a hoy.
-            double saldoInicial = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
+    if (cajaDia == null) {
+        System.out.println("☀️ Primer ingreso del día. Calculando saldo inicial desde Presupuesto...");
 
-            // 3. Abrimos la caja para todo el día (Turno "DIA_COMPLETO" o similar)
+        // A. Obtener el presupuesto actual de la tienda
+        double presupuestoActual = sucursalDAO.obtenerPresupuesto(idSucursal);
+        
+        // B. Calcular el 5% para la caja chica (sencillo)
+        double porcentaje = 0.05; // 5%
+        double saldoInicial = presupuestoActual * porcentaje;
+        
+        // Validar que haya fondos suficientes
+        if (presupuestoActual < saldoInicial) {
+            JOptionPane.showMessageDialog(this, "⚠️ La tienda no tiene fondos suficientes para el saldo inicial.");
+            saldoInicial = 0; // O manejarlo como error crítico
+        }
+
+        // C. RESTAR ese dinero del presupuesto de la tienda (porque se mueve a la caja física)
+        boolean descuentoExitoso = sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, false); // false = Restar
+
+        if (descuentoExitoso) {
+            // D. Abrir la caja con ese dinero
             boolean exito = cajaDAO.abrirCaja(idSucursal, saldoInicial, idEmpleado, "DIA_COMPLETO");
 
             if (exito) {
-                System.out.println("✅ CAJA DIARIA CREADA. Saldo Acumulado Inicial: S/ " + saldoInicial);
-                JOptionPane.showMessageDialog(this, "☀️ Se ha aperturado la Caja del Día.\nSaldo inicial acumulado: S/ " + saldoInicial);
+                System.out.println("✅ CAJA DIARIA CREADA.");
+                System.out.println("💰 Presupuesto Tienda: " + presupuestoActual);
+                System.out.println("📉 Retirado (5%): " + saldoInicial);
+                JOptionPane.showMessageDialog(this, 
+                    "☀️ Se ha aperturado la Caja del Día.\n" +
+                    "Fondos asignados (5% del presupuesto): S/ " + String.format("%.2f", saldoInicial));
             } else {
-                JOptionPane.showMessageDialog(this, "Error crítico al abrir caja diaria.", "Error BD", JOptionPane.ERROR_MESSAGE);
+                // Si falla abrir la caja, devolver el dinero al presupuesto (Rollback manual)
+                sucursalDAO.actualizarPresupuesto(idSucursal, saldoInicial, true);
+                JOptionPane.showMessageDialog(this, "Error crítico al abrir caja en BD.");
             }
         } else {
-            // ==> SI hay caja abierta: Significa que ya la abrió alguien más (mañana) y tú entras en la tarde/noche.
-            // Simplemente te unes a la sesión existente.
-            System.out.println("ℹ️ Uniéndose a la caja abierta del día existente (ID Caja: " + cajaDia.getIdCaja() + ")");
+            JOptionPane.showMessageDialog(this, "Error al descontar saldo del presupuesto de la tienda.");
         }
+
+    } else {
+        System.out.println("ℹ️ Uniéndose a la caja abierta del día existente (ID: " + cajaDia.getIdCaja() + ")");
     }
+}
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Left;

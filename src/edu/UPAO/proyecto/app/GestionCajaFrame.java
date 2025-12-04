@@ -146,45 +146,60 @@ public class GestionCajaFrame extends JFrame {
     }
 
     private void cargarDatos() {
-        // 1. Verificar si hay caja abierta
+        // 1. Verificar si hay caja abierta para esta sucursal (Lógica Diaria)
+        // Usamos la búsqueda genérica de caja abierta hoy
         cajaActual = cajaDAO.obtenerCajaAbierta(idSucursal);
 
-        // 2. CALCULAR EL GRAN TOTAL HISTÓRICO (ESTA ES LA CLAVE)
-        // Suma todas las ventas de la historia de la sucursal, ignorando cierres.
-        granTotalHistorico = cajaDAO.obtenerSaldoAcumuladoHistorico(idSucursal);
-        // Mostrar siempre el total histórico como referencia
-        txtSaldoAcumulado.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
-
         if (cajaActual == null) {
-            // --- APERTURA ---
+            // --- ESTADO: CAJA CERRADA ---
             lblEstado.setText("CAJA CERRADA");
             lblEstado.setForeground(Color.RED);
             panelDetalles.setVisible(false);
 
-            btnAccion.setText("INICIAR TURNO");
-            btnAccion.setBackground(new Color(0, 153, 51));
-            lblInstruccion.setText("Saldo acumulado actual:");
+            // Si está cerrada, sugerimos abrirla con el 5% del presupuesto (Solo informativo aquí)
+            edu.UPAO.proyecto.DAO.SucursalDAO sucDao = new edu.UPAO.proyecto.DAO.SucursalDAO();
+            double presupuesto = sucDao.obtenerPresupuesto(idSucursal);
+            double sugerido = presupuesto * 0.05; 
+            
+            txtSaldoAcumulado.setText(String.format("%.2f", sugerido).replace(",", "."));
+            btnAccion.setText("INICIAR TURNO (Automático en Login)");
+            btnAccion.setEnabled(false); // Ahora se abre en el Login, no aquí.
+            lblInstruccion.setText("La caja se abre automáticamente al entrar el primer usuario.");
 
         } else {
-            // --- CIERRE / GESTIÓN ---
-            lblEstado.setText("TURNO ABIERTO");
+            // --- ESTADO: CAJA ABIERTA (TURNO EN CURSO) ---
+            lblEstado.setText("TURNO ABIERTO (ID: " + cajaActual.getIdCaja() + ")");
             lblEstado.setForeground(new Color(0, 153, 51));
             panelDetalles.setVisible(true);
 
-            // Mostrar ventas de ESTA sesión solo como informativo
-            double ventasSesion = cajaDAO.obtenerTotalVentasSesion(cajaActual.getIdCaja());
-            lblVentas.setText("S/ " + String.format("%.2f", ventasSesion));
+            // A. Mostrar con cuánto dinero EMPEZÓ el día (El 5% que se trajo del presupuesto)
+            double saldoInicialDia = cajaActual.getSaldoInicial();
+            txtSaldoAcumulado.setText(String.format("%.2f", saldoInicialDia).replace(",", "."));
 
-            // EL TOTAL ESPERADO ES EL GRAN TOTAL HISTÓRICO
-            lblTotalEsperado.setText("S/ " + String.format("%.2f", granTotalHistorico));
+            // B. Mostrar ventas de HOY (Sesión actual de la caja)
+            // Nota: calcularSaldoTeorico ya suma (SaldoInicial + Ventas - Egresos)
+            double totalTeorico = cajaDAO.calcularSaldoTeorico(cajaActual.getIdCaja());
+            
+            // Calculamos solo las ventas puras para mostrar en el label pequeño
+            double soloVentas = totalTeorico - saldoInicialDia; 
+            
+            lblVentas.setText("S/ " + String.format("%.2f", soloVentas));
 
-            // Pre-llenar con el total histórico para facilitar el cierre
-            txtSaldoReal.setText(String.format("%.2f", granTotalHistorico).replace(",", "."));
-            calcularDiferencia();
+            // C. EL TOTAL ESPERADO (Lo que debe haber en el cajón Físicamente)
+            // Aquí es donde corregimos el error. Ya no es el histórico, es el teórico de HOY.
+            lblTotalEsperado.setText("S/ " + String.format("%.2f", totalTeorico));
+            
+            // Variable global para usar en el cálculo de diferencia
+            this.granTotalHistorico = totalTeorico; 
 
-            btnAccion.setText("CERRAR TURNO");
+            // Pre-llenar el campo de conteo para facilitar (opcional)
+            txtSaldoReal.setText(""); 
+            lblDiferencia.setText("Ingrese monto...");
+
+            btnAccion.setText("REALIZAR ARQUEO / CERRAR");
             btnAccion.setBackground(new Color(204, 0, 0));
-            lblInstruccion.setText("Dinero total que debe haber:");
+            btnAccion.setEnabled(true);
+            lblInstruccion.setText("Dinero total que debe haber HOY:");
         }
     }
 
