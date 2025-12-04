@@ -459,7 +459,7 @@ public class PrincipalAdministrador extends javax.swing.JFrame {
             this.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
 
             // 1. Instanciamos el panel (ahora capturamos si falla aquí)
-            COMPRAS_Admin panelCompras = new COMPRAS_Admin();
+            COMPRAS_Admin panelCompras = new COMPRAS_Admin(idSucursal);
 
             // IMPORTANTE: Pasar el ID del empleado o sucursal si es necesario
             // panelCompras.setIdSucursal(this.idSucursalAdministrador); // (Opcional si implementas el setter)
